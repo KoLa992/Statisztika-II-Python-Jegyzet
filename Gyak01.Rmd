@@ -23,7 +23,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## 1. Leíró statisztikai mutatók
  
-A Stat. I. PTSD roham kiváltását kezdjük egy nagyon egyszerű kis "Móricka példán". Vizsgáljuk meg a *TSLA.xlsx* című táblában található adatokat, amik a **TESLA részvények napi záróárfolyam-változásai**t mutatják ki **dollárban** ($) 2019 májusától 2020 májusáig.
+A Stat. I. PTSD roham kiváltását kezdjük egy nagyon egyszerű kis "Móricka példán". Vizsgáljuk meg a <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/blob/main/TSLA.xlsx" target="_blank">TSLA.xlsx</a> című táblában található adatokat, amik a **TESLA részvények napi záróárfolyam-változásai**t mutatják ki **dollárban** ($) 2019 májusától 2020 májusáig.
 
 Az Excel táblákat, amennyiben az adattáblánk első értéke az *A1* cellában kezdődik és csak egy darab munkalapunk van, gond nélkül be lehet olvasni a `pandas` csomag `read_excel` függvényével egy data frame-be. Több munkalap esetén a `read_excel` függvény `sheet_name` paraméterével tudjuk megadni a beolvasandó munkalap nevét stringként. Viszont ahhoz, hogy ez működőképes legyen fel kell még telepítenünk egy `openpyxl` című kiegészítő csomagot.  A biztonság kedvéért ezzel a művelettel együtt rögtön importáljuk a statisztikai számításokhoz szükséges `numpy` és az ábrák megjelenítéséhez szükséges `matplotlib` csomagokat is.
 
@@ -434,7 +434,7 @@ Tehát, pl. a fenti szűrésben szereplő 2020 január 30-i $59.82\$$-os árvál
 
 ## 3. Az Exponenciális eloszlás
 
-Na, hát akkor most engedjük el egy kicsit a Tesla részvények árváltozásait, és vizsgáljunk meg egy másik adatsort, ami a *CancerSurvival.xlsx* fájlban lakik. Ebben az adattáblában 58 súlyos fej- és nyakrák páciensről rögzítették, hogy *hány hónapig* maradtak életben kemoterápia után. Az adatok valósak, 1988-ból a forrás <a href="https://www.jstor.org/stable/2288857#metadata_info_tab_contents" target="_blank">ez a tanulmány</a>.
+Na, hát akkor most engedjük el egy kicsit a Tesla részvények árváltozásait, és vizsgáljunk meg egy másik adatsort, ami a <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/blob/main/CancerSurvival.xlsx" target="_blank">CancerSurvival.xlsx</a> fájlban lakik. Ebben az adattáblában 58 súlyos fej- és nyakrák páciensről rögzítették, hogy *hány hónapig* maradtak életben kemoterápia után. Az adatok valósak, 1988-ból a forrás <a href="https://www.jstor.org/stable/2288857#metadata_info_tab_contents" target="_blank">ez a tanulmány</a>.
 
 Töltsük is be az adatokat egy `pandas` data frame-be!
 
@@ -546,7 +546,7 @@ A varianciahányados ugyebár arra szolgál, hogy **két ismérv, egy minőségi
 - Hány százalékban befolyásolja a kerület (minőségi simérv) a budapesti lakások árát (mennyiségi ismérv)?
 - Hány százalékban befolyásolja a Balaton Sound jelenléte (minőségi simérv) a Balatonban található kokain mennyiségét (mennyiségi ismérv)?
 
-A legutolsó kérdés a listán elsőre meredeknek tűnik, de <a href="https://setac.onlinelibrary.wiley.com/doi/pdfdirect/10.1002/etc.4998" target="_blank">ez a tanulmány</a> épp egy ilyen kérdésekkel is foglalkozik. Az általuk használt adatok egy részét találjuk a *BalatonSoundCocaine.xlsx* című fájlban.
+A legutolsó kérdés a listán elsőre meredeknek tűnik, de <a href="https://setac.onlinelibrary.wiley.com/doi/pdfdirect/10.1002/etc.4998" target="_blank">ez a tanulmány</a> épp egy ilyen kérdésekkel is foglalkozik. Az általuk használt adatok egy részét találjuk a <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/blob/main/BalatonSoundCocaine.xlsx" target="_blank">BalatonSoundCocaine.xlsx</a> című fájlban.
 
 A fájlban **3 balatoni vízminőséget ellenőrző állomás összesen $N=540$ mérését látjuk**. Egy állomás egy hónapban $20$ mérést végez, és mindhárom állomás esetén a nyári hónapok (június, július, augusztus) mérései vannak a fájlban 3 évre (2017, 2018, 2019). Így egy állomás esetében $20 \times 3 \times 3 = 180$ mérésünk van, azaz a három állomásra összesen $3 \times 180 = 540$ mérési adatunk van. Az **Excel fájlunk mindegyik mérés esetében tartalmazza a mérőállomás sorszámát (1., 2., 3.), a mérés évét és hónappját, valamint a vízben mért kokain mennyiségét nanogram/literben**.
 
