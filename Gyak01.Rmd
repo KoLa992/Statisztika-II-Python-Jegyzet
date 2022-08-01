@@ -1,0 +1,757 @@
+---
+title: "Statisztika I. ismétlés és Valószínűségszámítási alapok"
+author: "Kovács László"
+date: "2022.08.01."
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+## 1. Leíró statisztikai mutatók
+ 
+A Stat. I. PTSD roham kiváltását kezdjük egy nagyon egyszerű kis "Móricka példán". Vizsgáljuk meg a *TSLA.xlsx* című táblában található adatokat, amik a **TESLA részvények napi záróárfolyam-változásai**t mutatják ki **dollárban** ($) 2019 májusától 2020 májusáig.
+
+Az Excel táblákat, amennyiben az adattáblánk első értéke az *A1* cellában kezdődik és csak egy darab munkalapunk van, gond nélkül be lehet olvasni a `pandas` csomag `read_excel` függvényével egy data frame-be. Több munkalap esetén a `read_excel` függvény `sheet_name` paraméterével tudjuk megadni a beolvasandó munkalap nevét stringként. Viszont ahhoz, hogy ez működőképes legyen fel kell még telepítenünk egy `openpyxl` című kiegészítő csomagot.  A biztonság kedvéért ezzel a művelettel együtt rögtön importáljuk a statisztikai számításokhoz szükséges `numpy` és az ábrák megjelenítéséhez szükséges `matplotlib` csomagokat is.
+
+```{python eval = FALSE}
+pip install openpyxl
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+```
+```{python echo = FALSE}
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+```
+
+Ezek után pedig akkor jöhet az Excel beolvasás data frame-be!
+
+```{python}
+Tesla = pd.read_excel("TSLA.xlsx")
+
+Tesla.info()
+Tesla.head()
+```
+
+Láthatjuk, hogy két oszlopunk van: a dátum és a részvény árváltozása az adott napon az előző napi záróárfolyamhoz képest a **TESLA** oszlopban. Tehát 2019.05.07-én egy Tesla részvény kb. $8.3$ dollárral ért kevesebbet a nap végére, mint amennyit 2019.05.06-án ért nap végén. Ellenben 05.13-án már $12.5$ dollárral ér kevesebbet, mint előző nap, 05.12-én. Az  `info` metódus alapján $N=250$ napnyi ilyen adatunk van, ami nagyjából meg is egyezik egy évben a tőzsdei kereskedési napok számával.
+
+Nos, az első öt vizsgált nap alapján nem lennék Elon Musk helyében, elég szép mínuszokat produkál a részvénye. De lássuk, hogy a leíró statisztikai mutatók mit árulnak el, hogyan is teljesített ez a csodacég a teljes vizsgált 1 éves időtartamban! Vessük át be a data frame `describe` metódusát!
+
+```{python}
+Tesla.describe()
+```
+
+Lássuk hát milyen sztorit mesélnek a kiszámított mutatóink!
+
+- Úgy látszik, hogy abszolút értékben a legnagyobb veszteség ($-152\$$) némileg nagyobb, mint a legnagyobb nyereség ($+129\$$).
+- Ugyanakkor, egy átlagos napon nagyjából jól járunk egy Tesla részvénnyel, mert kb. $\mu=\bar{Y}=1.8\$$-al növeli értékét.
+- Viszont, marha nagy a rizikó a rendszerben, mert a szórás (angolul *standard deviation*, rövidítve `std`) alapján egy véletlenszerűen kiválasztott napon az árváltozás az $\sigma=1.8\$$-os átlagtól várhatóan $\pm27.2\$$-al térhet el. Azaz az árváltozások várható ingadozása az átlagos nyereségnek mintegy $V=\frac{\sigma}{\mu}=\frac{27.2}{1.8}=15.1$-szerese! (*relatív szórás*)
+- A medián árváltozás alapján azt mondhatjuk el, hogy a vizsgált időszakban a napok felében az elérhető maximális nyereség $Me=1.42\$$, míg a napok másik felében a nyereség pedig legalább ennyi.
+- Az alsó kvartilis alapján a kereskedési napok legrosszabb $\frac{1}{4}$-ében a veszteség nagyobb, mint $3.77\$$. Másképp: az árváltozás a napok negyedében kisebb, mint $Q_1=-3.77\$$.
+- A napjaink legjobb $25\%$-ban pedig a nyereség legalább $Q_3=6.96\$$
+
+Ha a fenti megállapításokat összenézzük, akkor arra juthatunk, hogy az **árváltozások eloszlása kb. szimmetrikus** lehet, egy **enyhe jobbra elnyúlással**. A **szimmetria mellett szól**, hogy az átlag nem nagyon tér el a mediántól (tehát a kilógó értékekre érzékeny átlag nem nagyon mozog el a kilógó értékekre robusztus felezőponttól), és a medián nagyjából egyenlő távolságra van az alsó és felső kvartilisektől (szóval az $50\%$-os pont a gyakoriságok szerint, értékekben is kb. a $25\%$ és $75\%$-os pontok közepén helyezkedik el). Ellenben az **enyhe jobbra elnyúlás mellett érvel**, hogy azért mégis az átlag enyhén nagyobb mediánnál (tehát a felfelé kilógó értékek kicsit felfelé húzzák az átlagértéket a felezőponthoz képest), és a medián enyhén közelebb van az alsó kvartilishez, mint a felsőhöz (tehát az adatok többsége egy kicsit inkább az értéktartomány aljára koncentrálódik $\rightarrow$ a kisebb értékből egy kicsit több van). De ezek tényleg nagyon enyhe eltérések. Sőt, **akár még a balra elnyúló eloszlás felé is lehet érvelni** azzal, hogy $Q_3$ közelebb van a maximumhoz, mint $Q_1$ a minimumhoz, tehát a *felső* $25\%$-ban lévő értékek "kevésbé húznak szét", nem annyira kilógóak, mint az *alsó* $25\%$-ban lévők.
+
+### 1.1. Hisztogram és Alakmutatók
+
+Az előző bekezdés dilemmáit leginkább **egy hisztogram segítségével tudnánk tisztázni**. A **hisztogramhoz** viszont szükségünk van egy **osztályközös gyakorisági táblára**, hiszen az árfolyamváltozások értékkészlete elég tág. Az osztályközöket vegyük egyenlő hosszúra. Ezek után már csak azt kell eldöntenünk, hogy **hány osztályközt** hozzunk létre! Ezt ugye Stat. I-ben legtöbbször a **"$2^k$ szabállyal"** adtuk meg. Tehát az osztályközök száma a legkisebb olyan $k$ szám, amire igaz az, hogy $2^k \geq N$, ahol $N$ az adataink elemszáma. Azt láttuk a `describe` eredményéből is pl., hogy $N=250$. Ez alapján pedig a keresett $k$ az $8$ lesz, mert $k=8:2^8 = 256 >250$, ám $k=7:2^7=128 < 250$. Ha valaki ezt pitonul szeretné kiszámolni arra figyeljen, hogy ott a hatványozás jele a `**`.
+
+```{python}
+2**7
+2**8
+```
+
+Akkor hát nézzük meg a 8 egyenlő hosszú osztályközzel bíró gyakorisági tábla alapján készített hisztogramot.
+
+```{python}
+Tesla.TESLA.hist(bins = 8)
+```
+
+Nagyon szép, tényleg sac/kb szimmetrikus az eloszlás: középen, az $1.8\$$-os átlag körül csoportosul a legtöbb elem, és az ennél kisebb és nagyobb értékekből arányosan kevesebb van. Bár némileg kicsit csúcsosnak néz ki az eloszlás: a középső, átlag körüli, leggyakoribb értéktartományra koncentrálódik az adatok legnagyobb része, kb. $190$ nap értéke az $N=250$-ből. Lássuk mi mondanak erről az $\alpha_3, \alpha_4$ **alakmutatók**!
+
+Az $\alpha_3$ **aszimmetria mutató** Pythonban egy data frame oszlop `skew` metódusával, míg az $\alpha_4$  **csúcsossági muató** az oszlop `skew` metódusával számítható.
+
+```{python}
+Tesla.TESLA.skew()
+Tesla.TESLA.kurt()
+```
+
+Az $\alpha_3$ értéke nagyon picit negatív, így enyhe balra elnyúlást jelez, de a hisztogram alapján látszik, hogy ez tényleg nagyon gyenge tendencia. Ez ugyebár abból adódik hogy $Q_3$ közelebb van a maximumhoz, mint $Q_1$ a minimumhoz. Tehát ezt a nagyon enyhe "balra elnyúlást" csak a maximum némileg kilógó viselkedése okozza, amire az $\alpha_3$ ugyebár érzékeny, hiszen az átlag ($\mu$) alapján számoljuk őt ki (átlag körüli harmadik momentum).<br>
+Ellenben az $\alpha_4=+9.09$-es nagyon erősen pozitív értéke egyértelműen csúcsos eloszlás mutat, amit gyönyörűen látunk is a hisztogramon.
+
+### 1.2. Gyakorisági tábla lekérése
+
+Ha szeretnénk **megtekinteni a hisztogram mögött lakó osztályközös gyakorisági táblát**, akkor a dolgunk annyi, hogy a `hist` metódus helyett a `numpy` csomag `histogram` függvényével készítsük el a hisztogramot, és az eredményt mentsük el egy külön objektumba. A `histogram` függvény első paramétere az a data frame oszlop, amiből hisztogramot készítenénk, míg a második paramétere a `bins`, ami ugyan az, mint a data frame `hist` metódusában. Az elmentett eredményt data frame-é konvertáljuk a `pandas` csomag `DataFrame` függvénye segítségével, majd az eredményt transzponáljuk (alias 90 fokkal elforgatjuk) a data frame-k `transpose` metódusa segítségével.
+
+```{python}
+gyaktábla = np.histogram(Tesla.TESLA, bins = 8)
+gyaktábla = pd.DataFrame(gyaktábla).transpose()
+gyaktábla
+```
+
+Amit kaptunk az egy olyan tábla, aminek az **első oszlopa a gyakoriságok** értéke, míg a **második az adott osztályköz alsó határa**. Ezért van az utolsó sorban üres (`NaN`) érték, mert az ottani alsó határ az a vizsgált ismérvünk (árváltozásunk) maximuma, ami fölött természetesen már nincs érték.
+
+Nevezzük át tartalmuknak megfelelően az oszlopokat, majd a `shift` metódus segítségével rakjuk be a táblába az adott osztályközök felső határait is. Itt a a `shift` metódusnál az alapelv, hogy az adott osztályköz felső határa nem más, mint a következő sor alsó határa.
+
+```{python}
+gyaktábla.columns = ['Gyakoriság', 'AlsóHatár']
+gyaktábla.info()
+gyaktábla['FelsőHatár'] = gyaktábla.AlsóHatár.shift(-1)
+gyaktábla
+```
+
+Na, ez egész pofás! Már csak annyi van, hogy rendezzük logikus sorrendbe az oszlopokat, és töröljük azt a nyomorult utolsó sort a `NaN`-nal.
+
+```{python}
+gyaktábla = gyaktábla[['AlsóHatár', 'FelsőHatár', 'Gyakoriság']]
+gyaktábla = gyaktábla.drop(8, axis = "index")
+gyaktábla
+```
+
+Na, ez végre tök szépen olvasható! :) Láthatjuk például, hogy $5$ olyan kereslkedési napunk volt a vizsgált időszakban, amikor az árfolyamváltozás $-81\$$ és $-46\$$ között volt, azaz a Tesla 46 és 81 dollár közti *veszteséget* produkált ezen az 5 napon. Ellenben $15$ napon $23\$$ és $58\$$ dollárt lehetett kaszálni egy Tesla részvényen. De amint a hisztogramon is látszott: a legtöbb, $193$ napon az árfolyamváltozások a $11\$$ *veszteség* és a $23\$$ *nyereség* között (tehát úgy kb az $1.8\$$ átlag környékén) ingadoztak.
+
+### 1.3. Gyakorisági tábla bővítése
+
+Ha szeretnénk, akkor a **Relatív Gyakoriságokat** iis ki tudjuk számítani a táblába: ugyebár minden gyakoriságot leosztunk a teljes elemszámmal ($N$), ami a gyakoriságok összege. Ez Pythonban úgy néz ki, hogy a data frame gyakoriság oszlopát elosztjuk annak összegzett verziójával. Az összeg alias `sum` függvényt itt a `numpy` csomagból raboljuk el.
+
+```{python}
+gyaktábla['RelatívGyak'] = gyaktábla.Gyakoriság / np.sum(gyaktábla.Gyakoriság)
+gyaktábla
+```
+
+Szuper, így már láthatjuk, hogy az az $5$ nap, amikor $46\$$ és $81\$$ közti *veszteségünk* volt az az összes vizsgált napnak $2\%$-át jelenti.
+
+Lehet **kumulálni** is a `cumsum` metódus segítségével. Számítsuk is ki így a *kumulált relatív gyakoriságot*!
+
+```{python}
+gyaktábla['KumRelatívGyak'] = gyaktábla.RelatívGyak.cumsum()
+gyaktábla
+```
+
+Remek, az utolsó sorban ott a $100\%$-os kumulált relatív gyakoriság, ahogy kell, és azt is látjuk, hogy a vizsgált napjaink $3.6\%$-ban volt a *veszteség* nagyobb, mint $46\$$ (azaz az árváltozás kisebb, mint $-46\$$).
+
+### 1.4. Súlyozott átlag és szórás Pythonban
+
+Ha szeretnénk pl. **súlyozott átlagot számítani** a gyakorisági táblából azt is minden további nélkül megtehetjük! Kb. **pont ugyan úgy, mint Excelben**! Itt most a *SZORZATÖSSZEG* függvény szerepét a `numpy`-féle `sum` függvény tölti be! Ezzel ugyan úgy **le tudjuk tükrözni a szummás statos képleteinket Pythonban, mint ahogy azt Excelben megtettük**.
+
+Ugyebár a súlyozott átlaghoz két dolog kellenek, a **gyakoriságok**, alias $f_i$-k, és az **osztályközepek**, az $Y_i$-k. Előbbiek megvannak csak hozzáadom az **f_i** jelölést az oszlop nevéhez, mígy az $Y_i$-ket kiszámolom, mint az osztály alsó és felső határának átlaga egy új **Y_i** nevű oszlopba! Majd a data frame **oszlopnevekben mindig** '_' **szimbólummal jelölöm az alsó indexet**!
+
+```{python}
+gyaktábla = gyaktábla.rename(columns = {"Gyakoriság":"f_i"})
+gyaktábla['Y_i'] = (gyaktábla.AlsóHatár + gyaktábla.FelsőHatár) / 2
+gyaktábla
+```
+
+Nagyon jó, így mát tudom is alkalmazni a súlyozott átlag képletét: $$\mu=\bar{Y}=\frac{\sum_i{f_iY_i}}{N}$$
+
+```{python}
+átlag = np.sum(gyaktábla.f_i * gyaktábla.Y_i) / len(Tesla.TESLA)
+átlag
+```
+
+Remek, hát az osztályközepek használatával kicsit felélőttem a valóságnak (ami kb. $1.8\$$ volt ugyebár), de hát ez ugye csak egy becslés. :)
+
+A súlyozott szórást ugyan ezzel az elvvel ki lehet számolni pitonkával a képlete alapján: $$\sigma=\sqrt{\frac{\sum_i{f_i(Y_i-\bar{Y})^2}}{N}}$$
+
+```{python}
+gyaktábla
+szórás = np.sqrt(np.sum(gyaktábla.f_i * (gyaktábla.Y_i-átlag)**2) / len(Tesla.TESLA))
+szórás
+```
+
+Na, ezt már nem lőttük annyira mellé a valós $27.19\$$-hez képest. Ezzel meg is vagyunk, juppí! :)
+
+## 2. A normális eloszlás és sűrűségfüggvénye
+
+Térjünk vissza a Tesla részvényárfolyamok hisztogramjához. Most rajzoljuk ki úgy a cuccot, hogy a `hist` metóduson bekapcsolunk egy `density = True` beállítást. Ez úgy rajzolja ki a hisztogramot, hogy az $y$ tengelyen nem a gyakoriságok jelennek meg, hanem azoknak egy úgy skálázott verziója, hogy a maximum érték az adott osztály osztályközepének és a körülötte lévő $\pm 2$ érték együttes relatív gyakoriságával arányos. Mivel egy konkrét érték gyakorisága itt most $\frac{1}{250}$, így a maximum érték egy jó alacsony szám lesz az $y$ tenegelyen, egész konkrétan kb. $\frac{5}{250}=0.02$. A többi oszlop magassága az eredeti gyakoriságok szerint legyártott hisztogram alapján van belőve ehhez a maximum értékhez. Szóval, a hisztogram alakja nem változik, csak az $y$ tengely van máshogy beskálázva.
+
+```{python}
+Tesla.TESLA.hist(bins = 8, density = True)
+```
+
+Meg is van a csodaszépen szimmetrikus eloszlást mutató hisztogramunk.<br>
+Ezen a "*relatív gyakoriságos*" hisztogramon azt a gondolatot kell most elképzelni, hogy milyen alakzatot kapunk, ha **az oszlopokat összekötjük egy folytonos vonallal**.<br>
+Nos, nem kell sokat fantáziálni, a vonnallal összekötés az **alábbi alakzathoz hasonló függvényt eredményez**:
+
+```{python echo=FALSE}
+import scipy.stats as stats
+
+x_tengely = np.arange(np.min(Tesla.TESLA), np.max(Tesla.TESLA), 0.01)
+plt.plot(x_tengely, stats.norm.pdf(x_tengely, np.mean(Tesla.TESLA), np.std(Tesla.TESLA)))
+plt.show()
+```
+
+Amit itt látunk az nem más, mint **egy normális eloszlás sűrűségfüggvénye**. Sőt, pontosítok is, ez **az alakzat egy $\mu=1.8$ átlagú és $\sigma=27.19$ szórású normális eloszlás sűrűségfüggvénye, hiszen ennyi volt a Tesla árfolyamváltozások adatsorának átlaga és szórása, aminek a hisztogramja alapján gondolatban kirajzoltuk ezt a sűrűségfüggvényt**. Ezt ilyenkor úgy szoktuk szakszerűen mondani, hogy amit látunk az egy $N(1.8,27.19)$ eloszlás sűrűségfüggvénye. Általánosságban egy normális eloszlásra pedig $N(\mu, \sigma)$ jelöléssel hivatkozunk.
+
+Miért is van ez így? Mivel **azt, hogy konkrétan milyen egy normális eloszlású sűrűségfüggvény alakja, meghatározza, hogy mennyi az adatsor átlaga és szórása, amire ezt a sűrűségfüggvényt úgymond illeszteni szeretnénk**. Azt, hogy hogyan az alábbi kis interaktív ábra szemlélteti:
+
+<iframe src ="https://kola992.shinyapps.io/normaldensityplot/" height=500px width=800px data-external="1" />
+
+Amúgy a normális eloszlás sűrűségfüggvényének hozzárendelési $f(x)$ utasítása $\mu$ átlag és $\sigma$ szórás függvényében az alább alakot ölti.$$f(x)=\frac{1}{\sigma\sqrt{2\pi}}e^{-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^2}$$
+
+Mielőtt szörnyet halunk az Analízis emlékek által kiváltott PTSD-ben, megnyugtatok mindenkit: erre a épletre igazából nekünk nem lesz szükségünk, de egyszer nem árt ha látjuk a függvény mögötti képletet is. :)
+
+### 2.1. A sűrűségfüggvény használata
+
+No, de "*Mit adtak nekünk a rómaiak?*" Azaz jogosan kérdezhetjük, hogy mire tudjuk használni ezt a sűrűségfüggvényt? Első és legfontosabb funkciója, hogy ha a függvény $f(x)$ formulájába behelyettesítek egy $x$ értéket, akkor megkapom, hogy **mi a valószínűsége, hogy az $Y$ adatsoromból egy véletlenszerűen kihúzott $Y_i$ érték az $x$-et vesz fel**. Magyarul $f(x)=P(Y_i=x)$.<br>
+Most itt egy picit **pontatlan voltam**. Ugyanis nem egész pontosan a $Y_i=x$ esemény valószínűségét kapjuk meg, mert nagy értékkészlet esetén az gyakorlatilag $0$ lenne. Gondoljunk bele: annak a valószínűsége, hogy a Tesla napi árváltozása éppen pont $2.760009\$$ az tényleg gyakorlatilag $0$, de a valóságban pont ennyi volt a cucc 2019. május 23-án. Szóval, abszolút nem lehetetlen...emiatt, amit ez az $f(x)$ sűrűségfüggvény-érték mutat az a $P(Y_i \in x\pm \epsilon)$ valószínűség. tehát, annak a valószínűsége, hogy a random módon kihúzott $Y_i$ értékünk az $x$-nek egy **nagyon kicsi*, $\pm \epsilon$-nyi környezetébe esik.<br>
+Emiatt van az is, hogy a Pythonban a `hist` metódus `density = True` beállítással a relatív gyakoriságokat a legnagyobb gyakoriságú $Y_i$ osztályközép $\pm 2$ környezet relatív gyakorisága alapján mutatja meg a hisztogram $y$ tengelyén.<br>
+De most nekünk **szemléletes szempontból teljesen jó lesz, ha úgy gondolunk a helyettesítési értékre $x$ helyen, mint az $x$ érték bekövetkezési valószínűsége**. Azaz, mi a $f(x)=P(Y_i=x)$ értelmezéssel megyünk tovább.
+
+Ez alapján, ha meg akarjuk tudni, hogy mennyi a valószínűsége, hogy a Tesla egy random napi árfolyamváltozása épp a 2019. május 23-i kb. $2.76\$$-al lesz egyenlő, akkor ahhoz az alábbi csodát kell kiszámolni.$$P(Y_i=2.76)=f(2.76)=\frac{1}{27.19\sqrt{2\pi}}e^{-\frac{1}{2}\left(\frac{2.76-1.8}{27.19}\right)^2}$$
+
+Hiszen azt tudjuk, hogy a megfigyelt kereskedési napok alapján az árváltozások átlaga $\mu=1.8\$$ és szórása $\sigma=27.19\$$.
+
+Na, ezt számolja ki kézzel az, aki papíron tanulja a Stat. II-t. :) Mi Pythonban be tudjuk vetni a `scipy` csomag `stats` névterében található függvényeket egy ilyen normális eloszlás sűrűségfüggvény-érték kiszámítására!
+
+Telepítsuk a csomagot és importáljuk a szükséges függvényeket egy `stats` névtérbe. A **csomagot nagyon sokat fogjuk hazsnálni a félév során**, és egy szép alapos <a href="https://docs.scipy.org/doc/scipy/reference/index.html" target="_blank">dokumentációja</a> van. Érdemes olvasgatni! :)
+
+```{python eval=FALSE}
+pip install scipy
+import scipy.stats as stats
+```
+
+Majd a névtér `norm.pdf` függvénye segítségével számoljuk ki a keresett valószínűséget! A függvény **3 paraméterrel operál, ebben a sorrendben: $x, \mu, \sigma$.** Annyit érdemes megjegyezni, hogy a függvény a $\mu$ átlagot location-nek, azaz `loc`-nak, míg a $\sigma$ szórást `scale`-nek nevezi a saját kis nyelvjárásában. A függvény neve pedig az angol *probability density function*-ból (valószínűségi sűrűségfüggvény) rövidül *pdf*-nek.
+
+```{python}
+mű = 1.8
+szigma = 27.19
+stats.norm.pdf(x = 2.76, loc = mű, scale = szigma)
+```
+
+Szuper, ez azt jelenti, hogy kb. $1.466\%$ a valószínűsége annak, hogy egy véletlenszerű napon egy Tesla részvénnyel $2.76\$$-t lehet kaszálni.
+
+Ezen a ponton **érdemes belegondolni, hogyan is reagált a sűrűségfüggvény a szórás növekedésére...ellaposodott!** Na, ez most teljesen érthetővé válik, hiszen **ha a szórás nő**, az azt jelenti, hogy a **szélsőségesen magas vagy alacsony $Y_i$ értékek bekövetkezési valószínűsége is megnő**...és ha a **függvény $f(x)$ értéke épp ezekkel a $P(Y_i=x)$ valószínűségekkel egyenlő**, akkor épp a **két szélen fog "meghízni" a függvény képe**, azaz **ellaposodik**!
+
+### 2.2. A sűrűségfüggvény integrálja
+
+Azért láthatjuk, hogy egy konkrét érték bekövetkezési valószínűsége, alapól nem valami nagy, épp azért, amit fejtegettünk korábban is: az árváltozások értékkészlete elég nagy, egy konkrét érték (vagy annak kis környezetének) bekövetkezési valószínűsége elég kicsi.<br>
+Emiatt nem is ezt a kérdést szoktuk általában feltenni a sűrűségfüggvénynek, hanem pl. azt, hogy **mi a valószínűsége annak, hogy egy véletlenszerűen kihúzott $Y_i$ érték egy előre megadott $x$ érték alatt helyezkedik el**? Tehát a $P(Y_i < x)$ valószínűséget keressük általában.<br>
+Ez pedig nem más, mint a **sűrűségfüggvény $x$ alatti részének területe**, vagyis a $\int_{-\infty}^x{f(x)}dx$ improprius integrál.
+
+Na, ha a sűrűségfüggvény helyettesítési értékét nem akartuk kézzel-lábbal kiszámolni, akkor ezt az improprius integrált meg pláne nem!<br>
+Szerencsére, **van erre is beépített függvényünk** a `scipy` csomagban `norm.cdf` néven. Ugyan úgy működik, mint a `norm.pdf`, 3 paramétere van, ugyan abban a sorrendben: `x, loc, scale`, csak a $P(Y_i < x)$-et számítja ki, nem a $P(Y_i = x)$-t a megadott átlagú és szórású normális eloszlás sűrűségfüggvény alapján. A függvény neve az angol *cumulative density function*-ból (kumulált sűrűségfüggvény) rövidül *cdf*-nek. Ha belegondolunk ez logikus, hiszen felösszegezzük (azaz felkumuláljuk) az egyes $Y_i$ elemek bekövetkezési valószínűségét $-\infty$-től $x$-ig.
+
+Lássuk akkor hát pl., hogy mennyi a valószínűsége, hogy egy véletlenszerűen kiszúrt kereskedési napon a Teslával $82\$$-nál nagyobb *veszteségünk* lesz! Tehát, a $P(Y_i<-82)$ valószínűséget keressük.
+
+```{python}
+stats.norm.cdf(x = -82, loc = mű, scale = szigma)
+```
+
+Ez pedig a korábban megadott $\mu$ átlaggal és $\sigma$ szórással nem más, mint kb. $0.1\%$. Szóval, szerencsére egy jó kicsi érték! :)
+
+Természetesen ha egy $x$ érték alá esési valószínűségét ki tudjuk számolni, akkor az $x$ felé esés valószínűségét már gyerekjáték kiszámolni, hiszen **a "felé esés" az "alá esés" komplementer eseménye**, azaz $P(Y_i>x)=1-P(Y_i<x)$. Szemléletesen pedig itt a **sűrűségfüggvény $x$ feletti részének területét** számoljuk ki.
+
+Eszerint gyorsan meg tudjuk adni, hogy mi annak a valószínűsége, hogy egy random napon a Tesla részvényen $20\$$-nál többet kaszálunk, hiszen $P(Y_i>20)=1-P(Y_i<20)$. Tehát, az egész dolog ismét megoldható a `norm.cdf` függvény segítségével.
+
+```{python}
+1 - stats.norm.cdf(x = 20, loc = mű, scale = szigma)
+```
+
+Na, ez nem is rossz, a $20\$$ feletti nyereség valószínűsége egy napon egy kicsit több, mint $25\%$!
+
+Ha pedig azt szeretnénk megtudni, hogy mi a valószínűsége, hogy a véletlenszerűen kihúzott $Y_i$ értékünk épp két előre megadott $x$ és $y$ érték közé esik, akkor egyszerűen a **nagyobb érték alá esés valószínűségéből kivonjuk a kisebb érték alá esés valószínűségét**. Azaz, ha $x>y$, akkor $P(y<Y_i<x)=P(Y_i<x)-P(Y_i<y)$, de ha $x<y$, akkor $P(x<Y_i<y)=P(Y_i<y)-P(Y_i<x)$ a számítás menete.Tehát, ekkor is az egész sztori megoldható pitonban a `norm.cdf` függvénnyel. Grafikusan pedig úgy képzeljük el a dolgot, mint a **sűrűségfüggvény $x$ és $y$ közötti részének területe**.
+
+Szóval, ha azt szeretném megtudni, hogy mi a valószínűsége annak, hogy egy véletlenszerűen kiválasztott napon egy Tesla részvénnyel $47\$$ és $82\$$ közti veszteséget produkálunk, akkor megnézem a $-47$ alá esés valószínűségét, és kivonom belőle a $-82$ alá esés valószínűségét (tartom a nagyobból vonom a kisebbet elvet ugyebár).
+
+```{python}
+stats.norm.cdf(x = -47, loc = mű, scale = szigma) - stats.norm.cdf(x = -82, loc = mű, scale = szigma)
+```
+
+Nagyon jó, akkor már azt is tudjuk, hogy kb. $3.5\%$ a valószínűsége, hogy a Tesla egy napon $47\$$ és $82\$$ közti veszteséget produkál.
+
+**Összefogalva** tehát a sűrűségfüggvény, $f(x)$ segítségével a következő események bekövetkezési valószínűsége számítható ki, ahol $Y_i$ a vizsgált adatsornak egy véletlenszerűen kihúzott $i$-edik eleme, $x$ és $y$ pedig előre adott számok:
+
+- $x$ bekövetkezése: $P(Y_i=x)=f(x)$
+- $x$ alá esés: $P(Y_i<x)=\int_{-\infty}^x{f(x)}dx$
+- $x$ felé esés: $P(Y_i>x)=1-P(Y_i<x)$
+- $x$ és $y$ közé esés: $P(y<Y_i<x)=P(Y_i<x)-P(Y_i<y)$
+
+Mindezen valószínűségek számolása a hozzájuk tartozó sűrűségfüggvény interaktív ábrájával alább tekinthetők át.<br>
+Egy *apró megjegyzés*: az alá-felé-közé esési valószínűségeknél azért hagytam el mindenhol a $=$ jelet, mert a nagy értékkészlét miatt ugyebár egy konkrét érték bekövetkezési valószínűsége nagyon kicsi, így a tartományba esésnél elhanyagolható. *Nem oszt, nem szoroz úgymond*.
+
+<iframe src ="https://kola992.shinyapps.io/normalprobabilities/" height=600px width=800px data-external="1" />
+
+### 2.3. Valószínűség vs Relatív Gyakoriság
+
+Na jó, már tudjuk akkor használni a normális eloszlás sűrűségfüggvényét. Jó-jó, de **ennek mi értelme?** Oké, akkor az előbb a sűrűségfüggvénnyel kiszámoltuk, hogy a Tesla részvényekkel a $47\$$ és $82\$$ közti veszteség valószínűsége $3.5\%$.
+
+```{python}
+stats.norm.cdf(x = -47, loc = mű, scale = szigma) - stats.norm.cdf(x = -82, loc = mű, scale = szigma)
+```
+
+De ez egy olyan dolog, amit az osztályközös **gyakorisági tábla relatív gyakoriságaiból is tudtunk már, nem?** Hiszen ott megnéztük a $-82$ és $-47$ értékek közötti napok számát, mint kedvező esetek, és elosztottuk a teljes $N=250$ elemszámmal, mint összes eset. Tehát ilyen elven az is, a $47\$$ és $82\$$ közti veszteség valószínűsége, nem?
+
+```{python}
+gyaktábla
+```
+
+Na igen ám, de itt ez a relatív gyakoriság $2.0\%$!! Na akkor most kinek higgyek? Mi ez a keresett valószínűség? $3.5\%$ ahogy a sűrűségfüggvény mondja vagy $2.0\%$, ahogy a relatív gyakorisággal kiszámoltam? Mi a kettő válasz közötti különbség?
+
+Nos, azt kell észrevenni, hogy a **relatív gyakoriságos $2.0\%$ kiszámításánál csak a megfigyelt adatokat, azaz a megfigyelst statisztikai MINTÁT vettem csak figyelembe!!** Tehát a $2.0\%$ esetén a **pontos értelmezés az, hogy a megfigyelt napjainknak 2%-a volt olyan, hogy a részvénnyel 47-82 dollárt veszítettünk!!**
+
+Ezzel szemben a $3.6\%$, amit az adatokra illeszkedő átlagú és szórású normális eloszlás sűrűségfüggvénye (Gauss görbéje) alapján számoltunk már egy *elvi valószínűség*! Konkréten, **annak az ELVI valószínűsége, hogy a részvénnyel 47-82 dollár közti összeget veszítek $3.6\%$!!** Ez azért lehet egy elvi érték, hiszen mivel az $x$ tengely felett egy folytonos vonallal összekötött $f(x)$ függvényről beszélünk, ami így **pozitív bekövetkezési valószínűséget rendel olyan $x$ értékekhez is, amik a megfigyelt adatok között még nem szerepelnek!!** Tehát, **a sűrűségfüggvény megfigyelt adataimon kívüli világot is figyelembe veszi!** Emiatt mondhatom a sűrűségfüggvényből származó értékeket *valódi VALÓSZÍNŰSÉG*nek, és nem csak relatív gyakoriságnak!
+
+*Nota bene*: ehhez azért az is kell, hogy az eloszlás, aminek a sűrűségfüggvényét használom tényleg illeszkedjen az adatokra! Itt azért most a normális eloszlással lehetnek gondok, hiszen amint láttuk pl. az $\alpha_4$ a Tesla részvények eloszlása kicsit csúcsosabb az $N(1.8,27.19)$ eloszlás sűrűségfüggvényénél.
+
+Azt, hogy egy eloszlás sűrűségfüggvény mennyire illeszkedik a megfigyelt adatok hisztogramjára a következőképpen tudjuk grafikusan megvizsgálni.
+
+- Először elkészítjük a hisztogramot a `hist` metódussal, `density = True` paraméterrel, hogy az $y$ tengely skálázása összemérhető legyen a sűrűségfüggvény $y$ tengelyével, ami ugyebár valószínűségeket mutat ki.
+- Utána megadjuk egy külön objektumban a sűrűségfüggvény $x$ tengelyének tartományát a `np.arange` függvénnyel. A függvény paraméterezése azt mondja nekünk el, hogy a létrehozott $x$ tengely a megfigyelt Tesla árváltozások minimuma és maximuma között fog terjedni $0.01$-es lépésközzel.
+- Kövi lépésben megadjuk a sűrűségfüggvény $y$ tengelyét egy külön objektumban a `scipy` csomag `norm.pdf` függvényével. Ha ennek a függvénynek az `x` paraméterében több értéket adunk át, akkor mindegyikhez szépen kiszámolja a sűrűségfüggvény $f(x)$ helyettesítési értékét. Az átlagot (`loc` paraméter) és szórást (`scale` paraméter) most közvetlenül a data frame-ből számolom ki a függvényen belül.
+- Egy sima `matplotlib` csomag `plt` névteréből származó `plot` függvénnyel felrajzolunk egy olyan vonaldiagramot a hisztogramra, aminek az $x$ és $y$ tengelye az előző két pontban létrehozott értékekből áll.
+- Végül a `plt.show()` paranccsal kikényszerítjük, hogy ezt a többrétegű árát így egyben mutassa meg nekünk a gépállat.
+- **FONTOS!** Az alábbi kódsort mindig egyben futtassuk le, mert csak így fogja szépen egyben összerakni a kívánt ábrát! Ha soronként futtatjuk, akkor két külön ábránk lesz belőle!
+
+```{python}
+Tesla.TESLA.hist(bins = 8, density = True)
+x_tengely = np.arange(np.min(Tesla.TESLA), np.max(Tesla.TESLA), 0.01)
+y_tengely = stats.norm.pdf(x = x_tengely, loc = np.mean(Tesla.TESLA), scale = np.std(Tesla.TESLA))
+plt.plot(x_tengely, y_tengely)
+plt.show()
+```
+
+Egyszerűen *utsukushii*, nemigaz? :) Szépen látszik, hogy a valódi árváltozás eloszlás kissé csúcsosabb, mint amit az adatokra illeszkedő normális eloszlás sűrűségfüggvénye sugall.
+
+Egyébként majd ilyen elvi sűrűségfüggvények illeszkedési jóságát valós hisztogramokhoz egzaktabban is megtanuljuk majd mérni a félév során, mint a szemmelverés. :)
+
+### 2.4. Inverz Értékek
+
+A sűrűségfüggvényektől lehet "*visszafelé is kérdezni*". Tehát, nem csak arra képesek, hogy mondok egy eseményt (pl. mi a valószínűsége, hogy $80\$$-nál nagyobb veszteségem lesz a Teslán) és adnak hozzá valószínűséget, hanem arra is, hogy mondok nekik valószínűséget, és az **inverz értékeik** segítségével adnak hozzá értéket. Szóval, tudok tőlük olyat kérdezni, hogy pl. *Mi az az érték, aminél csak $5\%$ valószínűséggel veszítek többet a Teslán?*<br>
+Magyarul, a $P(Y_i < x) = 0.05$ kifejezésben megadja nekem a sűrűségfüggvény inverz értéke az $x$-et. Ilyenkor az történik a háttérben, hogy a sűrűségfüggvény primitívfüggvényét (amit hívnak eloszlásfüggvénynek is, de a mi szempontunkból ez az elnevezés nem fontos) "*visszaderiváljuk*".
+
+Természetesen, a `scipy`-nak erre is van beépített függvénye `norm.ppf` néven, ami 3 paramétert kíván: a $P(Y_i < x)$ alá esési valószínűséget, a $\mu$ átlagot (`loc`) és a $\sigma$ szórást (`scale`).<br>
+Akkor hát lássuk mi is az az érték, aminél csak $5\%$ valószínűséggel veszítek többet a Teslán?
+
+```{python}
+stats.norm.ppf(0.05, loc = np.mean(Tesla.TESLA), scale = np.std(Tesla.TESLA))
+```
+
+Oké, tehát csak $5\%$ valószínűséggel veszítünk kb. $42.85\$$-nál többet. Vagy másképp: $5\%$ a valószínűsége, hogy egy random napon a Tesla árváltozás kisebb lesz, mint $-42.85\$$. Jó tudni. :) Amúgy pénzügyekben ezeket az értékeket *5%-os Value at Risk*-nek szokás becézni, mint 5%-os kockáztatott érték. Általában úgy szól a törvényi szabályozás ezeket az értékeket a befektetési bankoknak be kell raknia biztonsági tartalékba egy-egy pénzügyi befektetési portfólió után.
+
+Ha valaki mélyebben belegondol a Stat. I-es rémképeibe, az **eloszlások inverz értékeihez is találhat analógiát, mégpedig a percentiliseket!** Hiszen a megfigyelt árváltozások **5. percentilis**e megadja, hogy mi az az érték, aminél az adatok $5\%$-a kisebb csak. Tehát ez az értelmezés lehet a "*Mi az az érték, aminél csak $5\%$ a valószínűsége, hogy egy random napon a Tesla árváltozás kisebb lesz?*" c. kérdés analógiája.
+
+Lássuk, akkor mi a megfigyelt érváltozások 5. percentilise! Itt most a data frame `quantile` metódusát vetjük be, aminek a paraméterében tizedestörtként kell megadni a keresett percentilis sorszámát. Tehát az 5. percentilisnél $0.05$-öt adunk meg.
+
+```{python}
+Tesla.TESLA.quantile(0.05)
+```
+
+Ahha, ez csak kb. $-28.5\$$! Tehát a megfigyelt napjaink $5\%$-ban volt nagyobb veszteségünk, mint $28.5\$$! Ez azért **lényegesen kisebb érték, mint a sűrűségfüggvényből származó $42.85\$$-os veszteség!** És valószínűleg a **sűrűségfüggvény**ből származó éték a reálisabb, hiszen az a számolás során ugyebár **olyan értékeket is figyelembe vett** valami pozitív bekövetkezési valószínűséggel, **amiket a megfigyelt adatsor még egyáltalán "nem is látott"**, mert kisebbek pl. mint a minimum értéke.<br>
+Tehát, megint elmondhatjuk, hogy **ha az elvi eloszlásból "keresek percentilist", akkor a megfigyelt adatokon kívüli világot is figyelembe veszem!** Azaz, **általánosítok**.
+
+Az tehát, hogy mondjuk egy befektetési bank a befketetéseinek *Value at Risk* értékét a megfigyelt korábbi adatokból, vagy egy azokra jól illeszkedő elvi eloszlásból számolja egyáltalán nem mindegy! Persze itt a jól illeszkedő eloszlás nem feltétlenül a normális eloszlás, de rengeteg egyéb, kellően egzotikus sűrűségfüggvénnyel rendelkező eloszlás van a palettán, lehet válogatni. :)<br>
+Persze a válogatáshoz dolgozni is kéne, és nagy a csábítás, hogy egyszerűen inkább a megfigyelt múltbeli adatok alapján mondjon az ember egy percentilist...a nagy befektetési bankok többsége 2008 előtt ezt is csinálta, mert megtehette. Aztán a 2008-as pénzügyi válság lett belőle. Erről is szól részben a <a href="https://en.wikipedia.org/wiki/The_Black_Swan:_The_Impact_of_the_Highly_Improbable" target="_blank">The Black Swan: The Impact of the Highly Improbable</a> c. könyv. Ajánlom minden érdeklődőnek, tartalmas és közérthető olvasmány. :)<br>
+2008 óta a törvényi szabályozás (Európában  a Bázel III., 2023-tól Bázel IV.) kötelezi a bankokat, hogy a befektetéseikhez Value at Risk-et az adataikra megfelelően illeszkedő elvi eloszlásból számoljanak.
+
+Természetesen ilyen inverz érték formájában "pozitív" dolgot is kérdezhetek: **Mi az az érték, aminél csak $1\%$ a valószínűsége, hogy többet nyerünk egy Tesla részvényen?** Azaz, mi a $99\%$-os valószínűséggel elérhető legnagyobb nyereség?
+
+Ekkor a kérdés ugyebár úgy szól matematikai formájában, hogy mi az az $x$, aminél $P(Y_i>x)=0.01$-et kapunk. De mivel a `scipy` csomag `norm.ppf` függvénye **csak alá esési valószínűséghez tud visszakeresni értékeket**, így inkább a kérdés átfogalmazott verzióját kérdezzük meg a gépszellemtől: **Mi az az $x$, aminél $P(Y_i<x)=0.99$-et kapunk?**
+
+```{python}
+stats.norm.ppf(0.99, loc = np.mean(Tesla.TESLA), scale = np.std(Tesla.TESLA))
+```
+
+Tehát, csak $1\%$ eséllyel tudok többet nyerni egy nap a Teslán, mint kb. $65\$$.
+
+### 2.5. A Standard Normális Eloszlás
+
+Még egy fontos dologról kell megemlékeznünk a normális eloszlás kapcsán, a $\mu=0$ átlagú és $\sigma=1$ szórású $N(0,1)$ eloszlásról, ami **standard normális eloszlás** néven külön helyet kapott a pokolban.
+
+Ami miatt külön kiemelt helye van ennek a standard normális eloszlásnak az az, hogy minden $N(\mu,\sigma)$ normális eloszlás áttranszformálható strandard normális $N(0,1)$ eloszlássá. Mégpedig a következő formulával. $$z_i=\frac{Y_i-\mu}{\sigma}$$
+
+Tehát, ha egy **normális eloszlású $Y_i$ adatsor minden eleméből kivonom az átlagot és az eredményt elosztom a szórással, akkor az így előálló $z_i$ adatsor már standard normális eloszlású lesz**. Ez a művelet a **standardizálás/noralizálás művelet**e.
+
+Amúgy azt, hogy egy adatsor/sokaság valamilyen eloszlást követ, azt $\sim$ jellel szokás jelölni. Tehát azt mondhatom, hogy $Y_i \sim N(\mu,\sigma)$, de $z_i \sim N(0,1)$.
+
+Lássuk is akkor a standardizálást a gyakorlatban a Tesla részvények árváltozásain, és állítsuk elő ezt a $z_i$ oszlopot.
+
+```{python}
+Tesla['z_i'] = (Tesla.TESLA - np.mean(Tesla.TESLA))/np.std(Tesla.TESLA)
+round(Tesla.describe(), 2) # 2 tizedesre kereítés az átláthatóság miatt
+```
+
+Láthatjuk a leíró statisztikákból, hogy a $z_i$ adatsornak már kb. $0$ az átlaga és kb. $1$ a szórása 2 tizedesre kerekítve.
+
+De a hisztogram alapján az eloszlás továbbra is normális maradt.
+
+```{python}
+Tesla.z_i.hist(bins=8)
+```
+
+Ami miatt szeretni szokás a standard normális eloszlást az az a jellemzője, hogy
+
+- Az adatok kb. középső $68.2\%$-a $-1$ és $+1$ között
+- Az adatok kb. középső $95.4\%$-a $-2$ és $+2$ között
+- Az adatok kb. középső $99.7\%$-a $-3$ és $+3$ között
+
+helyezkedik el.
+
+Ezt szemlélteti az alábbi ábra is.
+
+<center>
+![](stnormal.png){width=50%}
+</center>
+
+De ezt ellenőrizhetjük is könnyen Pythonban is, pl. a $\pm2$-re. A `norm.cdf` függvény ugyanis `loc=0` és `scale=1` beállításokkal fut, ha nem adunk meg neki mást. Tehát szűmoljuk ki $z_i \sim N(0,1)$ esetén a $P(-2 < z_i < +2)$ valószínűséget!
+
+```{python}
+stats.norm.cdf(2)-stats.norm.cdf(-2)
+```
+
+Jé, ténlyeg kb. $95.4\%$! :) **Ezt a tulajdonságát majd ki fogjuk a későbbiekben használni a standard normális eloszlásnak, szóval jól jegyezzétek meg!** :)
+
+A fenti tulajdonságok miatt sokan szokták úgy keresni a kilógó értékeket egy adatsorban, hogy standardizálják őket, és megnézik melyek azok az értékek, amik kívül esnek a $\pm2$ intervallumon, mondván az ilyen értékek vagy az adatok alsó vagy a felső $2.5\%$-ba tartoznak (a sűrűségfüggvényből látszik, hogy a 95%-on kívüli 5% egyeneletesen oszlik meg a függvény két széla között...szimmetriksu az eloszlás ugyebár :)).
+
+Ezt az elvet mi is könnyen tudjuk alkalmazni:
+
+```{python}
+Tesla[(Tesla.z_i < -2) | (Tesla.z_i > 2)]
+```
+
+Meg is vannak a kiugróan nagy veszteséget vagy nyereséget szolgáltató napjaink. :)
+
+De **ezzel a módszerrel vigyázzunk!** A standardizált $z_i$ értékek alapján történő kilógó érték keresés **csak akkor működik, ha az eredeti (standardizálás előtti) adatsorunk is már eleve normális eloszlású volt!** Hiszen csak ekkor lesz a transzformált adatsor is szimmetrikus normális eloszlású és lesz igaz rá a $P(-2 < z_i < +2)=0.954$ összefüggés!<br>
+Szóval **kilógó érték kereséshez inkább használjuk** a tetszőleges eloszlásokon is működőképes **doboz ábrás módszert**! :)
+
+Még egy utolsó gondolat. A standardizált $z_i$ értékeknek van egy olyan értelmezése is, hogy megadják, az adott érték a $\sigma$ szórás hányszorosával tér el a $\mu$ átlagtól.<br>
+Tehát, pl. a fenti szűrésben szereplő 2020 január 30-i $59.82\$$-os árváltozás a $27.19$-es szórás kb. $2.14$-szeresével tér el az $1.8\$$-os átlagtól.
+
+## 3. Az Exponenciális eloszlás
+
+Na, hát akkor most engedjük el egy kicsit a Tesla részvények árváltozásait, és vizsgáljunk meg egy másik adatsort, ami a *CancerSurvival.xlsx* fájlban lakik. Ebben az adattáblában 58 súlyos fej- és nyakrák páciensről rögzítették, hogy *hány hónapig* maradtak életben kemoterápia után. Az adatok valósak, 1988-ból a forrás <a href="https://www.jstor.org/stable/2288857#metadata_info_tab_contents" target="_blank">ez a tanulmány</a>.
+
+Töltsük is be az adatokat egy `pandas` data frame-be!
+
+```{python}
+Surv = pd.read_excel("CancerSurvival.xlsx")
+
+Surv.info()
+Surv.head()
+```
+
+Mint láthatjuk, ebben a data frame-ben is csak két oszlopunk van. Az első a páciens sorszáma, a második pedig a kemoterápiától számítot túlélési idő hónapokban megadva (*SurvMonth*).
+
+Nézzünk rá egy hisztogrammal a túlélési idők eloszlására. Mivel most $N=58$, így a legksiebb olyan $k$, amire $2^k$ már épp nagyobb $N$-nél az a 6 lesz, hiszen $2^6=64$. Tehát $6$ osztályközt hozunk létre a hisztogramon.
+
+```{python}
+Surv.SurvMonth.hist(bins=6)
+```
+
+Nos, hát itt az látszódik, hogy az eloszlásunk jobbra elnyúló: a túlélési idők nagy többsége (45 az 58-ból konkrétan) $256$ hónapon belüli, de a maradék $13$ meghaladja ezt, sőt $3$ páciens $1000$ hónapnál is hosszabb ideig élt túl a kemoterápia után.
+
+A jobbra elnyúlás miatt, ha folytonos vonallal összekötjük a hisztogram oszlopait, akkor valami ilyesmi függvényábrát kapunk, mint alább.
+
+```{python echo=FALSE}
+x_tengely = np.arange(np.min(Surv.SurvMonth), np.max(Surv.SurvMonth), 0.01)
+plt.plot(x_tengely, stats.expon.pdf(x_tengely, scale = np.mean(Surv.SurvMonth)))
+plt.show()
+```
+
+Ez az alakzat pedig az **exponenciális eloszlás sűrűségfüggvénye**. Ennek a sűrűségfüggvénynek a konkrét alakját egy $\lambda$ paraméter határozza meg. Minél nagyobb $\lambda$, annál meredekebben jobbra elnyúló a sűrűségfüggvény. Ezt alább lehet kipróbálni.
+
+
+<center>
+```{r echo=FALSE}
+knitr::include_app("https://kola992.shinyapps.io/normaldensityplot/?distr=Exp",
+                   height = "500px")
+```
+</center>
+
+Természetesen a $\lambda$-nak van köze a valós adatok átlagához és szórásához, egész konkrétan mindkét érték $\mu=\sigma=\frac{1}{\lambda}$. Tehát, az exponenciális eloszlásban azonos átlagot és szórást tételezünk fel az adatokra, és ennek a közös értéknek a reciproka (a $\lambda$) határozza meg, hogy mennyire meredeken nyúlik jobbra az eloszlás sűrűségfüggvénye. Emiatt az exponenciális eloszlásokat $Exp(\lambda)$ módon szokták jelölni.
+
+Persze valós adatokon gyakorlatilag sosem fog teljesülni, hogy $\mu=\sigma$, de láthatjuk egy `describe` metódusból, hogy a túlélési adatok esetén a két mutató értéke aránylag közel esik egymáshoz: $\mu=226.17 \approx \sigma=273.94$ 
+
+```{python echo=FALSE}
+Surv.SurvMonth.describe()
+```
+
+A `scipy` csomagban a `norm.pdf`, `norm.cdf` és `norm.ppf` függvények mintájára léteznek `expon.pdf`, `expon.cdf` és `expon.ppf` függvények is. Használatuk és jelentésük teljesen megegyezik a normális eloszlásnál látott függvényekkel. Egyetlen különbség ugyebár, hogy exponenciális eloszlásnál csak az egységes $\lambda$-t kell megadni a külön $\mu$ és $\sigma$ helyett, mint ahogy a normális eloszlásnál működött a dolog.<br>
+A `scipy` csomag ezt úgy oldja meg, hogya a szórásból számolja vissza a $\lambda$-t, tehát a függvényeknek a `scale` paraméterében kell átadni az adatok szórását, amire az exponenciális eloszlást illeszteni akarjuk.<br>
+Ez alapján akkor most a túlélési idők esetében $\lambda=\frac{1}{\sigma}=\frac{1}{273.94}=0.00365$. Tehát az egyes $Y_i$ túlélési idők $Exp(0.00365)$ eloszlástkövetnek: $Y_i \sim Exp(0.00365)$
+
+Ezek alapján számoljunk ki pár valószínűséget a túlélési időkre vonatkozóan:
+
+1. Mi a valószínűsége, hogy kemoterápia után pont egy évet, azaz $12$ hónapot fogunk élni?
+
+```{python}
+stats.expon.pdf(12, scale = np.std(Surv.SurvMonth))
+```
+
+Ez egy jó alacsony, kb. $0.3\%$-os valószínűség. Nem lepődünk meg, hiszen egy konkrét pont bekövetkezése a nagy túlélési idő-értékkészlet miatt itt is kicsi.
+
+2. Mi a valószínűsége, hogy kemoterápia után több, mint öt évet, azaz $60$ hónapot fogunk élni?
+
+```{python}
+1 - stats.expon.cdf(60, scale = np.std(Surv.SurvMonth))
+```
+
+Az eredmény kb. $80\%$, egész jó kilátások!
+
+3. Mi a valószínűsége, hogy a kemoterápia utáni harmadik év során, azaz $24$ és $36$ hónapközött fogunk elpatkolni?
+
+```{python}
+stats.expon.cdf(36, scale = np.std(Surv.SurvMonth)) - stats.expon.cdf(24, scale = np.std(Surv.SurvMonth))
+```
+
+A számítások alapja itt is az, hogy $f(x)=P(Y_i=x)$, tehát **a sűrűségfüggvény helyettesítési értékre $x$ helyen megegyezik az $x$ érték bekövetkezési valószínűségével** egy véletlen húzás esetén az adatsorból. A $P(Y_i<x)$ valószínűség pedig exponenciális sűrűségfüggvény esetén is az $\int_{-\infty}^x{f(x)}dx$ improprius integrállal számítható, azaz a sűrűségfüggvény $x$ alatti területével egyezik meg.
+
+Ezeket a vizuális jelentéstartalmakat az alábbi interaktív ábrán meg lehet nézni és ki lehet próbálni úgy, ahogy a normális eloszlásnál lehetett.
+
+<iframe src ="https://kola992.shinyapps.io/normalprobabilities/?distr=Exp" height=550px width=800px data-external="1" />
+
+Természetesen *inverz értéket* is tudunk számolni az exponenciális eloszlásban is. Nézzük meg pl, hogy Mi az az idő, aminél csak $1\%$ a valószínűsége, hogy egy kemoterápiával kezelt fej- és nyakrák páciens tovább él.<br>
+Ugyebár a számításhoz úgy kell átfogalmazni a kérdést, hogy mi az az idő, ami esetén csak $99\%$ a valószínűsége, hogy egy kemoterápiával kezelt fej- és nyakrák páciens már *NEM* él tovább. Hiszen az `expon.ppf` függvény is *alá esési* valószínűségekból dolgozik, mint a `norm.ppf`.
+
+```{python}
+stats.expon.ppf(0.99, scale = np.std(Surv.SurvMonth))
+```
+
+A megfejtés kb. $1250$ hónap, azaz $104$ év! De hát ugye ez a nagy érték alapvetően a jobbra elnyúlás miatt van, hiszen a jobbra elnyúló eloszlásokra jellemzőek a felfelé kilógó értékek, így a jobbra elnyúló sűrűségfüggvényeknek is számolnia kell ezekkel az outlier elemekkel.
+
+Végül pedig nézzük meg szépen, hogy ez az exponenciális sűrűségfüggvény mennyire illeszkedik a túlélési idők hisztogramjára, ahogy a normális eloszlás esetén is megtettük egy hisztogramra illesztett `matplotlib`-es vonaldiagrammal.
+
+```{python}
+Surv.SurvMonth.hist(bins = 6, density = True)
+x_tengely = np.arange(np.min(Surv.SurvMonth), np.max(Surv.SurvMonth), 0.01)
+y_tengely = stats.expon.pdf(x_tengely, scale = np.mean(Surv.SurvMonth))
+plt.plot(x_tengely, y_tengely)
+plt.show()
+```
+
+Itt egész pofásnak tűnik az illeszkedés, így szemmelverésre jobban is illeszkedik ez az exponenciális eloszlás a túlélési időkre, mint a normális eloszlás illeszkedett a Tesla árváltozásokra. :)
+
+## 4. A Varianciahányados Pythonban - Kokain a Balatonban
+
+Egy dolgot kellene még átismételnünk a Stat. I-es rémképeink közül, ami többször is elő fog jönni a Stat. II-es tanulmányinkban: a **Varianciahányados** fogalmát.
+
+A varianciahányados ugyebár arra szolgál, hogy **két ismérv, egy minőségi ("szöveges") és egy mennyiségi ("számértékű") ismérv kapcsolatának szorosságát adja meg, százalékos formában**. Tehát olyan kérdéseket lehet vele megválaszolni, mint...
+
+- Hány százalékban befolyásolja a nem (minőségi simérv) a fizetést (mennyiségi ismérv)?
+- Hány százalékban befolyásolja a kerület (minőségi simérv) a budapesti lakások árát (mennyiségi ismérv)?
+- Hány százalékban befolyásolja a Balaton Sound jelenléte (minőségi simérv) a Balatonban található kokain mennyiségét (mennyiségi ismérv)?
+
+A legutolsó kérdés a listán elsőre meredeknek tűnik, de <a href="https://setac.onlinelibrary.wiley.com/doi/pdfdirect/10.1002/etc.4998" target="_blank">ez a tanulmány</a> épp egy ilyen kérdésekkel is foglalkozik. Az általuk használt adatok egy részét találjuk a *BalatonSoundCocaine.xlsx* című fájlban.
+
+A fájlban **3 balatoni vízminőséget ellenőrző állomás összesen $N=540$ mérését látjuk**. Egy állomás egy hónapban $20$ mérést végez, és mindhárom állomás esetén a nyári hónapok (június, július, augusztus) mérései vannak a fájlban 3 évre (2017, 2018, 2019). Így egy állomás esetében $20 \times 3 \times 3 = 180$ mérésünk van, azaz a három állomásra összesen $3 \times 180 = 540$ mérési adatunk van. Az **Excel fájlunk mindegyik mérés esetében tartalmazza a mérőállomás sorszámát (1., 2., 3.), a mérés évét és hónappját, valamint a vízben mért kokain mennyiségét nanogram/literben**.
+
+Olvassuk is be az Excelt egy data frame-be és lessük meg, hogy ez tényleg így van-e!
+
+```{python}
+Balcsi = pd.read_excel("BalatonSoundCocaine.xlsx")
+
+Balcsi.info()
+Balcsi.head()
+```
+
+Igen, az oszlopok (ismérvek) neve és adattípusa és az első öt sor tartalma alapján úgy néz ki, hogy rendben van a tábla, azok az oszlopok szerepelnek benne, amit a leírás alapján vártunk is.
+
+Oké, akkor itt mérési adatokat látunk. Hogy a túróba jön az egészhez a Balaton Sound. Egyrészt úgy, hogy a három mérőállomás épp a Sound helyszíne környékén található Siófokon. Konkrét koordináták az alábbi ábrán.
+
+<center>
+![](balcsi.jpg){width=50%}
+</center>
+
+És hát a mérések pont a fesztivál előtt (június), közben (július) és után (augusztus) készültek. Tehát, ha **a Sound jelenlétének van hatása a víz kokain tartalmára, akkor a mérés hónapja aránylag nagy százalékban kell, hogy meghatározza a kokaintartalmat**. Szóval a vizsgált **minőségi ismérvünk a mérés hónapja, mennyiségi ismérvünk a kokaintartalom** lesz. A két ismérv kapcsolatának szorosságát pedig akkor a varianciahányados adja meg.
+
+A varianciahányados kiszámításának első lépése egy olyan segétáblázat összeállítása, amely sorait a minőségi ismérv lehetséges értékei adják, és 3 oszlopa van, ami a minőségi ismérv $j$ indexszel jelölt csoportjai szerint bontva tartalmazza az elemszámokat ($N_j$), a mennyiségi ismérv részátlagait ($\bar{Y}_j$) és szórásait ($\sigma_j$).<br>
+Ezt a segédtáblát Pythonban a data frame-k `groupby` és `agg` metódusaival hozhatjuk létre. Persze az `agg`-n belül használjuk a `numpy` csomag `mean` és `std` függvényeit is a `count` mellett (amely utóbbi függvényt stringként kell beadni az `agg`-ba, mint az oszlopneveket). Illetve, ne felejtsük el a végén a `reset_index`` metódus használatát, különben a minőségi ismérvünk értékei a data frame sorindexeiként végzik, és nem lesz külön oszlopuk!
+
+```{python}
+Segéd = Balcsi.groupby('Honap').agg(
+  Elemszam = ('Kokain', 'count'),
+  Reszatlagok = ('Kokain', np.mean),
+  Szorasok = ('Kokain', np.std)
+).reset_index()
+
+Segéd
+```
+
+Meg is vagyunk! Látszik, hogy **a Sound hónapjának van hatása**: júliusban nagyságrendekkel több az átlagos kokain mennyisége a Balaton vizének, mint a másik két nyári hónapban. De a **hatás nagyságát nehéz megfogni már szemmelveréssel**, mivel a **kokain mennyiségek szórása is ebben a hónapban a legnagyobb**. Sőt, ez az egyetlen hónap, amikor a konkrét mérések kokain mennyiségének szórása *nagyobb* az átlagos kokain mennyiségnél! Szóval, kell azért egy check arra a varianciahányadosra.
+
+A varianciahányados, a $H^2$ mutató értékéhez úgy jutunk el, hogy **elkezdjük az előbb felépített segédtáblázatunk alapján kiszámolni a mennyiségi ismérv (azaz most a kokain mennyiség) teljes, hónapoktól független teljes átlagát és teljes szórását**. Ugyebár a **teljes átlagos kokainmennyiség (főátlag, $\bar{Y}$), nem más, mint a részátlagok ($\bar{Y}_j$) részelemszámokkal ($N_j$) súlyozott átlaga**: $$\bar{Y}=\frac{\sum_j{N_j\bar{Y}_j}}{\sum_j{N_j}}$$
+
+Ilyen stílusú súlyozott átlagokat számolgattunk már az 1.4. fejezetben, csak gyakorisági táblából. Ez ugyan az a szitu, és itt is a `np.sum` függvényt be tudjuk vetni. Ellenőrzéshez ki tudjuk számolni ezt a főátlagot úgy is, hogy az `np.mean` függvényt ráeresztjük a data frame teljes `Kokain` oszlopára.
+
+```{python}
+főátlag = np.sum(Segéd.Elemszam * Segéd.Reszatlagok)/(np.sum(Segéd.Elemszam))
+főátlag
+
+np.mean(Balcsi.Kokain)
+```
+
+Stimm egészen az utolsó jó sokadik tizedesjegyig. Ezzel megvagyunk. :)
+
+A variancia-hányados lelke viszont abban leledzik, hogy a kokainmennyiség (mint mennyiségi ismérv) teljes szórása ($\sigma$) csak úgy kapható meg a segédtábla alapján, ha előbb kiszámoljuk a belső szórást ($\sigma_B$) és a külső szórást ($\sigma_K$).
+
+A belső szórást a **belső variancián, azaz belső szórásnégyzeten keresztül kapjuk meg**. Ez pedig nem más, mint a **részszórások $\sigma_j^2$ négyzeteinek elemszámokkal ($N_j$) súlyozott átlaga**. $$\sigma_B^2=\frac{\sum_j{N_j\sigma_j^2}}{\sum_j{N_j}}$$
+
+Az előző számítás alapján ez is egész könnyen tud menni Pythonban, csak a részszórások négyzetre emelésére kell figyelni.
+
+```{python}
+belső_var = np.sum(Segéd.Elemszam * Segéd.Szorasok**2)/(np.sum(Segéd.Elemszam))
+belső_var
+```
+
+A belső szórás pedig egyszerűen a belső variancia gyöke. $\sigma_B=\sqrt{\sigma_B^2}$ Általánosságban $\sigma_B$ azt jelenti, hogy **egy véletlenszerűen kiválasztott egyed konkrét mennyiségi ismérv értéke várhatóan mennyivel tér el saját csoportjának átlagától**.
+
+Konkrét esetünkben ez az alábbi módon néz ki.
+
+```{python}
+belső_szórás = np.sqrt(belső_var)
+belső_szórás
+```
+
+Tehát, **egy mérés kokainmennyisége várhatóan $55.3$ nanogram/literrel tér el saját hónapjának átlagos kokainmennyiségtől**. Ami azért nem egy elhanyagolható mennyiségű szóródás a mérési hónapokon *belül*.
+
+A másik vége a dolognak a külső szórás, ami szintén a négyzetén, a külső variancián keresztül számítható. A külső variancia pedig a **részátlagok $\bar{Y}_j$ elemszámokkal ($N_j$) súlyozott szórása a mennyiségi ismérv főátlaga $\bar{Y}$ körül**. $$\sigma_K^2=\frac{\sum_j{N_j(\bar{Y}_j-\bar{Y})^2}}{\sum_j{N_j}}$$
+
+Az 1.4. fejezet alapján ezt is meg tudjuk azért alkotni `np.sum` bevetésével.
+
+```{python}
+külső_var = np.sum(Segéd.Elemszam * (Segéd.Reszatlagok - főátlag)**2)/(np.sum(Segéd.Elemszam))
+külső_var
+```
+
+A külső szórás pedig egyszerűen a külső variancia gyöke. $\sigma_K=\sqrt{\sigma_K^2}$ Általánosságban $\sigma_K$ azt jelenti, hogy **egy csoport átlaga várhatóan mennyivel tér el a mennyiségi ismérv főátlagától**.
+
+Konkrét esetünkben ez az alábbi módon néz ki.
+
+```{python}
+külső_szórás = np.sqrt(külső_var)
+külső_szórás
+```
+
+Tehát, **egy hónap átlagos kokainmennyisége várhatóan $30.5$ nanogram/literrel tér el az átlagosan mért kokainmennyiségétől**. Tehát a hónapok *között* is van egy jelentős szóródásunk, viszont ez kicsit kisebb, mint a csoporton belüli szóródás.
+
+Ebből a két tényezőből pedig összeadható a **teljes variancia: $\sigma^2=\sigma_B^2+\sigma_K^2$.** A teljes szórás pedig ennek a mennyiségnek a gyöke: $\sigma=\sqrt{\sigma^2}=\sqrt{\sigma_B^2+\sigma_K^2}$. **Mivel tagonként nem vonhatunk gyököt, így ez az összefüggés ugyebár a szórásokra NEM lesz igaz!!**
+
+A teljes szórás pedig **általánosan ugye azt mutatja meg, hogy egy véletlenszerűen kiválasztott egyed konkrét mennyiségi ismérv értéke várhatóan mennyivel tér el a mennyiségi ismérv csoportoktól független, teljes főátlagától**.
+
+Lássuk, hogy ez a mi esetünkben hogy fest! Ellenőrzésnek számoljuk ki a teljes szórást úgy is, hogy az `np.std` függvényt ráeresztjük a data frame teljes `Kokain` oszlopára.
+
+```{python}
+teljes_var = belső_var + külső_var
+teljes_szórás = np.sqrt(teljes_var)
+teljes_szórás
+
+np.std(Balcsi.Kokain)
+```
+
+Hát ez csak majdnem stimmel. Ennek az oka az, hogy a `Segéd` data frame-ben a részátlagok és részszórások $6$ tizedesjegyre le lettek kerekítve. De nagyságrendileg stimmelünk! :)
+
+Mindez pedig azt jelenti, hogy **egy mérés kokainmennyisége várhatóan $63$ nanogram/literrel tér el az átlagosan mért kokainmennyiségtől**.
+
+A varianciahányados logikája úgy bukik ki ebből a $\sigma^2=\sigma_B^2+\sigma_K^2$ felbontásból, hogy **elképzeljük ezeket a különböző szórásokat vizuálisan, mint távolságokat**. Az alábbi ábra egy egyszerűbb rendszert mutat, ahol a minőségi ismérv csak két csoportot alkot (*narancsok* és *zöldek*), nem pedig hármat, mint amennyit a mi három hónapunk generál.
+
+<center>
+![](varhanyad1.jpg){width=80%}
+</center>
+
+Tehát vizuálisan a következőképp érdemes gondolni a különböző $\sigma$-kra:
+
+- $\sigma_B$: Megfigyelések távolsága saját csoportjuk átlagától
+- $\sigma_K$: Csoportátlag távolsága a főátlagtól
+- $\sigma$: Megfigyelések távolsága a főátlagától
+
+Ezek alapján nekünk az a jó a csoportosítás, azaz a minőségi ismérv magyarázóereje szempontjából, ha **fix** $\sigma$ mellett $\sigma_K$ **nagy** és $\sigma_B$ **kicsi**. Mert ekkor a **csoportátlagok messze vannak** a főátlagtól és így implicite **egymástól** is, míg a csoportátlagtól az egyes **megfigyelések nagyon kis mértékben térnek csak el saját csoportátlaguktól**:
+
+<center>
+![](varhanyad2.jpg){width=30%}
+</center>
+
+Ebben az esetben, ahogy az ábráról is látszik a csoportosításunk, azaz a minőségi ismérvünk magyarázóereje nagy! Tehát az kell nekünk, hogy az $\sigma$ minél nagyobb részét tegye ki $\sigma_K$. Viszont, mivel csak a teljes **varianciára** igaz az, hogy **egyenlő a külső és belső VARIANCIA összegével**, így azt mondjuk, hogy **azt szeretnénk látni**, hogy **a $\frac{\sigma_K^2}{\sigma^2}$ hányados nagy legyen**! Ez a mutató lesz tehát a **varianciahányados**, és a most elvégzett módszer neve a **variancia-analízis, azaz ANOVA = ANalysis Of VAriances**.
+
+**Azért a varianciákra néztük végül a dolgokat**, mert $\sigma^2=\sigma_B^2+\sigma_K^2$, így a $\frac{\sigma_K^2}{\sigma^2}$ variancia-hányados biztos, hogy $0-1$ közötti, és **százalékosan** is értelmezhető, hiszen $\sigma_K^2$ része $\sigma^2$-nek. Ez alapján nekünk most:
+
+$\frac{\sigma_K^2}{\sigma^2} = \frac{933.98387}{3996.64097}=0.23369=23.369\%$ --> **A hónap (tehát a Sound jelenléte) a Balatonban mért kokainmennyiség alakulásának (varianciájának) kb. 23%-át magyarázza a megfigyelt adatok körében!** Ez egy **közepes magyarázóerő**nek tekinthető, mivel a variancia-hányadost a következőképpen "*korszakoljuk*":
+
+- **variancia-hányados < 10% --> gyenge kapcsolat**
+- **10% <= variancia-hányados <= 50% --> közepes kapcsolat**
+- **variancia-hányados > 50% --> erős/szoros kapcsolat**
+
+### 4.1. További minőségi ismérvek és a kokainmennyiség
+
+Az eredmény tehát azt mondja, hogy a kokainmennyiség alakulásának csak kb. $23\%$-át tudjuk csak lefedni azzal, hogy a mérés melyik hónapban készült. Tehát hónapkon *belül* is jelentős mértékű szódósás maradt a mennyiségi ismérvünkben, jelesül a kokainmennyiségben.<br>
+Mi okozhatja még a kokainmennyiség szóródását? Hát, az elérhető adatok tekintetében két dolgot tudunk még megvizsgálni: azt, hogy **melyik mérőállomáson történt a mérés**, illetve azt, hogy **melyik évben**. Reméljük, hogy *inkább az év magyarázza még relatíve nagyobb mértékben a kokainmennyiség alakulását* (pl. emelkedő trend tapasztalható a Sound népszerűségének növekedésével), mert *ha a kokainmennyiség szóródása inkább a mérőállomástól függ*, az *aggasztó lenne a mérés megbízhatóságára nézve*.
+
+Mivel mind a mérőállomás azonosítója, mind az évszám jelen szituációban minőségi ismérvként kezelhető, így e két ismérvnek a kokainmennyiséggel, mint mennyiségi ismérvvel vett varianciahányadosát kell megvizsgálnunk.
+
+Először nézzük a **mérőállomások esetét**.
+
+Itt is kell ugyebár egy kiinduló segédtáblázat.
+
+```{python}
+AllomasTabla = Balcsi.groupby('Allomas').agg(
+  Elemszam = ('Kokain', 'count'),
+  Reszatlagok = ('Kokain', np.mean),
+  Szorasok = ('Kokain', np.std)
+).reset_index()
+
+AllomasTabla
+```
+
+Olybá tűnik, hogy az 1. állomás átlagban némileg kicsit magasabb kokainmenyniséget mér, mint a többi, de az állomás méréseinek szórása is magas, az átlagos kokainmennyiség kb. $\frac{84.5}{30.1}=2.8$-szorosa.<br>
+Szóval, vágjunk rendet a variancia-hányados segítségével, és lássuk mekkora hatást gyakorol a mérőállomás a kokainmennyiségre!
+
+A számításokban annyi **egyszerűsítés**t teszek, hogy 
+
+- A **teljes varianciát örökítem** az előző számolásokból, hiszen az a csoportosítás alapját képzőú minőpségi ismérv megváltozásával **nem változik**.
+- Az előző pont és a belső variancia kiszámolása után pedig a varianciahányadost a $\sigma^2=\sigma_B^2+\sigma_K^2$ összefüggás átrendezésével $H^2=\frac{\sigma^2-\sigma_B^2}{\sigma^2}=1-\frac{\sigma_B^2}{\sigma^2}$ módon számolom ki
+
+Ezzel a két módosítással **megúszom a külső szórásnégyzet** kissé macerás **kiszámítását**.
+
+```{python}
+belső_var_Állomás = np.sum(AllomasTabla.Elemszam * AllomasTabla.Szorasok**2)/np.sum(AllomasTabla.Elemszam)
+
+VarHányadÁllomás = 1 - belső_var_Állomás / teljes_var
+VarHányadÁllomás
+```
+
+Az eredmény mindössze $1.17\%$. Tehát megnyugodhatunk, az **állomás a mért kokainmennyiség alakulását csak alig több, mint 1%-ban határozza meg**! A **mérés nem függ lényegében az állomástól**, így ilyen szempointból megbízhatónak tekintehtők!
+
+Lássuk az **évszámok**at! Most is kezdjük a segédtáblával.
+
+```{python}
+EvTabla = Balcsi.groupby('Ev').agg(
+  Elemszam = ('Kokain', 'count'),
+  Reszatlagok = ('Kokain', np.mean),
+  Szorasok = ('Kokain', np.std)
+).reset_index()
+
+EvTabla
+```
+
+Itt azért elég látványos eltéréseket találunk! A 2019-es évben hatalmasat ugrott a Balatonban mérhető kokainmennyiség. A szórása is magas, de pl. relatíve nézve 2018-ban magasabb volt: 2018-ban a szórás durván kétszerese volt az átlagnak $\frac{3.93}{1.96}$, míg 2019-ben csak durván másfélszerese $\frac{97.37}{62.42}=1.56$. Szóval itt lehet még komolyabb magyarázóerő!<br>
+De ne találgassunk, hanem lássuk a varianciahányadost! A számolásnál megint alkalmazzuk az állomásoknál bevezetett két **egyszerűsítés**t!
+
+```{python}
+belső_var_Év = np.sum(EvTabla.Elemszam * EvTabla.Szorasok**2)/np.sum(EvTabla.Elemszam)
+
+VarHányadÉv = 1 - belső_var_Év / teljes_var
+VarHányadÉv
+```
+
+Na, itt is egy közepes magyarázóerőnk van, kb. $21\%$.
+
+Tehát alapvetően a Balatonban mérhető kokainmennyiséget két *közepes magyarázóerejű* dolog mozgatja nyáron:
+
+- **Hónap**: A Balaton Sound hónapjában (július) átlagban valamivel több a kokain
+- **Év**: 2019-ben sokkal több az átlagos kokainmennyiség, feltehetően a Sound megnövekedett haza és külföldi népszerűsége miatt
+
+Szerencsére a mérőállomás maga nem befolyásolja érdemben a mért kokain szóródását, így a mérések ilyen szempontból megbízhatóank tekinthetők!

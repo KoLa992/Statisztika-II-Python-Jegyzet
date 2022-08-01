@@ -1,0 +1,42 @@
+---
+title: |
+  <center>
+  ![](statistics-review.jpg){width=40%}<br> 
+  Statisztika II. Python Jegyzet<br>
+  Budapesti Corvinus Egyetem<br>
+  Gazdaságinformatikus BSc
+  </center> 
+output: html_document
+date: '2022.08.01.'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. hét: <a href="Gyak01.html" target="_blank">Statisztika I. ismétlés és Valószínűségszámítási alapok</a>
+
+## 2. hét: Eloszlások / Mintavétel
+
+## 3. hét: A becsléselmélet alapjai
+
+## 4. hét: A sokasági átlag intervallumbecslése
+
+## 5. hét: További FAE becslések és a Bootstrap módszer
+
+## 6. hét: Becslések EV és R mintából
+
+## 7. hét: Hipotézisvizsgálat alapjai
+
+## 8. hét: Egymintás próbák
+
+## 9. hét: Kétmintás próbák és a p-érték Bootstrap módszerrel
+
+## 10. hét: Nemparaméteres próbák (kis- és nagymintás esetek)
+
+## 11. hét: Kétváltozós lineáris regresszió / Többváltozós lineáris regresszió 1.
+
+## 12. hét: Többváltozós lineáris regresszió 2.
+
+## 13. hét: Modellépítés és nem-lineáris regresszió
+
