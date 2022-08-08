@@ -1,0 +1,132 @@
+---
+title: "Eloszlások és Mintavételezés"
+author: "Kovács László"
+date: "2022. 08. 08."
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Normális eloszlás mintavételezése
+
+Kezdetnek ezen a héten foglalkozzunk kicsit a normális eloszlás sűrűségfüggvényével. Pl. rajzoljuk egy $\mu=80$ átlagú és $\sigma=20$ szórású, azaz $N(80,20)$ normális eloszlás sűrűségfüggvényét! Tegyük ezt úgy, hogy az ábra $x$ tengelye a $\mu \pm 3\sigma$ tartományt mutassa nekünk $0.01$-es lépésközzel.<br>
+Ehhez bátran tudjuk használni a kódot az <a href="https://kola992.github.io/Statisztika-II-Python-Jegyzet/Gyak01.html#23_Val%C3%B3sz%C3%ADn%C5%B1s%C3%A9g_vs_Relat%C3%ADv_Gyakoris%C3%A1g" target="_blank">1. heti tananyag 2.3. fejezet</a> végéről. :) Arra is figyeljünk, hogy kelleni fognak a `numpy` és `matplotlib` csomagokban valamint a `scipy` csomag `stats` névterében lakó függvények is a feladat végrehajtásához, így azokat is importáljuk a munkanmenetünkbe!
+
+```{python}
+import numpy as np
+import scipy.stats as stats
+import matplotlib.pyplot as plt
+
+átlag = 80
+szórás = 20
+
+also_hatar = átlag - 3 * szórás
+felso_hatar = átlag + 3 * szórás
+
+x_tengely = np.arange(also_hatar, felso_hatar, 0.01)
+y_tengely = stats.norm.pdf(x = x_tengely, loc = átlag, scale = szórás)
+plt.plot(x_tengely, y_tengely)
+plt.show()
+```
+
+Ugyebár ennek a csodaszép **sűrűségfüggvénynek az $f(x)$ helyettesítési értéke megadja, hogy mi annak a valószínűsége**, hogy ha **egy $N(80,20)$ eloszlású $Y$ adatsorból véletlenszerűen kihúzok egy $Y_i$ értéket**, akkor az az **érték pont $x$ lesz**.<br>
+**Matematikai hireoglifákkal nézve** a dolgot ugyebár ezt így jelöltük az 1. heti anyagban: $$Y_i \sim N(80,20) \rightarrow P(Y_i = x) = f(x)=\frac{1}{20\sqrt{2\pi}}e^{-\frac{1}{2}\left(\frac{x-80}{20}\right)^2}$$
+
+A fenti formulában elrettentésül beírtam a $N(80,20)$ eloszlás sűrűségfüggvényének képletét is szemléletetésnek. :)
+
+Namármost. **Ha ismerjük a $P(Y_i=x)$ valószínűségeket generáló $f(x)$ képletet**, akkor ez alapján **képesek vagyunk ugyebár visszafelé is gondolkozni**: ha tudjuk a $P(Y_i=x)$ valószínűségeket, akkor **ki tudjuk számolni az adott valószínűséghez tartozó konkrét $x$ értéket egy $N(80,20)$ eloszlásban!** Ugyebár az 1. heti tananyagban csináltunk is ilyet a <a href="https://kola992.github.io/Statisztika-II-Python-Jegyzet/Gyak01.html#25_Inverz_%C3%89rt%C3%A9kek" target="_blank">2.5. fejezetben</a>! Csak **nem a $P(Y_i=x)$ valószínűségekkel, hanem a $P(Y_i<x)$-kel!**<br>
+De a lényeg, hogy ki tudjuk számolni hogy pl. **Mi az az érték, aminél csak $5\%$ valószínűséggel kapok kisebb értéket egy $N(80,20)$ eloszlásban?** Ugye erre volt nekünk Pythonban a `scipy`csomag `norm.ppf` függvénye. Használjuk is csak ezt a függvényt az előbbi kérdésünk megválaszolásához:
+
+```{python}
+átlag = 80
+szórás = 20
+
+stats.norm.ppf(0.05, loc = átlag, scale = szórás)
+```
+
+Tehát $x=47.1$ értéknél $5\%$ az esélye, hogy az $N(80,20)$ eloszlásból húzva véletlenszerűen értéket, akkor kisebbet kapok!
+
+Azért kimondottan jó, hogy ezeket ki tudom számolni, mert ezek szerint, **ha vannak ismert $P(Y_i<x)$ valószínűségeim, akkor ezeket berakva az $N(80,20)$ eloszlás inverz függvényébe, akkor olyan $x$ számokat fogok kapni, amelyek tényleg $N(80,20)$ eloszlásúak lesznek!**<br>
+**Pitonállatka pedig nagyon jól tud $0-1$ közötti teljesen véletlen számokat generálni!** A **teljesen véletlen**t itt úgy értem, hogy úgy generál számokat, hogy $0-1$ **között minden értéket azonos valószínűséggel** (alias egyenletes eloszlással) vehet fel. Ez **nekünk azért jó, mert hát a $P(Y_i<x)$ valószínűségek is $0-1$ közötti számok** ugyebár. :)
+
+Az ilyen $0-1$ között egyenletes eloszlású véletlenszám generátorok minden programnyelv alapvető eszközei, és a Számítástudományból tanult <a href="https://en.wikipedia.org/wiki/Linear_congruential_generator" target="_blank">lineáris kongruenciarendszereken alapulnak</a>.
+
+Tehát, **az a taktika, hogy ha generálok mondjuk $50$ teljesen random $0-1$ közötti véletlen számot**, akkor **ezeket** $P(Y_i<x)$ valószínűségeknek gondolva, **az $N(80,20)$ eloszlás inverz függvényébe behelyettesítve egy $50$ elemű $Y_i \sim N(80,20)$ adatsort fogok tudni generálni**.
+
+Lássuk is, hogyan működik mindez a gyakorlatban! A $0-1$ közötti teljesen véletlen számok generálásához Pythonban egy `random` c. csomagot kell importálni, és ennek a (nem meglepő módon) `random` névre keresztelt függvényével tudunk véletlen számokat dobálgatni.
+
+```{python}
+import random
+
+GondoltamEgySzámra = random.random()
+GondoltamEgySzámra
+```
+
+Fenti kódsort futtatva nyilván mindenkinek más eredménye lesz, hiszen *random* számot generálunk. :) A lényeg, hogy a számunk $0-1$ közötti!
+
+Na, hozzunk létre egy üres listát Pythonban, és az `append` metódusa segítségével töltsük föl $50$ db random $0-1$ közötti számmal.
+
+```{python}
+SzerencsétlenVéletlenek = [] # üres lista létrehozása
+
+for index in range(50):
+  SzerencsétlenVéletlenek.append(random.random()) # véletlen szám hozzáadása a listához
+
+SzerencsétlenVéletlenek
+```
+
+Itt is van az $50$ szép kicsi véletlen számom. Nyilván ezek megint mindenkinek más értékek. :) **Nézzük meg akkor, hogy ha ezeket a számokat $P(Y_i<x)$ valószínűségeknek tekintem, akkor milyen $x$ értékek tartoznak hozzájuk egy $N(80,20)$ eloszlásban!** Tehát, alkalmazzuk a listán a `norm.ppf` függvényt!
+
+```{python}
+NormEloAdatok = stats.norm.ppf(SzerencsétlenVéletlenek, loc = átlag, scale = szórás)
+
+NormEloAdatok
+```
+
+Ahha, meg is vannak az adatok. De ezek tényleg $N(80,20)$ eloszlást követnek? Hát lessük meg a dolgot a `matplotlib` csomag `hist` függvényével! Ami lényegében a `numpy` csomag `histogram` függvénye, de listákra csak ezt lehet alkalmazni. Ugyebár még nem mentettük a dolgokat `pandas` data frame-be, ezért ilyen körülményes kicsit a hisztogram rajzolás.<br>
+Mivel $50$ adatot generáltunk, így a hisztogramhoz $k=6$ osztályköz kell a $2^k \geq N$ szabály alapján ($2^6=64$)
+
+```{python}
+Hisztogram = plt.hist(NormEloAdatok, bins = 6)
+plt.show()
+```
+
+E *voilá*! :) **Tényleg úgy néz ki a dolog, mint egy normális eloszlású valami!** Sőt, mivel a hisztogram legmagasabb pontja alias a módusz a $\mu=80$ átlag körül van, még az is tökre hihető, hogy ez **valóban egy $N(80,20)$ eloszlású, $50$ elemű adatsor amit generáltunk!** :)
+
+Na most elárulom azért, hogy ennek **az egész műveletnek van egy egyszerűbb módja is**. :) A `scipy` csomag `stats` névterében lakik egy `norm.rvs` névre hallgató függvény, ami megadott `loc` (azaz átlag) és `scale` (azaz szórás) paraméterekkel rendelkezű véletlenszámokat generál, konkrétan a `size` paraméterben megadott elemszámnyit.
+
+```{python}
+NormalisabbAdatok = stats.norm.rvs(loc = átlag, scale = szórás, size = 50)
+NormalisabbAdatok
+Hisztogram = plt.hist(NormalisabbAdatok, bins = 6)
+plt.show()
+```
+
+Sőt, ha kihasználjuk a függvény `random_state` paraméterét, és **mindannyian beírjuk oda uygan azt a számot**, pl. mondjuk az én szülinapom, ami $19920914$, akkor **mindenki ugyan azt az $50$ db véletlen számot generálta le!** :)
+
+```{python}
+NormalisabbAdatok = stats.norm.rvs(loc = átlag, scale = szórás, size = 50, random_state = 19920914)
+NormalisabbAdatok
+Hisztogram = plt.hist(NormalisabbAdatok, bins = 6)
+plt.show()
+```
+
+Szóval, van ennek az egésznek egy kényelmes módja is, ha a `scipy` csomag `stats` névterében `rvs` függvény az eloszlásra, amivel éppen dolgozunk. De **van, hogy olyan spéci eloszlással dolgozunk, hogy ez nincs így!!!** Viszont, **a $0-1$ közötti véletlen számokat**, és az **eloszlás inverz függvényét használó** kicsit manuálisabb **módszer garantáltan működik minden nevezetes eloszlásra!**<br>
+Emiatt tartom fontosnak, hogy lássuk ennek a "*manuálisabb*" megoldásnak is a működését: **ezzel úgy tudunk adatsorokat generálni, hogy bármilyen szimpatikus eloszlást követhet azok hisztogramja!!**
+
+Amit most csináltunk, azt **szakszóval az $N(80,20)$ eloszlás $50$ elemű mintavételezésének** mondjuk. A Python memóriában jelenleg `NormalisabbAdatok` néven futó adatsorra pedig úgy tekintünk, mint **egy véletlen mintára az $N(80,20)$ eloszlásból**.<br>
+Hogy ennek az elnevezésnek pontosan mi is a jelentősége és filozófiai háttere, az a következő fejezetben rögtön ki is derül! Stay tuned! :)
+
+## 2. Elvi Eloszlás vs Megfigyelt Minta

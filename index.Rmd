@@ -7,7 +7,7 @@ title: |
   Gazdaságinformatikus BSc
   </center> 
 output: html_document
-date: '2022.08.01.'
+date: '2022.08.08.'
 ---
 
 ```{r setup, include=FALSE}
@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## 1. hét: <a href="Gyak01.html" target="_blank">Statisztika I. ismétlés és Valószínűségszámítási alapok</a>
 
-## 2. hét: Eloszlások / Mintavétel
+## 2. hét: <a href="Gyak02.html" target="_blank">Eloszlások és Mintavételezés</a>
 
 ## 3. hét: A becsléselmélet alapjai
 

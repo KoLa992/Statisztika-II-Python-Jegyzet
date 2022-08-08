@@ -1,7 +1,7 @@
 ---
 title: "Statisztika I. ismétlés és Valószínűségszámítási alapok"
 author: "Kovács László"
-date: "2022.08.01."
+date: "2022.08.08."
 output:
   html_document:
     toc: true
@@ -330,7 +330,25 @@ Egyszerűen *utsukushii*, nemigaz? :) Szépen látszik, hogy a valódi árválto
 
 Egyébként majd ilyen elvi sűrűségfüggvények illeszkedési jóságát valós hisztogramokhoz egzaktabban is megtanuljuk majd mérni a félév során, mint a szemmelverés. :)
 
-### 2.4. Inverz Értékek
+### 2.4. Centrális Határeloszlás Tétel (CHT)
+
+A normális eloszlás esetében viszont van egy **valószínűségszmítási tétel, ami megadja, hogy a normális eloszlás milyen tulajdonságú adatsorok esetén** lesz egy **jól illeszkedő eloszlás** a megfigyelt adatok hisztogramjára. Ez a tétel pedig a **Centrális Határeloszlás Tétel**, leánykori nevén **CHT**.<br>
+Maga a tétel azt mondja, hogy **ha az adatsor egy $Y_i$ értéke véletlen hatások összegződéseként áll elő, akkor az adatok hisztogramja normális eloszlású sűrűségfüggvényt követ**.
+
+A tétel tehát ilyen klasszikus **ha --> akkor** típusú matematiaki tétel. És az **"akkor" utáni rész az érthetőbb**. Ha valami felétel teljesül, akkor az adatsorunk normális eloszlású. Ezt oké, értjük. De **mit jelent az a rész, ami a tétel feltételében van?** Hogy ha **az $Y_i$ értékek véletlen hatások összegeként állnak elő**.
+
+Nos, ez **utóbbi rész megértéséhez nézzünk rá ismét a Tesla árváltozások adatsorának első 5 elemére** a data frame `head` metódusával.
+
+```{python}
+Tesla.head()
+```
+
+Vegyük például a 2019 május 13-i $Y_5=-12.510009\$$-os veszteséget. Nos **ez az érték úgy jött ki**, hogy **az adott nap** (2019. 05. 13.) **véletlenszerű gazdasági eseményeinek hatása összegződött**, és **így kötöttünk ki ott, hogy a Tesla részvény a nap végére kb. 12 és fél dollárral kevesebbet ér**. Tehát, reggel mondjuk bejelentik a kínaiak, hogy vizsgálatot indítanak az egyik Tesla gyár munkakörülményei ellen, aminek hatására elkezd esni a részvény értéke, de aztán délben Musk tweetel egyet, hogy "no para, átviszem a gyárat Mexikóba", aminek hatására nyugi lesz és elindul felfelé a részvény értéke, de aztán nap végére beesik egy hír, hogy a Mexikóban máris tümtikéznek a tervezett Tesla gyár ellen, ami megint elkezdi levinni a részvény értékét és a nap végére uda jutunk, hogy a részvény $-12.510009\$$-al zár...<br>
+Szóval az **adott nap véletlenszerű gazdasági eseményeinek összegződéseként áll elő a nap végi $Y_i$ Tesla árváltozás**. Ezt jelenti az, hogy **az $Y_i$ értékek véletlen hatások összegeként állnak elő**. És **ilyen esetekben az $Y_i$ adatsorhoz tartozó hisztogram normális eloszlású sűrűségfüggvényt követ a CHT szerint!**
+
+Láthatjuk a **Tesla részvény vizsgálatának korábbi tapasztalataink alapján**, hogy a csúcsosság miatt azért **a pénzügyi piacokon ez a tétel nem érvényesül annyira pontosan**, de **közelítőleg** igen. De **több egyéb esetben elég szépen érvényesül**: Pl. egy termelőgép által a nap végén gyártott selejtes termékek száma esetén. Az adott napi selejtszám értéke (ha nincs szabotőr a gyárban) az adott napi véletlen hatások összegződése állítja elő. Így, ha több nap nap végi selejtszámait vizsgáljuk, akkor azok hisztogramja csudiszép normális eloszlást kell, hogy kirajzoljon.
+
+### 2.5. Inverz Értékek
 
 A sűrűségfüggvényektől lehet "*visszafelé is kérdezni*". Tehát, nem csak arra képesek, hogy mondok egy eseményt (pl. mi a valószínűsége, hogy $80\$$-nál nagyobb veszteségem lesz a Teslán) és adnak hozzá valószínűséget, hanem arra is, hogy mondok nekik valószínűséget, és az **inverz értékeik** segítségével adnak hozzá értéket. Szóval, tudok tőlük olyat kérdezni, hogy pl. *Mi az az érték, aminél csak $5\%$ valószínűséggel veszítek többet a Teslán?*<br>
 Magyarul, a $P(Y_i < x) = 0.05$ kifejezésben megadja nekem a sűrűségfüggvény inverz értéke az $x$-et. Ilyenkor az történik a háttérben, hogy a sűrűségfüggvény primitívfüggvényét (amit hívnak eloszlásfüggvénynek is, de a mi szempontunkból ez az elnevezés nem fontos) "*visszaderiváljuk*".
@@ -369,7 +387,7 @@ stats.norm.ppf(0.99, loc = np.mean(Tesla.TESLA), scale = np.std(Tesla.TESLA))
 
 Tehát, csak $1\%$ eséllyel tudok többet nyerni egy nap a Teslán, mint kb. $65\$$.
 
-### 2.5. A Standard Normális Eloszlás
+### 2.6. A Standard Normális Eloszlás
 
 Még egy fontos dologról kell megemlékeznünk a normális eloszlás kapcsán, a $\mu=0$ átlagú és $\sigma=1$ szórású $N(0,1)$ eloszlásról, ami **standard normális eloszlás** néven külön helyet kapott a pokolban.
 

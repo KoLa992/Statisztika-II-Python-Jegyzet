@@ -2783,7 +2783,7 @@ div.tocify {
 <h1 class="title toc-ignore">Statisztika I. ismétlés és
 Valószínűségszámítási alapok</h1>
 <h4 class="author">Kovács László</h4>
-<h4 class="date">2022.08.01.</h4>
+<h4 class="date">2022.08.08.</h4>
 
 </div>
 
@@ -3429,8 +3429,64 @@ illeszkedő normális eloszlás sűrűségfüggvénye sugall.</p>
 valós hisztogramokhoz egzaktabban is megtanuljuk majd mérni a félév
 során, mint a szemmelverés. :)</p>
 </div>
+<div id="centrális-határeloszlás-tétel-cht" class="section level3">
+<h3>2.4. Centrális Határeloszlás Tétel (CHT)</h3>
+<p>A normális eloszlás esetében viszont van egy
+<strong>valószínűségszmítási tétel, ami megadja, hogy a normális
+eloszlás milyen tulajdonságú adatsorok esetén</strong> lesz egy
+<strong>jól illeszkedő eloszlás</strong> a megfigyelt adatok
+hisztogramjára. Ez a tétel pedig a <strong>Centrális Határeloszlás
+Tétel</strong>, leánykori nevén <strong>CHT</strong>.<br> Maga a tétel
+azt mondja, hogy <strong>ha az adatsor egy <span class="math inline">\(Y_i\)</span> értéke véletlen hatások
+összegződéseként áll elő, akkor az adatok hisztogramja normális
+eloszlású sűrűségfüggvényt követ</strong>.</p>
+<p>A tétel tehát ilyen klasszikus <strong>ha –&gt; akkor</strong> típusú
+matematiaki tétel. És az <strong>“akkor” utáni rész az
+érthetőbb</strong>. Ha valami felétel teljesül, akkor az adatsorunk
+normális eloszlású. Ezt oké, értjük. De <strong>mit jelent az a rész,
+ami a tétel feltételében van?</strong> Hogy ha <strong>az <span class="math inline">\(Y_i\)</span> értékek véletlen hatások összegeként
+állnak elő</strong>.</p>
+<p>Nos, ez <strong>utóbbi rész megértéséhez nézzünk rá ismét a Tesla
+árváltozások adatsorának első 5 elemére</strong> a data frame
+<code>head</code> metódusával.</p>
+<pre class="python"><code>Tesla.head()</code></pre>
+<pre><code>##        Dátum      TESLA
+## 0 2019-05-07  -8.279998
+## 1 2019-05-08  -2.220002
+## 2 2019-05-09  -2.860000
+## 3 2019-05-10  -2.459992
+## 4 2019-05-13 -12.510009</code></pre>
+<p>Vegyük például a 2019 május 13-i <span class="math inline">\(Y_5=-12.510009\$\)</span>-os veszteséget. Nos
+<strong>ez az érték úgy jött ki</strong>, hogy <strong>az adott
+nap</strong> (2019. 05. 13.) <strong>véletlenszerű gazdasági
+eseményeinek hatása összegződött</strong>, és <strong>így kötöttünk ki
+ott, hogy a Tesla részvény a nap végére kb. 12 és fél dollárral
+kevesebbet ér</strong>. Tehát, reggel mondjuk bejelentik a kínaiak, hogy
+vizsgálatot indítanak az egyik Tesla gyár munkakörülményei ellen, aminek
+hatására elkezd esni a részvény értéke, de aztán délben Musk tweetel
+egyet, hogy “no para, átviszem a gyárat Mexikóba”, aminek hatására nyugi
+lesz és elindul felfelé a részvény értéke, de aztán nap végére beesik
+egy hír, hogy a Mexikóban máris tümtikéznek a tervezett Tesla gyár
+ellen, ami megint elkezdi levinni a részvény értékét és a nap végére uda
+jutunk, hogy a részvény <span class="math inline">\(-12.510009\$\)</span>-al zár…<br> Szóval az
+<strong>adott nap véletlenszerű gazdasági eseményeinek összegződéseként
+áll elő a nap végi <span class="math inline">\(Y_i\)</span> Tesla
+árváltozás</strong>. Ezt jelenti az, hogy <strong>az <span class="math inline">\(Y_i\)</span> értékek véletlen hatások összegeként
+állnak elő</strong>. És <strong>ilyen esetekben az <span class="math inline">\(Y_i\)</span> adatsorhoz tartozó hisztogram
+normális eloszlású sűrűségfüggvényt követ a CHT szerint!</strong></p>
+<p>Láthatjuk a <strong>Tesla részvény vizsgálatának korábbi
+tapasztalataink alapján</strong>, hogy a csúcsosság miatt azért
+<strong>a pénzügyi piacokon ez a tétel nem érvényesül annyira
+pontosan</strong>, de <strong>közelítőleg</strong> igen. De <strong>több
+egyéb esetben elég szépen érvényesül</strong>: Pl. egy termelőgép által
+a nap végén gyártott selejtes termékek száma esetén. Az adott napi
+selejtszám értéke (ha nincs szabotőr a gyárban) az adott napi véletlen
+hatások összegződése állítja elő. Így, ha több nap nap végi
+selejtszámait vizsgáljuk, akkor azok hisztogramja csudiszép normális
+eloszlást kell, hogy kirajzoljon.</p>
+</div>
 <div id="inverz-értékek" class="section level3">
-<h3>2.4. Inverz Értékek</h3>
+<h3>2.5. Inverz Értékek</h3>
 <p>A sűrűségfüggvényektől lehet “<em>visszafelé is kérdezni</em>”.
 Tehát, nem csak arra képesek, hogy mondok egy eseményt (pl. mi a
 valószínűsége, hogy <span class="math inline">\(80\$\)</span>-nál
@@ -3520,7 +3576,7 @@ inkább a kérdés átfogalmazott verzióját kérdezzük meg a gépszellemtől:
 többet nyerni egy nap a Teslán, mint kb. <span class="math inline">\(65\$\)</span>.</p>
 </div>
 <div id="a-standard-normális-eloszlás" class="section level3">
-<h3>2.5. A Standard Normális Eloszlás</h3>
+<h3>2.6. A Standard Normális Eloszlás</h3>
 <p>Még egy fontos dologról kell megemlékeznünk a normális eloszlás
 kapcsán, a <span class="math inline">\(\mu=0\)</span> átlagú és <span class="math inline">\(\sigma=1\)</span> szórású <span class="math inline">\(N(0,1)\)</span> eloszlásról, ami <strong>standard
 normális eloszlás</strong> néven külön helyet kapott a pokolban.</p>
