@@ -351,7 +351,7 @@ Láthatjuk a **Tesla részvény vizsgálatának korábbi tapasztalataink alapjá
 ### 2.5. Inverz Értékek
 
 A sűrűségfüggvényektől lehet "*visszafelé is kérdezni*". Tehát, nem csak arra képesek, hogy mondok egy eseményt (pl. mi a valószínűsége, hogy $80\$$-nál nagyobb veszteségem lesz a Teslán) és adnak hozzá valószínűséget, hanem arra is, hogy mondok nekik valószínűséget, és az **inverz értékeik** segítségével adnak hozzá értéket. Szóval, tudok tőlük olyat kérdezni, hogy pl. *Mi az az érték, aminél csak $5\%$ valószínűséggel veszítek többet a Teslán?*<br>
-Magyarul, a $P(Y_i < x) = 0.05$ kifejezésben megadja nekem a sűrűségfüggvény inverz értéke az $x$-et. Ilyenkor az történik a háttérben, hogy a sűrűségfüggvény primitívfüggvényét (amit hívnak eloszlásfüggvénynek is, de a mi szempontunkból ez az elnevezés nem fontos) "*visszaderiváljuk*".
+Magyarul, a $P(Y_i < x) = 0.05$ kifejezésben megadja nekem a sűrűségfüggvény inverz értéke az $x$-et. Ilyenkor az történik a háttérben, hogy a sűrűségfüggvény primitívfüggvényéből (amit hívnak eloszlásfüggvénynek is, de a mi szempontunkból ez az elnevezés nem fontos) "*kifejezzük az $x$-et*".
 
 Természetesen, a `scipy`-nak erre is van beépített függvénye `norm.ppf` néven, ami 3 paramétert kíván: a $P(Y_i < x)$ alá esési valószínűséget, a $\mu$ átlagot (`loc`) és a $\sigma$ szórást (`scale`).<br>
 Akkor hát lássuk mi is az az érték, aminél csak $5\%$ valószínűséggel veszítek többet a Teslán?
