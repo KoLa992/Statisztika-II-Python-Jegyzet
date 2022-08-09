@@ -670,4 +670,13 @@ Ezzel meg is vagyunk, van az időeredményekből $10000$ db $n=100$ elemű mint�
 
 ```{python warning = FALSE, message = FALSE, eval = FALSE}
 MintaDF.to_excel('MintaDataFrame.xlsx', index = False)
+
+MintaDF['Atlagok'] = np.mean(MintaDF, axis=1)
+np.mean(MintaDF.Atlagok)
+SokasagiAtlag
+MintaDF['Szorasok'] = np.std(MintaDF, axis=1)
+np.mean(MintaDF.Szorasok)
+MintaDF['Aranyok'] = np.sum(MintaDF > 180, axis=1)/len(MintaDF)
+np.mean(MintaDF.Aranyok)
+SokasagiArany
 ```
