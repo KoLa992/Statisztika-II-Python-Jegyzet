@@ -3250,13 +3250,12 @@ korrigált szórást számolni egy extra paraméter segítségével</strong>.
 Ahhoz, hogy <strong>megértsük a paraméter működését egy picit végig kell
 gondolni a korrigált szórás képletének a működését</strong>.</p>
 <p>Alapból a mintaadatok <span class="math inline">\(s^*\)</span>
-szórását az <span class="math inline">\(s^*=\sqrt{\frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n}}\)</span>
-képlettel számoljuk. Megnézzük, hogy minden <span class="math inline">\(y_i\)</span> mintaelem mennyivel tér el a minta
-<span class="math inline">\(\bar{y}\)</span> átlagától, majd ezen
-eltéréseket négyzetre emelve összeadjuk és az összeget leosztjuk a minta
-<span class="math inline">\(n\)</span> elemszámával, végül gyököt vonunk
-az egész hányadosból.<br> Ennek az értéknek a négyzete a sima, <em>nem
-korrigált</em> variancia: <span class="math inline">\((s^*)^2=\frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n}\)</span></p>
+szórását az alánbbi képlettel számoljuk: <span class="math display">\[s^*=\sqrt{\frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n}}\]</span></p>
+<p>Azaz, megnézzük, hogy minden <span class="math inline">\(y_i\)</span>
+mintaelem mennyivel tér el a minta <span class="math inline">\(\bar{y}\)</span> átlagától, majd ezen eltéréseket
+négyzetre emelve összeadjuk és az összeget leosztjuk a minta <span class="math inline">\(n\)</span> elemszámával, végül gyököt vonunk az
+egész hányadosból.<br> Ennek az értéknek a négyzete a sima, <em>nem
+korrigált</em> variancia: <span class="math display">\[(s^*)^2=\frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n}\]</span></p>
 <p>Ha a fenrti variancia képletet beszorozzuk <span class="math inline">\(\frac{n}{n-1}\)</span>-gyel akkor a következő
 egyszerűséítéseket tehetjük: <span class="math display">\[s^2=\frac{n}{n-1} \times
 \frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n} =

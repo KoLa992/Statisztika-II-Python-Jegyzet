@@ -505,7 +505,6 @@ Mivel ez egy marha fontos dolog, így kaptok róla egy mémet is! **Égjen csak 
 
 <center>
 ![](sample_size.jpg){width=40%}
-<br>*Source Bors Alexandra, ha valaki tanut tőle Webfejlt :)*
 </center>
 
 <br>További kísérletezgetésre a mintavétel hibával kapcsolatban, nyugodtan lehet használni az alábbi kis interaktív felületet.
@@ -532,7 +531,7 @@ Ezt a FAE mintavételt **valós statisztikai adatsorok, azaz sokaságok esetén 
 Mondjuk meg akarom ismerni a kb. 4,5 millió magyar munkavállaló havi bruttó átlagkeresetét. Nyilván a NAV-nál megvan mind a 4,5 millió dolgos magyar *en_ber* kereseti adata tételesen (tehát ezek az értékek nem egy exponenciális eloszlással vannak megadva pl., hanem tételesen fel vannak sorolva egy táblában valahol), csak hát tudjuk mikor adják ki ezeket az adatokat bárkinek is. Ezért inkább azt csináljuk, hogy mondjuk a népességnyilvántartótól elkérjük a 4,5 millió magyar munkavállaló lakcímét, beöntjük a címeket tartalmazó cetliket egy kalapba, és becsukott szemmel, random húzunk 100 címet *visszatevéssel*, azaz egy kihúzott címet visszateszünk mindig a kalapba, és nem rakjuk félre. Majd mind a 100 címre elmegyünk és megkérdezzük az emberek havi bruttó keresetét. Ezzel a **véletlen, visszatevéses mintavétellel a magyar munkavállalók sokaságából** valójában **FAE mintavételezést végeztünk**. Miért is?
 
 1. A **mintaelemek függetlenek**, hiszen "*becsukott szemmel*", véletlenszerűen húztuk ki a minta elemeket.
-2. Mivel **visszatevéses volt a mintavétel, így a kersetek eloszlása nem változott meg a mintavétel során**. Tehát végig ugyan azt az elméleti kereseteloszlást mintavételeztünk, mint amikor mindig ugyan ahhoz az elvi sűrűségfüggvényhez nyúltunk vissza a korábbi mintavételeink során.
+2. Mivel **visszatevéses volt a mintavétel, így a kersetek eloszlása nem változott meg a mintavétel során**. Tehát végig ugyan azt az elméleti kereseteloszlást mintavételeztünk. Pont úgy, mint amikor mindig ugyan abból az elvi sűrűségfüggvényből generáltuk a mintaelemeket az eddig elvégzett mintavételeink során.
 
 Tehát, bízunk abban, hogy ami mondjuk a **mintából számolt átlagkereset és a teljes sokaság átlagekeresete között áll az ugyan az az MVH, mint amivel találkoztunk az eloszlások elvi átlaga és a belőlük generált minták tapasztalati átlaga esetében is!!**<br>
 Persze a gyakorlatban **nem mindig tudunk ilyen szép FAE mintavételt végezni**, mert

@@ -283,8 +283,10 @@ Ezek alapján akkor jó lenne, ha **lenne valami beépített függvényünk** az
 
 Nos, **valójában az** `std` **tud korrigált szórást számolni egy extra paraméter segítségével**. Ahhoz, hogy **megértsük a paraméter működését egy picit végig kell gondolni a korrigált szórás képletének a működését**.
 
-Alapból a mintaadatok $s^*$ szórását az $s^*=\sqrt{\frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n}}$ képlettel számoljuk. Megnézzük, hogy minden $y_i$ mintaelem mennyivel tér el a minta $\bar{y}$ átlagától, majd ezen eltéréseket négyzetre emelve összeadjuk és az összeget leosztjuk a minta $n$ elemszámával, végül gyököt vonunk az egész hányadosból.<br>
-Ennek az értéknek a négyzete a sima, *nem korrigált* variancia: $(s^*)^2=\frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n}$
+Alapból a mintaadatok $s^*$ szórását az alánbbi képlettel számoljuk: $$s^*=\sqrt{\frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n}}$$
+
+Azaz, megnézzük, hogy minden $y_i$ mintaelem mennyivel tér el a minta $\bar{y}$ átlagától, majd ezen eltéréseket négyzetre emelve összeadjuk és az összeget leosztjuk a minta $n$ elemszámával, végül gyököt vonunk az egész hányadosból.<br>
+Ennek az értéknek a négyzete a sima, *nem korrigált* variancia: $$(s^*)^2=\frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n}$$
 
 Ha a fenrti variancia képletet beszorozzuk $\frac{n}{n-1}$-gyel akkor a következő egyszerűséítéseket tehetjük: $$s^2=\frac{n}{n-1} \times \frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n} = \frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n-1}$$
 
