@@ -1,0 +1,338 @@
+---
+title: "A becsléselmélet alapjai"
+author: "Kovács László"
+date: "2022. 08. 12."
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Ismétlés: Balaton átúszás eredmények és ezek FAE mintái
+
+Folytassuk ott a dolgainkat, ahol a 2. heti anyagban abbahagytuk. Töltsük be egy `pandas` data frame-be a <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/blob/main/LIDLBalaton2022.xlsx" target="_blank">LIDLBalaton2022.xlsx</a> fájl adatait. Ebben az Excelben a 2022-es LIDL Balaton átúszás résztvevőinek *neve, neme és percben mért időeredménye* található. Ez az adatsor lesz most nekünk a **sokaságunk**.
+
+```{python}
+# Elemzéshez és ábrázoláshoz zükséges csomagok betöltése
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import scipy.stats as stats
+
+# Adatbeolvasás data frame-be
+Balcsi = pd.read_excel("LIDLBalaton2022.xlsx")
+
+Balcsi.info()
+Balcsi.head()
+```
+
+Oké, meg is vagyunk! A sokságnak $N=9751$ eleme van, tehát ennyi versenyző úszta át 2022-ben a Balatont. A sokaságnak alapvetően egy ismérvével, **az időeredménnyel** (`PERC` oszlop) **fogunk foglalkozni, és ennek három** statisztikai mutatóját vagy szebben fogalmazva **statisztikai paraméterét fogjuk megvizsgálni**:
+
+- Az **átlag**os időt Jele: $\bar{Y}$ vagy $\mu$
+- Az egyéni idők **szórás**át Jele: $\sigma$
+- A 3 óra (180 perc) felett teljesítők **arányát** Jele: $P$
+
+Ahogy a <a href="Gyak02.html" target="_blank">2. heti tananyagban</a> ezt tisztáztuk, egy **teljes statisztikai** adatsor, azaz **sokaság statisztikai mutatóit/paramétereit együttesen $\theta$-val jelöljük**.
+
+Akkor hát **számoljuk is ki ezeket** a $\theta$-kat! Még kiszámoljuk az időeredmények varianciáját (szórásnégyzetét) is, mert erre is szükségünk lesz a későbbiekben.
+
+```{python}
+SokasagiAtlag = np.mean(Balcsi.PERC)
+SokasagiSzoras = np.std(Balcsi.PERC)
+SokasagiVariancia = SokasagiSzoras**2
+SokasagiArany = np.sum(Balcsi.PERC > 180)/len(Balcsi)
+
+SokasagiAtlag
+SokasagiSzoras
+SokasagiArany
+```
+
+Meg is vagyunk! Akkor **következő lépésben vegyünk is egy $n=100$ elemű FAE** (tehát visszatevéses véletlen) **mintát ebből a sokaságból** egy $1992$-es véletlen mag mellett. Majd **számoljuk is ki a három vizsgált statisztikai paraméter értékét a mintában**.
+
+```{python}
+BalcsiMinta = Balcsi.sample(n = 100, replace = True, random_state = 1992)
+
+BalcsiMinta.info()
+
+MintaAtlag = np.mean(BalcsiMinta.PERC)
+MintaSzoras = np.std(BalcsiMinta.PERC)
+MintaArany = np.sum(BalcsiMinta.PERC > 180)/len(BalcsiMinta)
+
+MintaAtlag
+MintaSzoras
+MintaArany
+```
+
+Ezek szerint összefoglalva statisztikai **paramétereink mintából becsült értékei**:
+
+- $\bar{y}=164.4$ perc
+- $s^* = 38.6$ perc
+- $p = 0.3=30\%$
+
+Szintén a <a href="Gyak02.html" target="_blank">2. heti tananyagban</a> szerepelt, hogy a **statisztikai paraméterek mintából becsült értékeit együttesen $\hat{\theta}$-val jelöljük**. A $\hat{\theta}$-ok **speciális elnevezése: becslőfüggvény** a *valódi, sokasági* $\theta$-hoz. Szóval, a mintaátlag ($\bar{y}$) a sokasági átlag $\bar{Y}=\mu$ *becslőfüggvénye*, a mintából számolt szórás ($s^*$) a valós, sokasági szórás ($\sigma$) *becslőfüggvénye* és a mintából számított 3 órán túli úszók aránya ($p$), a sokasági arány ($P$) *becslőfüggvénye*.
+
+A feladatunk pedig az lenne, hogy rájöjjünk: **Hogyan tudunk egyetlen egy db $n$ elemű minta $\hat{\theta}$ becslőfüggvény értékeiből következtetni a teljes $N$ elemű sokaság valós $\theta$ paraméter értékeire?** Ez a **statisztikai becsléselmélet alapfeladata**. Azt is körbejártuk a <a href="Gyak02.html" target="_blank">2. heti tananyagban</a>, hogy ha a mintavételünk tényleg rendes FAE mintavétel, akkor ami $\hat{\theta}$ és a valós $\theta$ között áll az nem más, mint a **mintavételi hiba (MVH)**. A feladatunk tehát konkrétabban nézve az **MVH kiszámítása vagy legalábbis valamilyen közelítése**.
+
+Ahhoz, hogy **elinduljunk az MVH számítás rögös útján egy olyan trükkel élünk, ami kihasználja, hogy most éppen ismerjük a teljes Balatont átúszó sokaságot**. Nyilván a gyakorlatban azért kell becsléselmélettel meg MVH számítással foglalkozni, mert a sokaságot nem tudjuk megismerni. :) De most mivel megvannak a sokasági adatok, így **kivehetünk a sokasági időeredményekből nagyon-nagyon sok, mondjuk $10000$ db $n=100$ elemű mintát**.<br>
+Ezt meg is tettük a <a href="Gyak02.html" target="_blank">2. heti tananyag legvégén</a>. Most csak **visszatöltjük az eredményt tartalmazó Excel táblát egy data frame-be**. Az Excel fájl, amit ebben a jegyzetben használok <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/blob/main/MintaDataFrame.xlsx" target="_blank">innen</a> elérhető.
+
+```{python}
+MintaVetelek100Elem = pd.read_excel("MintaDataFrame.xlsx")
+MintaVetelek100Elem
+```
+
+Oké, az eredményből látjuk is, hogy úgy néz ki a data frame, hogy **1 sor tartalmaz 1 db 100 elemű mintát és a mintaelemeket** (tehát a mintába besorsolt versenyző percben mért időeredményét) **az oszlopkban tároljuk**.
+
+Ez a tárolási forma azért is kényelmes, mert a data frame "*szeletelésével*" bármikor tudunk $n<100$ elemű mintákat is előállítani. Hiszen a mintavétel a pitonkának köszönhetően teljesen véletlenszerű volt, így **ha kiválasztom a tábla első $20$ oszlopát az olyan, mintha lenne $10000$ db $n=20$ elemű mintám is!**<br>
+Ezt most tegyük is akkor meg!
+
+```{python}
+MintaVetelek20Elem = MintaVetelek100Elem.iloc[:, 0:20]
+MintaVetelek20Elem
+```
+
+Szuper, olybá tűnik akkor jók vagyunk! :)
+
+## 2. A torzítatlanság fogalma
+
+Na hát akkor vizsgáljuk meg először a $10000$ db $n=100$ elemű mintát alaposabban ahhoz, hogy megértsük: **hogyan is viselkednek a $\hat{\theta}$ becslőfüggvények a valós $\theta$ paraméterekhez képest**.
+
+Először **számoljuk ki mindegyik $100$ elemű mintában a három** statisztikai mutatónk, azaz **becslőfüggvényünk értékét**: átlag, szórásnyégyzet (variancia) és a 180 percen felül teljesítők aránya. A szórás kapcsán kényelmesebb lesz a gyökjel nélkül vizsgálni a dolgokat, ezért veszünk varianciát.<br>
+Szerencsénkre, a `numpy` csomag statisztikai függvényei `axis = 1` paraméter beállítással soronként és NEM oszloponként számolják ki az átlagot, varianciát, összegeket, így **minden mintára ki tudjuk számolni a becslőfüggvények értékét 1-1 új oszlopban**. **Figyeljünk** arra, hogy mivel a data frame oszlopai folyamatosan bővülnek, így manuálisan le kell szorítani a `numpy` statisztikai függvények alkalmazását mindig az első 100 oszlopra az `iloc` metódussal!
+
+```{python}
+MintaVetelek100Elem['Atlagok'] = np.mean(MintaVetelek100Elem.iloc[:,0:100], axis=1)
+MintaVetelek100Elem['Varianciak'] = np.std(MintaVetelek100Elem.iloc[:,0:100], axis=1)**2
+MintaVetelek100Elem['Aranyok'] = np.sum(MintaVetelek100Elem.iloc[:,0:100] > 180, axis=1)/100
+
+MintaVetelek100Elem
+```
+
+Oké, olybá tűnik, hogy mind a $10000$ db mintára megvan mindhárom becslőfüggvény a `MintaVetelek100Elem` data frame utolsó három oszlopában.
+
+Következő lépésként **vegyük a mintaátlagos és a mintaarányok átlagát, és vessük össze az eredményeke a valós sokasági átlaggal és aránnyal!**
+
+```{python}
+AtlagokAtlaga = np.mean(MintaVetelek100Elem['Atlagok'])
+AranyokAtlaga = np.mean(MintaVetelek100Elem['Aranyok'])
+
+[AtlagokAtlaga, SokasagiAtlag]
+[AranyokAtlaga, SokasagiArany]
+```
+
+Hoppá, a **kétféle értékek egészen közel vannak egymáshoz!** Sőt, némi **kerekítéssel a becslőfüggvények átlaga megegyezik az adott paraméter valós sokasági értékével!**
+
+```{python}
+[round(AtlagokAtlaga,1), round(SokasagiAtlag,1)]
+[round(AranyokAtlaga*100, 1), round(SokasagiArany*100, 1)]
+```
+
+Amit itt tapasztalunk az a **TORZÍTATLANSÁG jelensége**. Eszerint, **ha az összes lehetséges mintából számolt $\hat{\theta}$-ok átlaga** (vagy más szóval várható értéke) **megegyezik a valós, sokasági $\theta$ értékével, akkor a $\hat{\theta}$ becslőfüggvény torzítatlan**. A **torzítatlanság esetünkben azért teljesül csak kerekítésekkel, mert mi csak $10000$ db minta alapján vizsgálódunk, és nem vettük ki az összes lehetséges mintát**, mivel azt valószínűleg nem bírta volna el a RAM-unk az $N=9751$ elemű sokaság esetén. :)
+
+A **fenti fogalom matematikai formalizmussal** az alábbi formát ölti. A képletben az $E()$ függvény az átlagolás, azaz *várható érték* jele, ami az angolban ugyebár *expected value* álnéven fut ... innen az *E*. :) $$E(\hat{\theta})=\theta$$
+
+Ha a **fenti egyenlőség teljesül az összes lehetséges tetszőleges $n$ elemű mintában, akkor $\hat{\theta}$ torzítatlan becslése $\theta$-nak**.
+
+Ebből kiindulva pedig megadhatjuk a **torzítottság fokának (angolul Bias, rövidítve $Bs$)** definícióját is, ami nem más, mint a **becslőfüggvények** ($\hat{\theta}$-ok) **várható értékének különbsége** a valós, **sokasági** $\theta$ **értéktől**:$$Bs=E(\hat{\theta})-\theta$$ 
+
+Láthatjuk, hogy $10000$ db mintát vizsgálva az **átlag és arány**, mint $\theta$ paraméterek esetében elég kicsi ez a $Bs$. Mindkét esetben **1 tizedesre kerekítve $0$ a torzítás**.
+
+```{python}
+# Bs(Átlag)
+round(AtlagokAtlaga - SokasagiAtlag, 1)
+# Bs(Arány)
+round(AranyokAtlaga - SokasagiArany, 1)
+```
+
+Oké, a kis $10000$ db $n=100$ mintás kísérletünk alapján azt mondhatjuk, hogy a **mintaátlag és mintaarány torzítatlan becslőfüggvényei a valós sokasági átlagnak és sokasági aránynak**.
+
+De mi a helyzet a szórás frontján? Konkrétan, **első körben vizsgáljuk meg, hogy a mintákból számolt szórásnégyzetek torzítatlan becslései-e a sokasági szórásnégyzetnek, azaz varianciának!**
+
+```{python}
+VarianciakAtlaga = np.mean(MintaVetelek100Elem['Varianciak'])
+
+[VarianciakAtlaga, SokasagiVariancia]
+
+# Bs(Variancia)
+round(VarianciakAtlaga - SokasagiVariancia, 1)
+```
+
+Jajj! Olybá tűnik, hogy **a válasz NEM**! A **mintából számolt varianciák, azaz ${(s^*)}^2$-ek átlaga a valós, sokasági varianciához képest esetünkben $18.4$-gyel alacsonyabb érték!** Tehát, a **mintavariancia, mint becslőfüggvény lefelé torzít a valós sokasági szóráshoz képest!** Kellemetlen. Hiszen, ez **azt jelenti, hogy egy mintából számolt variancia a valós soksági értékhez képest jó eséllyel kisebb lesz**. Ez azért szerencsétlen, mert eszerint a **vizsgált ismérvünk szóródásáról, indagozásáról egy mintából nézve a valósághoz képest jellemzően kisebb értéket látunk**.<br>
+Tehát, pl. egy részvény árfolyamának szóródását (kockázat) az árfolyamadatok egy mintájából nézve a valósághoz képest jellemzően kisebbnek látjuk. **A "kockázat" alulbecslése pedig egy olyan probléma, amivel kezdeni kell valamit!**
+
+A **jelenség matematikailag** az alábbi módon írható le: $$E\left({(s^*)}^2 \right) < \sigma^2$$
+
+Azaz: $$Bs\left({(s^*)}^2\right) < 0$$
+
+### 2.1. Az aszimptotikus torzítatlanság fogalma
+
+Ami valamilyen szinten menti a helyzetet az az a tény, hogy bár a **sokasági variancia alapból torzítottan becsülhető a mintavarianciákkal**, de a becslés viszont **aszimptotikusan torzítatlan**. Ez azt jelenti, hogy **mintaelemszám növelésével a torzítás mértéke ($|Bs|$) csökken, konkrétan $0$-ba tart**. Azaz: $$\lim_{n \rightarrow \infty}{Bs\left({(s^*)}^2\right)}=0$$
+
+Próbáljuk **szemléltetni a jelenséget!** A data frame-k **1. fejezet végén bemutatott oszlopkiválasztásával** $10000$ db $n=\{10,20,30,...,90,100\}$ elemű minta esetén kiszámoljuk a mintavarianciák $Bs({(s^*)}^2)$ értékét a valós sokasági varianciához ($\sigma^2$) képest.<br>
+Természetesen, technikailag ezt egy `for` ciklus segítségével tudjuk megoldani:
+
+- A ciklus minden iterációjában kiválasztjuk a megfelelő elemszámú mintákat a `MintaVetelek100Elem` data frame-ből
+- Kiszámoljuk minden elemszám esetén ${(s^*)}^2$-et mind a $10000$ db mintára
+- Kiszámoljuk és egy `list`-ben eltároljuk $Bs({(s^*)}^2)$, mint $E({(s^*)}^2)$ és a valós, sokasági variancia, $\sigma^2$ különbsége
+
+```{python}
+# Üres lista létrehozása Bs-ek tárolására
+Bs_Lista = []
+# Vizsgált elemszámok listájának létrehozása
+# 10 és 100 közötti egész számok felsoroltatása a 'range' függvényben 10-es lépésközzel
+# Felső határ 101 a nyílt intervallum miatt
+Elemszam_Lista = range(10, 101, 10)
+
+# Ciklus indítása
+for AktualisElemszam in Elemszam_Lista:
+  AktualisMintaVetelek = MintaVetelek100Elem.iloc[:, 0:AktualisElemszam].copy()
+  AktualisMintaVetelek['Varianciak'] = np.std(AktualisMintaVetelek, axis = 1)**2
+  AktualisVarianciakAtlaga = np.mean(AktualisMintaVetelek['Varianciak'])
+  AktualisBs = AktualisVarianciakAtlaga - SokasagiVariancia
+  Bs_Lista.append(round(AktualisBs, 1))
+
+# Eredmény megtekintése 
+Bs_Lista
+```
+
+Szépen láthatjuk, hogy **a $Bs$ értékek abszolút értéke** az elég hatalmas $201.4$-től indulva **szépen lefut** az $n=100$ esetben **korábban is mért $18.4$-be**. Az eredmények még látványosabbak egy vonaldiagramon ábrázolva.
+
+```{python}
+# Vizsgált elemszámok és a mért Bs-ek data frame-be rendezése
+# Ahol az elemszámok a sorindexek
+BsData = pd.DataFrame(np.abs(Bs_Lista), columns=['Bs_AbszErtekek'], index = range(10, 101, 10))
+
+# Ábrázolás a 'plot' metódussal: nem kell paraméterezni, mert csak egy oszlopunk van
+BsData.plot()
+plt.show()
+```
+
+Szépen, gyakorlatilag exponenciális ütemben csökken a $Bs$ abszolút érték, bár a **csökkenés nagysága $n=90$-ről $n=100$-ra már nem túl jelentős**! Ez azt jelenti, hogy **varianciák esetén a torzítás mértéke függ az $n$ elemszámtól!** Minél nagyobb az elemszám, annál kisebb a torzítás mértéke, tehát az $|Bs|$.
+
+## 3. A korrigált mintavariancia
+
+A 2.1. fejezetben tapasztalt tényt, miszerint a mintavariancia $(s^*)^2$ a valós, sokasági $\sigma^2$-nek **aszimptotikusan torzítatlan becslése** fel lehet használni a **variancia torzítási probléma megoldására**.
+
+Ugyebár azt tudjuk az szimptotikusan torzítatlanságból, hogy minél nagyobb az elemszám, annál kisebb a torzítás mértéke. Sőt, azt is meg lehet mondani, hogy **a mintavarianciák várható értéke, $E\left((s^*)^2\right)$ arányaiban $\frac{n-1}{n}$-nel tér el a sokasági varianciától, $\sigma^2$-től**. Azaz igaz a következő egyenlőség: $$\frac{E\left((s^*)^2\right)}{\sigma^2}=\frac{n-1}{n}$$
+
+Újrahasznosítva a $Bs$-ek meghatározására alkalmazott `for` ciklusos megoldásunkat, a **fenti összefüggés helyessége is ellenőrizhető $n=\{10,20,30,...,90,100\}$ elemszámok mesetén**. 
+
+```{python}
+# Üres lista létrehozása a (várható érték) / (sokasági variancia) hányadosok tárolására
+Hanyados_Lista = []
+# Üres lista létrehozása az (n-1)/n hányadosok tárolására
+ElemszamHanyados_Lista = []
+# Vizsgált elemszámok listájának létrehozása
+# 10 és 100 közötti egész számok felsoroltatása a 'range' függvényben 10-es lépésközzel
+# Felső határ 101 a nyílt intervallum miatt
+Elemszam_Lista = range(10, 101, 10)
+
+# Ciklus indítása
+for AktualisElemszam in Elemszam_Lista:
+  AktualisMintaVetelek = MintaVetelek100Elem.iloc[:, 0:AktualisElemszam].copy()
+  AktualisMintaVetelek['Varianciak'] = np.std(AktualisMintaVetelek, axis = 1)**2
+  AktualisVarianciakAtlaga = np.mean(AktualisMintaVetelek['Varianciak'])
+  Hanyados_Lista.append(round(AktualisVarianciakAtlaga/SokasagiVariancia, 3))
+  ElemszamHanyados_Lista.append(round((AktualisElemszam - 1)/AktualisElemszam, 3))
+
+# Eredmények összefűzése data frame-be 
+Hanyados_df = pd.DataFrame(
+  list(zip(ElemszamHanyados_Lista, Hanyados_Lista)),
+  columns=['(n-1)/n', 'VarhatoErtek/SokasagiVar'])
+Hanyados_df
+```
+
+Szuper, **aránylag szépen kijön a kétféle hányadosok közötti egyezőség**! :) Persze itt is van némi **eltérés, mivel csak $10000$ db mintát vizsgálunk és nem az összes lehetségeset**, de ez még így is látványos egyezés! Így már **érthető, hogy a $Bs$ abszolút értéke miért nem csökkent már látványosan $n=90$-ről $n=100$-ra: az $\frac{n-1}{n}$ hányados mindkét esetben már elég kicsit volt, így a torzítás mértéke is!**
+
+Viszont, ha a $\frac{E\left((s^*)^2\right)}{\sigma^2}=\frac{n-1}{n}$ egyenlőség igaz, akkor azt átrendezve a következő összefüggésre jutunk: $$\sigma^2=\frac{n}{n-1} \times E\left((s^*)^2\right)$$
+
+Konstans szorzót egy átlagolás ($E(...)$) eredményén alkalmazni ugyan az, mintha minden kiátlagolandó elemet felszoroztam volna azzal a szorzóval. Tehát az $\frac{n}{n-1}$ bevihető a várható érték függvényen belülre: $$\sigma^2= E\left(\frac{n}{n-1} \times (s^*)^2\right)$$
+
+Mindezek alapján pedig azt mondjatjuk, hogy **az $s^2=\frac{n}{n-1} \times (s^*)^2$ módon KORRIGÁLT MINTAVARIANCIA már TORZÍTATLANUL becsli a valós sokasági varianciát, azaz $\sigma^2$-t!** Hiszen $\sigma^2= E\left(s^2\right)$.
+
+Tyűha, ez nagyon szépen hangzik! :) **Próbáljuk ki! Számoljuk ki a $10000$ db $n=100$ elemű mintában a korrigált mintavarianciákat, és nézzük meg azok átlagát (várható értékét)!**
+
+```{python}
+# Elemszám megadása külön változóban
+n = 100
+
+# Korrigált varianciák
+MintaVetelek100Elem['KorrigaltVar'] = (n/(n-1)) * MintaVetelek100Elem['Varianciak']
+
+# Torzítatlanság ellenőrzése
+KorrVarAtlaga = np.mean(MintaVetelek100Elem['KorrigaltVar'])
+
+[KorrVarAtlaga, SokasagiVariancia]
+round(KorrVarAtlaga - SokasagiVariancia, 1)
+```
+
+Győzelem! :) Ha **nem is szűnt meg teljesen a dolog, de láthatóan nagyon alacsony, majdnem elhanyagolható lett a $Bs$ mértéke**! Sőt, már nem lefele torzítunk azzal a minimális $1.1$-gyel, hanem felfelé, ami egy szóródás becslésnél még a "*jobbik eset*". Lásd a korábbi pénzügyi kockázat becslése példát. :) Ha **lenne több mintánk, akkor a korrekció ki is nullázná a $Bs$-t**.
+
+Ezek alapján akkor jó lenne, ha **lenne valami beépített függvényünk** az `std` helyett, ami **mintaadatok esetén alapból a KORRIGÁLT SZÓRÁS $s = \sqrt{s^2}=\sqrt{\frac{n}{n-1} \times (s^*)^2}$ értékét számolja**!
+
+Nos, **valójában az** `std` **tud korrigált szórást számolni egy extra paraméter segítségével**. Ahhoz, hogy **megértsük a paraméter működését egy picit végig kell gondolni a korrigált szórás képletének a működését**.
+
+Alapból a mintaadatok $s^*$ szórását az $s^*=\sqrt{\frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n}}$ képlettel számoljuk. Megnézzük, hogy minden $y_i$ mintaelem mennyivel tér el a minta $\bar{y}$ átlagától, majd ezen eltéréseket négyzetre emelve összeadjuk és az összeget leosztjuk a minta $n$ elemszámával, végül gyököt vonunk az egész hányadosból.<br>
+Ennek az értéknek a négyzete a sima, *nem korrigált* variancia: $(s^*)^2=\frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n}$
+
+Ha a fenrti variancia képletet beszorozzuk $\frac{n}{n-1}$-gyel akkor a következő egyszerűséítéseket tehetjük: $$s^2=\frac{n}{n-1} \times \frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n} = \frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n-1}$$
+
+Tehát, a **minta korrigált szórását úgy számoljuk ki mint a nem korrigáltat, csak a NEVEZŐBEN $n-1$-gyel osztunk, nem pedig $n$-nel**: $$s=\sqrt{\frac{\sum_{i=1}^n{(y_i-\bar{y})^2}}{n-1}}$$
+
+Ezt az **eltérést a nevezőben** a `ddof = 1` **paraméter beállítással jelezzuk** a `numpy` csomag `std` függvényében. Könnyen kitalálható, hogy alapértelmezésben `ddof = 0` beállítással fut az `std` függvény. :)
+
+Lássuk is a dolgot akcióban!
+
+```{python}
+# Korrigált varianciák 'std'-vel
+MintaVetelek100Elem['KorrigaltVar_std'] = np.std(MintaVetelek100Elem.iloc[:,0:100], axis=1, ddof = 1)**2
+
+# Torzítatlanság ellenőrzése
+KorrVarAtlaga_std = np.mean(MintaVetelek100Elem['KorrigaltVar_std'])
+
+[KorrVarAtlaga_std, SokasagiVariancia]
+round(KorrVarAtlaga_std - SokasagiVariancia, 1)
+```
+
+Királyság! Tökéletesen ugyan ott vagyunk, mint az előbb a manuális számolással! :)
+
+**Szépen szakszavakkal összefoglalva** tehát az a fő tanulságunk, hogy
+
+1. A **sima mintavariancia ($(s^*)^2$) a sokasági variancia $\sigma^2$ TORZÍTOTT becslőfüggvénye**
+2. A **korrigált mintavariancia ($s^2$)** viszont **a sokasági variancia $\sigma^2$ TORZÍTATLAN becslőfüggvénye**
+
+## 4. A medián torzítatlansága
+
+**Stat. 1-en nagyon fontos mutatónk volt a medián**, mint a vizsgált ismérv felezőpontja, hiszen nem volt érzékeny a kilógó értékekre az adatsorban, mint az átlag. **Nézzük meg** itt a Balaton átúszás 100 elemű mintáinak példáján, hogy ez a statisztikai paraméter **torzítatlanul becsülhető-e!**
+
+```{python}
+# Sokasági medián átúszási idő
+SokasagiMedian = np.median(Balcsi.PERC)
+
+# Mintabeli mediánok kiszámítása
+MintaVetelek100Elem['Medianok'] = np.median(MintaVetelek100Elem.iloc[:,0:100], axis=1)
+
+# Mintabeli mediánok átlaga
+MedianokAtlaga = np.mean(MintaVetelek100Elem['Medianok'])
+
+# Torzítatlanság ellenőrzése
+[MedianokAtlaga, SokasagiMedian]
+round(MedianokAtlaga - SokasagiMedian, 1)
+```
+
+Olybá tűnik, hogy a medián a mintabeli mediánokkal **torzítatlanul becsülhető** A $Bs(me) = E(me) - Me$ eltérés olyan minimális, hogy simán elhihető, hogy megszűnik, ha az összes lehetséges $n=100$ lemeű mintát vizsgálnánk és nem csak $10000$-et.
+
+## 5. A Standard Hiba (*SH*) fogalma
+
+TODO

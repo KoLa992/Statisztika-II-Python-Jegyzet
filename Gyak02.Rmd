@@ -505,6 +505,7 @@ Mivel ez egy marha fontos dolog, így kaptok róla egy mémet is! **Égjen csak 
 
 <center>
 ![](sample_size.jpg){width=40%}
+<br>*Source Bors Alexandra, ha valaki tanut tőle Webfejlt :)*
 </center>
 
 <br>További kísérletezgetésre a mintavétel hibával kapcsolatban, nyugodtan lehet használni az alábbi kis interaktív felületet.
@@ -555,6 +556,8 @@ Számoljunk ki az időeredményekre három statisztikai mutatót:
 - Az **átlag**os időt Jele: $\bar{Y}$ vagy $\mu$
 - Az egyéni idők **szórás**át Jele: $\sigma$
 - A 3 óra (180 perc) felett teljesítők **arányát** Jele: $P$
+  * Itt a számolásnál azt a trükköt sütjük el, hogy a `Balcsi.PERC > 180` parancs egy `bool` tömböt ad vissza aszerint, hogy a `Balcsi.PERC > 180` logikai állítás kire `True` és `False`.
+  * A `numpy` csomag `sum` függvénye pedig egy ilyen tömbre `True = 1` és `False = 0` kódolásokkal végzi el az összegzést: azaz megadja a *kedvező esetek*, a Balatont 180-an percnél hosszabb idő alatt átúszók *darabszámát*.
 
 ```{python}
 SokasagiAtlag = np.mean(Balcsi.PERC)
@@ -670,13 +673,4 @@ Ezzel meg is vagyunk, van az időeredményekből $10000$ db $n=100$ elemű mint�
 
 ```{python warning = FALSE, message = FALSE, eval = FALSE}
 MintaDF.to_excel('MintaDataFrame.xlsx', index = False)
-
-MintaDF['Atlagok'] = np.mean(MintaDF, axis=1)
-np.mean(MintaDF.Atlagok)
-SokasagiAtlag
-MintaDF['Szorasok'] = np.std(MintaDF, axis=1)
-np.mean(MintaDF.Szorasok)
-MintaDF['Aranyok'] = np.sum(MintaDF > 180, axis=1)/len(MintaDF)
-np.mean(MintaDF.Aranyok)
-SokasagiArany
 ```
