@@ -1,7 +1,7 @@
 ---
 title: "A becsléselmélet alapjai"
 author: "Kovács László"
-date: "2022. 08. 12."
+date: "2022. 08. 15."
 output:
   html_document:
     toc: true
@@ -24,7 +24,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Folytassuk ott a dolgainkat, ahol a 2. heti anyagban abbahagytuk. Töltsük be egy `pandas` data frame-be a <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/blob/main/LIDLBalaton2022.xlsx" target="_blank">LIDLBalaton2022.xlsx</a> fájl adatait. Ebben az Excelben a 2022-es LIDL Balaton átúszás résztvevőinek *neve, neme és percben mért időeredménye* található. Ez az adatsor lesz most nekünk a **sokaságunk**.
 
 ```{python}
-# Elemzéshez és ábrázoláshoz zükséges csomagok betöltése
+# Elemzéshez és ábrázoláshoz szükséges csomagok betöltése
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -337,4 +337,226 @@ Olybá tűnik, hogy a medián a mintabeli mediánokkal **torzítatlanul becsülh
 
 ## 5. A Standard Hiba (*SH*) fogalma
 
-TODO
+Szép és jó, hogy megállapítottuk, hogy a mintaátlag, mintaarány, korrigált mintavariancia és mintamedián **torzítatlan becslőfüggvény**ei a nekik megfelelő sokasági $\theta$ paramézereknek, de **mire jó ez nekünk a gyakorlatban, amikor csak egyetlen egy darab mintavételünk van?**
+
+Hiszen, mint a 3-4. fejeuetekben tapasztaltuk, a torzítatlanság csak annyit mond, hogy ha van **nagyon-nagyon sok mintavételünk**, akkor a vizsgált statisztikai mutatónk/paraméterünk mintából számított értékei (becslőfüggvények) **átlagosan eltalálják a mutató valós, sokasági értékét**. De sajnos ebbe a **definícióba nagyon sok minden belefér**, és igazából **önmagában a mintavételi hibáról (MVH) nem mond semmit**.<br>
+Ezt a problémát nagyon jól érzékelteti a következő *favicc*.
+
+> "Egy mérnök, egy fizikus és egy statisztikus együtt mennek vaddisznóra vadászni. Alig tesznek meg néhány lépést az erdőben, máris észrevesznek 150 méterre egy hatalmas példányt.<br>
+>  A mérnök felemeli a puskáját, céloz és lő, de három méterrel mellétalál jobbra. A fizikus így okoskodik:<br>
+>  "Egy kis szellő fúj balról, ha kicsit balra célzok, akkor eltalálom."<br>
+>  Ő is célbaveszi a szarvast, lő és három méterrel balra elvéti. A statisztikus felugrik, és örvendezni kezd:<br>
+>  "Megvan! Megvan! Eltaláltuk!"
+>
+> `r tufte::quote_footer('-- Méltán Ismeretlen Szerző')`
+
+Ugyebár kedvenc viccbéli statisztikus azért örvendez, mivel a három méterrel jobbra és balra hibázó két lövés átlagban pont telibe kapta szegény vaddisznónkat!<br>
+Na, hát erről szól a **torzítatlanság** is:
+
+- Le akarunk vadászni *lövésekkel*, azaz *mintavételekkel* egy statisztikai paraméter sokasági értékét, $\theta$-t.
+- Az első lövés, az 1. mintavételből származó becslőfüggvényünk értéke $\hat{\theta}_1$
+- A második lövés, a 2. mintavételből származó becslőfüggvényünk értéke $\hat{\theta}_2$
+- Ezek átlagban, azaz várható értékben eltallálják a keresett valós értéket, $\theta$-t: $E(\hat{\theta})=\theta$
+- Íme: ez a *torzítatlan becslés* definíciója :)
+
+Az statisztikai "$\hat{\theta}$"-os vadászat és a vaddisznó vadász közti **analógia az alábbi ábrán szemléltethető**. **FONTOS** :)
+
+<center>
+![](BiasBoar.jpg){width=50%}
+</center>
+
+<br>A fenti ábrán bejelöltem **zölddel** egy **tetszőleges $\hat{\theta}_i$ és a valós, sokasági $\theta$ közti távolság**ot. Valójában **ez az a távolság, amire kíváncsiak vagyunk egy tetszőleges FAE mintából számolt becslés és a keresett mutató sokasági értéke közötti távolság**! Hiszen a gyakorlatban **csak egy db mintavételünk van, és az egyetlen egy megfigyelt mintából kimókolt $\hat{\theta}$ és $\theta$ közti távolságot kéne kiszámolni**! Ez lenne ugyebár a **MVH**, amit kersünk!<br>
+Nos, a **torzítatlanságnak hála** van egy módszer, amivel ezt a **távolságot ki lehet számolni**! Hiszen, ha a torzítatlanság miatt $E(\hat{\theta})=\theta$, akkor ez azt jelenti, hogy **a sok-sok mintából számolt $\hat{\theta}_i$ értékek szórása épp a keresett zöld távolság**. Hiszen mi is a **szórás általános értelmezése**? Egy **véletlenszerűen kiválasztott elem az adatsorból várhatóan mennyivel tér el az átlagtól**. Hogyan fordul ez le a $\hat{\theta}$-ok adatsorára? Ha a **sok-sok lehetséges mintavételből kiválasztok egyet, akkor a kiválasztott mintából számolt $\hat{\theta}$  várhatóan szórásnyival tér el** a $\hat{\theta}$-ok átlagától, azaz a *torzítatlanság* miatt épp a **valós, sokasági $\theta$ értékétől**.<br>
+Ebből az okfejtésből kiindulva **a$\hat{\theta}$-ok szórását standard mintavételi hibának, röviden csak standard hibának, "SH"-nak nevezzük**.
+
+Akkor ezen felbuzdulva **számoltassuk ki** pitonkával az **átlag és arány standard hibáit**, mint a $\hat{\theta}$-ként funkcionáló **mintaátlagok és minatarányok szórása**! Itt sima szórást kell stámolni, semmi korrekció nem kell az `std` függvényben.
+
+```{python}
+SH_Atlag = np.std(MintaVetelek100Elem.Atlagok)
+SH_Arany = np.std(MintaVetelek100Elem.Aranyok)
+
+SH_Atlag
+SH_Arany
+```
+
+Mivel az **átlag és arány torzítatlan becslések**, így a **szórásként kiszámolt standard hibát a következőképpen lehet értelmezni**:
+
+- 100 elemű minták esetén **egy konkrét mintaátlag várhatóan $4.4$ perccel tér el az átlagok átlagától, azaz a valós, sokasági átlagos átúszási időtől**.
+- **Egy konkrét 100 elemű mintában a Balatont 3 órán túl átúszók aránya várhatóan $4.67$ százalékponttal tér el a teljes sokaság hasonló arányától**.
+
+Hasonlóan működik a dolog ezen a szinten a varianciákra és mediánokra is. HF kiszámolni és értelmezni az eredményeket. :)
+
+Viszont, **olybá tűnik, hogy nem vagyunk sokkal előrébb**. Mivel, bár a standard hiba megadja, hogy egy mintából számolt becslés várhatóan mennyivel tér el a valóságtól, de a **standard hiba (SH) kiszámolásához sok-sok mintavételre van szükség, hiszen ezekből a mintákból számolt $\hat{\theta}$-k szórásaként tudjuk az SH értéket megahtározni**!<br>
+Az kéne, hogy **az SH-t egyetlen egy mintavételből is valahogy ki tudjuk számolni**!
+
+Erre **az átlag és az arány esetében van megoldásunk**. Ugyanis e két mutató esetében a **SH kifejezhető zárt formulával is**:
+
+- $SH(\bar{y})=\frac{\sigma}{\sqrt{n}}$
+- $SH(p)=\sqrt{\frac{P(1-P)}{n}}$
+
+Tehát, a **két standard hiba a sokasági szórás ($\sigma$) és a keresett sokasági arány ($P$) és a mintaelemszám $n$ ismeretében megahtározahtó**. Próbáljuk is ki a dolgot.
+
+```{python}
+n = 100
+
+SH_Atlag_Formula = SokasagiSzoras / np.sqrt(n)
+SH_Arany_Formula = np.sqrt((SokasagiArany * (1-SokasagiArany))/n)
+
+[SH_Atlag, SH_Atlag_Formula]
+[SH_Arany, SH_Arany_Formula]
+```
+
+Olybá tűnik, hogy **nagyjából egyezik a két érték**. :) A minimális eltérés megint abbók fakad, hogy nem az összes lehetséges mintát vizsgáltuk, csak $10000$ db-ot, amikor a $SH$-kat a $\hat{\theta}$-ok szórásaként számoltuk ki.
+
+Viszont, itt **megint az a probléma, hogy a $SH$ kiszámításhoz olyan dolgokat kell ismerni, amiket egyetlen egy mintavétel esetén nem ismerünk**: sokasági szórás ($\sigma$) és a sokasági arány ($P$).<br>
+**NODE!** Ezeket az ismeretlenek legalább tudjuk **helyettesíteni az egy mintavételből számolt torzítatlan becslésükkel**: a $P$-t helyettesítjük $p$-vel, a $\sigma$-t pedig a korrigált szórással, $s$-el (hiszen egy torzítatlan becslése kell).
+
+Ennyi ismerettel pedig akkor pl. az $5.$ mintánk alapján a $SH(\bar{y}) \approx \frac{s}{\sqrt{n}}$ és $SH(p) \approx \sqrt{\frac{p(1-p)}{n}}$ **közelítő képletekkel** meg tudjuk már határozni a $SH$-kat.
+
+```{python}
+n = 100
+
+SH_Atlag_ÖtödikMinta = np.sqrt(MintaVetelek100Elem.Varianciak[4] / n)
+SH_Arany_ÖtödikMinta = np.sqrt((MintaVetelek100Elem.Aranyok[4] * (1-MintaVetelek100Elem.Aranyok[4]))/n)
+
+SH_Atlag_ÖtödikMinta
+SH_Arany_ÖtödikMinta
+```
+
+Nem tűpontos a $SH$ közelítése, de azért **nagyságrendileg látszik, hogy jó nyomon járunk már egy mintavétel alapján is!** :)
+
+Sajnos **hasonló közelítő képleteink a varianciák més mediánok esetén NINCSENEK**. Ott majd más trükkökkel próbáljuk kiszámolni az $SH$-kat egy mintavétel alapján. De erről majd pár anyaggal később. :)
+
+Most még egy **fontos elnevezés: a $SH^2$-et gyakran nevezi a szaknyelv a becslőfüggvény VARIANCIÁJÁNAK**. Én nem szeretem ezt az elnevezést, mert könnyű összekeverni a minta vagy éppen a sokasági adatok varianciájával, de sok helyen használják ezt az elnevezést, így fontos tudni! Tehát, ha valahol **olyat olvastok, hogy a mintaátlagok varianciája ennnyi vagy a mintaarányok varianciája amannyi, akkor ott a költő az adott mutatók $SH^2$-re gonfolt**. Jelölni pedig az elnevezés alapján logikus módon így szokás a dolgot: $SH^2(\hat{\theta})=Var(\hat{\theta})$
+
+Ennek kapcsán talán fontos megemlékezni **összefoglalásként arról, hogy itt a becsléselméletben milyen különböző szórásokkal, illetve varianciákkal találkoztunk**:
+
+- **Sokasági szórás**: A sokaság elemeinek várható eltérése a sokaság átlagától. Jele: $\sigma$.
+  * Négyzete: sokasági variancia, $\sigma^2$
+- **Korrigálatlan mintaszórás**: Egy db minta elemeinek várható eltérése az egy db mintánk átlagától. Jele: $\sigma^*$
+  * Négyzete: korrigálatlan mintavariancia, $(s^*)^2$
+- **Korrigált mintaszórás**: Ugyan az, mint a korigálatlan mintaszórás, csak *torzítatlan* becslést ad a valós, sokasági szóródásra. Jele: $s$
+  * Négyzete: korrigált mintavariancia, $s^2$
+- **Standard hiba**: Sok-sok mintából számolt becslőfüggvény, azaz $\hat{\theta}$ szórása. *Torzítatlanság esetén* egy konkrét mintából számolt becslőfüggvény eltérése a vizsgált $\theta$ paraméter valós, sokasági értékétől. Jele: $SH(\hat{\theta})$
+  * Négyzete: becslőfüggvény varianciája, $Var(\hat{\theta})$
+
+### 5.1. A konzisztens becslés fogalma
+
+A standard hibáik formulájából az is kikövetkeztethető a **mintaátlag és mintaarány** becslőfüggvények esetében, hogy ezek **konzisztens becslések is a valós sokasági átlagra, arányra**.
+
+Ugyanis, általánosságban **egy $\hat{\theta}$ becslőfüggvény akkor konzisztens, ha $SH$-ja, a mintaelemszám ($n$) növelésével $0$-ba tart**:$$\lim_{n \rightarrow \infty}{SH(\hat{\theta})} = 0$$
+
+Azaz, a egyre nagyobb a mintaméret, akkor a vizsgált statisztikai mutatónk egy mintából számított értéke ($\hat{\theta}$) egyre közelebb lesz a mutató valós, sokasági értékéhez ($\theta$).
+
+Könnyen látható, hogy **mintaelemszám ($n$) függvényében, mind a mintaátlagok, mind a mintaarányok $f(n) \sim \frac{1}{n}$ stílusú hiperbola függvények, amik a végtelenbe tartó $n$ nevező esetén $0$-ba tartanak**:$$\lim_{n \rightarrow \infty}{SH(\bar{y})} = \lim_{n \rightarrow \infty}{\frac{\sigma}{\sqrt{n}}} = 0$$
+
+és $$lim_{n \rightarrow \infty}{SH(p)} = \lim_{n \rightarrow \infty}{\sqrt{\frac{P(1-P)}{n}}} = 0$$
+
+**Rajzoljuk is ki a standard hiba függvényt mondjuk $SH(\bar{y})$ esetében** $n=\{10,20,...,200\}$ elemszámok mellett, és **látni fogjuk a hiperbola alakot**. Bár a dolog nem teljesen tiszta, mert a $0$-ba tartás sebesség a képlet alapján "*gyökös*". :) Az ábrázolást végző Python kód logikája teljesen egyezik azzal, amit a *2.1. fejezetben* is használtunk.
+
+```{python}
+# Üres lista létrehozása a különböző elemszámok mellett vett SH-k tárolására
+SH_Lista = []
+# Vizsgált elemszámok listájának létrehozása
+# 10 és 200 közötti egész számok felsoroltatása a 'range' függvényben 10-es lépésközzel
+# Felső határ 201 a nyílt intervallum miatt
+Elemszam_Lista = range(10, 201, 10)
+
+# Ciklus indítása SH-k számításához
+for AktualisElemszam in Elemszam_Lista:
+  SH_Lista.append(round(SokasagiSzoras / np.sqrt(AktualisElemszam), 3))
+
+# Vizsgált elemszámok és a mért SH-k data frame-be rendezése
+# Ahol az elemszámok a sorindexek
+SHData = pd.DataFrame(SH_Lista, columns=['SH_Átlag'], index = range(10, 201, 10))
+
+# Ábrázolás a 'plot' metódussal: nem kell paraméterezni, mert csak egy oszlopunk van
+SHData.plot()
+plt.show()
+```
+
+## 6. Az átlagos négyzetes hiba (*MSE*) fogalma
+
+Ugyebár arra jutottunk, hogy egy statisztikai paraméter becslőfüggvénynek a szórása, mint **standard hiba, csak akkor adja meg egy konkrét mintából számolt $\hat{\theta}$ várható eltérését a valós, sokasági $\theta$ értéktől, ha a becslőfüggvény torzítatlan**, mert ekkor egyezik meg $\theta$ a sok-sok mintából számolt $\hat{\theta}$-ok átlagával, $E(\hat{\theta})$-val.
+
+Ha nem torzítatlan becslőfüggvényről beszélünk, akkor **manuálisan ki tudjuk számolni a sok-sok mintából megadott $\hat{\theta}$-ok várható eltérését a valós, sokasági $\theta$-tól**. **Ez a mutató lesz a $\hat{\theta}$ átlagos négyzetes hibája, angolul Mean Squared Error = MSE**. A számoláshoz simán a klasszikus variancia képletet kell alkalmazni a kövtekező módon: $$MSE(\hat{\theta})=\frac{\sum_{i=1}^K{(\hat{\theta}_i-\theta)^2}}{K}$$
+
+A képletben $K$ a mintavételek száma (nekünk most $10000$) $\hat{\theta}_i$ egyszerűen az $i$-edik mintából számolt $\hat{\theta}$ értéke.
+
+**Számoljuk is ki az $MSE$-t, az egyetlen torzított becslőfüggvényre, a korrigálatlan mintavarianciára!** A képletnél muszáj Pythonban a `sum` függvényt alkalmazni, és "*manuálisan*" lekódolni a formulát, mivel a beépített `std` függvénnyel $\theta$ helyett $E(\hat{\theta})$-hoz viszonyítanánk, és a torzítottság miatt e két érték nem esik most egybe!
+
+```{python}
+MSE_Varianciak = np.sum((MintaVetelek100Elem.Varianciak - SokasagiVariancia)**2)/10000
+
+MSE_Varianciak
+```
+
+Királyság! Namármost. Ez **a $MSE$ érték** valójában a **becslés kétféje hibájának négyzetes összege**. Konkrétan $$MSE=SH^2+Bs^2$$
+
+Ugyebár itt **egy $\hat{\theta}$ becslőfüggvény eltérését a valós $\theta$-tól két lépcsőben lehet megközelíteni**:
+
+1. $SH$: Mennyivel tér el egy konkrét minta $\hat{\theta}$-ja a becslések átlagától, $E(\hat{\theta})$-től.
+2. $Bs$: Mennyivel tér el a becslések átlaga a valós $\theta$-tól: $Bs = E(\hat{\theta}) - \theta$
+
+És ha kiszámoljuk a gyakorlatban, akkor látjuk, hogy az E$MSE$ tényleg **ennek a fenti kétféle hibának az összege**.
+
+```{python}
+Bs_Varianciak = np.mean(MintaVetelek100Elem.Varianciak) - SokasagiVariancia
+SH_Varianciak = np.std(MintaVetelek100Elem.Varianciak)
+
+MSE_Varianciak_Összeggel = Bs_Varianciak**2 + SH_Varianciak**2
+
+[MSE_Varianciak, MSE_Varianciak_Összeggel]
+```
+
+Jé, tényleg jó az összeges logikánk is! :)
+
+Természetesen, ahol **torzítatlan a becslés, ott a $Bs=0$ miatt az $MSE = SH^2$ azonosság áll**. Vegyük **pl. a mintaarányok esetét**.
+
+```{python}
+MSE_Aranyok = np.sum((MintaVetelek100Elem.Aranyok - SokasagiArany)**2)/10000
+SH_Aranyok = np.std(MintaVetelek100Elem.Aranyok)
+
+[MSE_Aranyok, SH_Aranyok**2]
+```
+
+ExcellenT! :)
+
+### 6.1. Különböző becslőfüggvények összehasonlítása
+
+Az $MSE$-t kiválóan lehet hasznosítani, mint egy olyan **mérőszámot, amivel választani tudunk egy $\theta$ sokasági paraméterre adott több lehetséges $\hat{\theta}$ becslőfüggvény alternatíva közül**. Kiváló **példa erre az $(s^*)^2$ és $s^2$, mint két alternatív becslőfüggény a sokasági variancia, $\sigma^2$ becslésére**.
+
+Mondhatnánk erre a kérdésre válaszként csípőből azt, hogy **"de hát a torzítatlan becslőfüggvény biztos jobb"**. Nos nem feltétlenül. Mert mi van **ha egy torzított becslés standard hibája annyival kisebb a torzítatlannál, hogy az ellensúlyozza a torzítás mértékét**, és a végén egy "lövés" (azaz $\hat{\theta}$ becslés) a torzított becslőfüggvényből közelebb esik a valós $\theta$-hoz, mint a torzítatlan becslésből származó "lövés".
+
+Ezt nagyon jól lehet érzékeltetni az 5. fejezet vaddisznó vadászatos példáján egy másik nézőpontból: **mi van ha a torzítatlan becslésnek akkor a standard hibája, hogy egy konkrét "lövés" (azaz $\hat{\theta}$ becslés) jóval messzebb lesz a valós $\theta$-tól, mint egy torzított becslőfüggvényből származó becslés?**
+
+<center>
+![](BiasBoarCompare.png){width=90%}
+</center>
+
+<br>Az ábrán látható, hogy **egy enyhén "balra" torzított becslőfüggvényből származó, de kis standard hibájú $\hat{\theta}_i$ becslések még eltalálják a vaddisznót, de a torzítatlan becslések, bár sok-sok mintavétel átlagában nagyon jól működnek, de egy konkrét $\hat{\theta}_i$ lövésnek akkora a standard hibája, hogy nagyon messzire elvéti azt a vaddisznót!**
+
+Tehát a fenti jelenség miatt, ha **egy adott $\theta$-ra több becslőfüggvény közül kell választanunk, akkor azt az $MSE$ alapján** szabad csak megtennünk, mert az egyszerre veszi figyelembe a torzítás mértékét és a standard hibát is.
+
+Lássuk a dolgot a gyakorlatban: **Mi a jobb becslés a sokasági varianciára? A korrigált vagy a korrigálatlan mintavariancia?**
+
+```{python}
+# Torzított becslés = Korrigálatlan mintavar.
+Bs_Varianciak = np.mean(MintaVetelek100Elem.Varianciak) - SokasagiVariancia
+SH_Varianciak = np.std(MintaVetelek100Elem.Varianciak)
+
+MSE_Varianciak = Bs_Varianciak**2 + SH_Varianciak**2
+
+# Torzítatlan becslés = Korrigált mintavar.
+SH_KorrVarianciak = np.std(MintaVetelek100Elem.KorrigaltVar)
+
+MSE_KorrVarianciak = 0 + SH_KorrVarianciak**2
+
+[MSE_Varianciak, MSE_KorrVarianciak]
+```
+
+Hoppá, olybá tűnik, hogy $MSE((s^*)^2) < MSE(s^2)$, tehát a **nem korrigált mintavariancia van közelebb a valós, sokasági $\sigma^2$-hez egy "átlagos" mintavétel esetén, hanem a sima korrigálatlan verzió**.<br>
+Ugyanakkor az **adatsor bizonytalanságának, szóródásának "rendszeres" alábecslése a legtöbb esetben nagyobb probléma, mint a némileg nagyobb standard hiba**, így **variancia esetében** felülírjuk az $MSE$ döntését, és a **korrigált mintavarianciát használjuk a legtöbb esetben**. Vagy másképpen fogalmazva azt mondhatjuk, hogy variancia esetén nagyobb súlyt helyezünk $MSE$-ben a $Bs^2$-re, mint a $SH^2$-re, és nem egyenlő mértékben preferáljuk a csökkenésüket.<br>
+Pl. az **átlag standard hibájának $\frac{s}{\sqrt{n}}$ elvű közekítésénél ez azért is jogos, mert a korrigálatlan mintaszórás hazsnálata esetén egy mintaátlag távolságát a valós, sokasági átlagtól az "átlagos mintavételben" alábecsülnénk, ami azért kellemetlen**. :)
+
+Ha **két torzítatlan becslőfüggvény közül kell választanunk, akkor simán választhatjuk azt, aminek a standard hibája kisebb, hiszen ilyenkor ez egyben azt is jelenti, hogy az $MSE$-je is kisebb**, mivel $Bs^2=0$. Ezt hívják úgy is a szakirodalomban, mint a **hatásosság kritériuma: Két becslőfüggvény közül az a hatásosabb, amelynek $SH$-ja kisebb**. :)
