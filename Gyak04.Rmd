@@ -1,7 +1,7 @@
 ---
 title: "A sokasági átlag intervallumbecslése"
 author: "Kovács László"
-date: "2022. 08. 19."
+date: "2022. 08. 22."
 output:
   html_document:
     toc: true
@@ -37,4 +37,383 @@ Balcsi.info()
 Balcsi.head()
 ```
 
-Meg is van akkor mind az $N=9751$ részvevőnk. Ebben a tananyagban **most kizárólag az időeredmények átlagának becslésével** fogunk foglalkozni.
+Meg is van akkor mind az $N=9751$ részvevőnk. Ebben a tananyagban **most kizárólag az időeredmények átlagának becslésével** fogunk foglalkozni.<br>
+Úgyhogy **számoljuk is ki**, hogy az összes átúszó, azaz a **sokaság**, tekintetében mi az **időeredmények átlaga** ($\mu=\bar{Y}$). Ezen kívül majd jól jön még nekünk referenciaként az időeredméynek sokasági **szórása** ($\sigma$) is.
+
+```{python}
+SokasagiAtlag = np.mean(Balcsi.PERC)
+SokasagiSzoras = np.std(Balcsi.PERC)
+
+SokasagiAtlag
+SokasagiSzoras
+```
+
+Ezeka alapján tudjuk tehát, hogy egy átlagos Balaton átúszó $\mu=165.5$ perc alatt teljesítette a távot, amitől egy konkrét versenyző saját időeredménye várhatóan $\sigma=44.1$ perccel tér el.
+
+**Az átlag becslése során** az a feladatunk, hogy **ezt a $\mu=165.5$ perces átlagot valahogy "megtippeljük"** egy visszatevéses véletlen (azaz FAE) **minta adatai alapján**.
+
+Tehát, **vegyünk is egy $n=100$ elemű mintát a Balatonátúszók sokaságából** a kedvenc $1992$-es véletlen magunk mellett, és nézzük meg, hogy **mennyi a mintaátlag, azaz $\bar{y}$ értéke**.
+
+```{python}
+BalcsiMinta = Balcsi.sample(n = 100, replace = True, random_state = 1992)
+
+MintaAtlag = np.mean(BalcsiMinta.PERC)
+
+MintaAtlag
+```
+
+Tehát ebben az $n=100$ elemű **mintában az átlagos átúszási idő $164.4$ perc**. A <a href="Gyak03.html" target="_blank">3. heti tananyagban</a> elvégzett okoskodásunk alapján a **mintaátlag alapján úgy tudjuk lehatárolni a sokasági átlag ($\mu$) értékét, hogy a mintaátlag értékre rámérem $\pm$ annak standard hibáját**. Hiszen a standard hiba megmutatja, hogy egy véletlenszerűen kiválasztott mintavétel átlaga várhatóan mennyivel tér el a valós sokasági átlagtól (mivel a $\bar{y}$ mintaátlag alapból egy torzítatéan becslőfüggvénye a $\mu$ sokasági átlagnak).<br>
+A gondolatmenet alapján tehát azt mondhatjuk, hogy a **sokasági átlag várhatóan mintaátlag $\pm$ standard hiba által lehatárolt intervallumban nyugszik**.
+
+Jó hír, hogy ugyebár az **átlag standard hibája sokasági szórás osztva gyök alatt mintaelemszám**, azaz $\frac{\sigma}{\sqrt{n}}$ képlettel számolható, aminek az értékét egy mintavétel alapján is meg tudjuk közelíteni, ha a sokasági szórást, annak torzítatlan becslésével a **korrigált mintaszórás**sal helyettesítjük. Tehát, az **egy szem $n=100$ mintából a standard hiba értéke az $\frac{s}{\sqrt{n}}$ képlettel megközelíthető**.
+
+Ez alapján akkor az alábbi számolást tudjuk elkövetni a mintánkon.
+
+```{python}
+n = 100
+s = np.std(BalcsiMinta.PERC, ddof = 1) # figyeljünk a korrekcióra!
+SH = s/np.sqrt(n)
+
+[MintaAtlag - SH, MintaAtlag + SH]
+```
+
+Az eredményünk alapján a valós, sokasági átlag ($\mu$) várhatóan $160.6$ és $168.3$ perc között, azaz a $[160.6,168.3]$ intervallumban helyezkedik el. Nos, **az intervallumos becslésünk helyes is, hiszen a valós sokasági átlag uygebár $\mu=167.5$ perc, ami tényleg benne van a mintánk alapján lehatárolt intervallumban**.
+
+## 2. A mintaátlagok eloszlása
+
+Na jó-jó, egy mintavétel esetén szerencsénk is lehetett. **Mennyire működik ez a standard hibás módszer jól sok-sok $n=100$ mintavétel esetében?** Töltsük csak be egy data frame-be azt a táblát, ami $10000$ db $n=100$ FAE mintavétel adatait tartalmazza! Az átlalam generált Excel, ami tartalmazza a $10000$ minta adatait <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/blob/main/MintaDataFrame.xlsx" target="_blank">innen</a> érhető el. 
+
+```{python}
+MintaVetelek100Elem = pd.read_excel("MintaDataFrame.xlsx")
+MintaVetelek100Elem
+```
+
+Oké, az eredményből látjuk is, hogy úgy néz ki a data frame, hogy **1 sor tartalmaz 1 db 100 elemű mintát és a mintaelemeket** (tehát a mintába besorsolt versenyző percben mért időeredményét) **az oszlopkban tároljuk**.
+
+Akkor most **minden minta esetében számoljuk ki a $\bar{y} \pm SH$ intervallumot**, és nézzük meg, hogy a valós **sokasági átlag** ($\mu$) **beleesik-e** az intervallumba! Annyi **előnyt is adjunk magunknak, hogy a standard hibát a sokasági szórás, azaz $\sigma$ ismeretében számoljuk ki**. Tehát a $SH = \frac{\sigma}{\sqrt{n}}$ képletet alkalmazzuk. Ugye ez annyiban előny, hogy $\sigma$-t egy db 100 elemű minta vizsgálata esetén NEM ismerjük!<br>
+A számolás során figyeljünk arra, hogy a `numpy` függvényeket `axis = 1` paraméterrel hazsnáljuk, hiszen egy db minta elemei a sorokban vannak. Illetve, a számolást mindig szorítsuk le a data frame első $100$ oszlopára, hiszen a data frame oszlopait folyamatosan bővíteni fogjuk!
+
+```{python}
+n = 100
+SH = SokasagiSzoras / np.sqrt(n)
+
+MintaVetelek100Elem['AtlagAlsoHatar'] = np.mean(MintaVetelek100Elem.iloc[:,0:100], axis = 1) - SH
+MintaVetelek100Elem['AtlagFelsoHatar'] = np.mean(MintaVetelek100Elem.iloc[:,0:100], axis = 1) + SH
+MintaVetelek100Elem
+```
+
+Oké, akkor **meg is vannak** az átlag intervallumos **becslés**ének **alsó-felső határai**. **Számoljuk** akkor **ki a találati arányt**!<br>
+A számoláshoz azt a trükköt alkalmazzuk, amit a <a href="Gyak02.html" target="_blank">2. heti tananyagban</a> sütüttünk el: a `AdatokEgyben['Normal'] < 100` parancs egy `bool` tömböt ad vissza, amit összegezve megkapjuk a "*kedvező esetek*", vagyis a $\mu$-t helyesen eltaláló intervallumok darabszámát.
+
+```{python}
+MintaVetelekSzama = len(MintaVetelek100Elem)
+
+np.sum((MintaVetelek100Elem['AtlagAlsoHatar'] < SokasagiAtlag) & (MintaVetelek100Elem['AtlagFelsoHatar'] > SokasagiAtlag)) / MintaVetelekSzama
+```
+
+Nos, olybá tűnik, hogy a $\bar{y} \pm SH$ módszer csak a **mintavételek kb. $68\%$-ban találja el a valós, sokasági átalgot, azaz $\mu$-t!** Gáz Géza! Azért ennél nagyobb találati arányt szeretnénk! Mondjuk legalább valami $90\%$ környékét.
+
+Ahhoz, hogy megértsük miért alakul gyéren ennek a módszernek találati aránya, **nézzünk csak rá az $\bar{y}$ mintaátlagok hisztogramjára!** Most a hisztogramon nem optimalizálom az osztályközök számát, elfogadom a `numpy` alapbeállításait.
+
+```{python}
+MintaVetelek100Elem['MintaAtlagok'] = np.mean(MintaVetelek100Elem.iloc[:,0:100], axis=1)
+
+MintaVetelek100Elem.MintaAtlagok.hist()
+```
+
+Hoppácska! Dehát, **ez itt a világ legszebb normális eloszlása!**
+
+Ami azért második elgondolásra **teljesen logikus, mivel a Centrális Határeloszlás Tétel (CHT) dolgozik a háttérben**. Ha nem ugrik be a CHT, akkor vissza az <a href="Gyak01.html" target="_blank">1. heti tananyag 2.4. fejezetéhez</a>! :)
+
+A **CHT** szerint ugyebár ha az **adatsor elemi véletlen hatások összegződéseként állnak elő**, akkor az **adatsor normális eloszlás**t követ. A $\bar{y}$ **mintaátlagok adatsora pedig pont olyan adatsor, ami a CHT feltételnek megfelel!** Hiszen a mintaátlag úgy jön ki, hogy a mintaelemeket összeadom és elosztom a minta elemszámával. **Mivel a mintavétel módja FAE, így biztos lehetek benne, hogy egy mintaelem, az egy véletlen húzás, egy véletlen hatás eredménye. Aztán meg ezeket adom össze**. Végén osztok $n$-bel, de az mindig ugyan annyi, így nem változtat a lényegen.
+
+Ha pedig a **sok-sok mintából számolt átlagok adatsora normális eloszlású, akkor azt is tudom, hogy milyen átlagú és milyen szórású normális eloszlást követ!**
+
+- A **torzítatlanság** miatt tudom, hogy a mintaátlagok átlaga a sokasági átlag, azaz $\mu$.
+- Mintaátlagok szórása pedig ugye nem más, mint a **standard hiba**, tehát $\frac{\sigma}{\sqrt{n}}$
+
+Szumma szummárom, akkor a **sok-sok mintából számolt mintaátlagok $\bar{y}$ adatsora az alábbi eloszlást követi**: $$\bar{y} \sim N\left(\mu,\frac{\sigma}{\sqrt{n}}\right)$$
+
+Ezt az illeszkedést simán letesztelhetjük grafikusan is az <a href="Gyak01.html" target="_blank">1. heti tananyag 2.3. fejezetében</a> látott módon.<br>
+Figyeljük meg, hogy a `stats` csomag `norm.pdf` függvényében az átlagot a korábban kiszámolt `SokasagiAtlag`, a szórást pedig a szintén az előbb kiszámolt `SH` objektumok segítségével adom meg!
+
+```{python}
+MintaVetelek100Elem.MintaAtlagok.hist(density = True)
+x_tengely = np.arange(np.min(MintaVetelek100Elem.MintaAtlagok), np.max(MintaVetelek100Elem.MintaAtlagok), 0.01)
+y_tengely = stats.norm.pdf(x = x_tengely, loc = SokasagiAtlag, scale = SH)
+plt.plot(x_tengely, y_tengely)
+plt.show()
+```
+
+Nagyon szép, az illeszkedés, olybá tűnik a **CHT ismét működik**! :)
+
+## 3. A sokasági átlag konfidencia-intervalluma
+
+Nézzük akkor meg **mi a valószínűsége, hogy egy véletlenszerűen kiválasztott érték egy $N(\mu, SH)$ eloszlásban a $\mu \pm SH$ intervallumba esik!**
+
+```{python}
+stats.norm.cdf(x = SokasagiAtlag + SH, loc = SokasagiAtlag, scale = SH) - stats.norm.cdf(x = SokasagiAtlag - SH, loc = SokasagiAtlag, scale = SH)
+```
+
+Hoppáré! Ez is éppen kb. $68\%$! Tehát, **az, hogy egy $\bar{y} \pm SH$ becslés csak a mintavételek $68\%$-ban pontos nagyjából egy valószínűségszámítási szükségszerűség**.
+
+Kérdés, hogy **mit tehetünk ez ellen? Mihez kezdhetünk, ha mondjuk nem $68\%$-os, hanem valami jobb, mondjuk $95\%$-os megbízhatóságú intervallumbecslést szeretnénk adni a sokasági átlagra (vagy más néven sokasági várható értékre)?**
+
+Az okoskodáshoz az <a href="Gyak01.html" target="_blank">1. heti tananyag 2.6. fejezetére</a> fogunk támaszkodni.
+
+Ugyanis azt tudjuk, hogy ha a **mintaátlagok eloszlása** az alábbi: $$\bar{y} \sim N\left(\mu,\frac{\sigma}{\sqrt{n}}\right)$$
+
+Akkor a **standardizált/normalizált mintaátlagok eloszlása pedig standard normális eloszlású lesz**: $$\frac{\bar{y}-\mu}{\frac{\sigma}{\sqrt{n}}} = z \sim N(0,1)$$
+
+**Standard normális eloszlás esetén** pedig **mindig igaz**, hogy $P(-2<z<+2) \approx 95\%$. Emlékeztetőként itt az ábra az $N(0,1)$ standard normális eloszlás sűrűségfüggvényéről az 1. heti tananyag 2.6. fejezetéből.
+
+<center>
+![](stnormal.png){width=50%}
+</center>
+
+<br>Most az egyszerűség miatt vegyük a $\approx$-ot $=$-nek: $$P(-2<z<+2) = 95\%$$
+
+Ebbe a **fenti összefüggésbe beírjuk a képletet, amivel kiszámoltuk $z$-t**: $$P\left(-2< \frac{\bar{y}-\mu}{\frac{\sigma}{\sqrt{n}}} <+2\right) = 95\%$$
+
+Most egyelőre azzal a feltevéssel élünk, hogy ismerjük $\sigma$-t, azaz a sokasági szórást. Mondjuk pl. valami előzetes teljeskörű adatfelvételből. Célunk, hogy a valós, sokasági átlagot ($\mu$-t) foglaljuk valamiféle határok közé egy darab mintaátlag ($\bar{y}$) ismeretében (hiszen majd nem akarjuk mindig kivenni az összes lehetséges mintát). Tehát, az összefüggésből fejezzük a $\mu$ sokasági átlagot: $$P\left(\bar{y}-2 \times \frac{\sigma}{\sqrt{n}}< \mu <+2 \times \frac{\sigma}{\sqrt{n}}\right) = 95\%$$
+
+Tehát, ez a fenti összefüggés azt jelenti, hogy a **sokasági átlag az egy darab mintaátlag $\pm 2SH$ intervallumban van kb. $95\%$-os valószínűséggel**. Ezt hívjuk az **átlag 95%-os konfidencia-intervallumának**. A $2$ pedig a $95\%$-os megbízhatósági szinthez tartozó $k$ **megbízhatósági szorzó**. Mindezeket pedig csupán egy darab $n$ elemű mintából ki is tudjuk számolni, ha $\sigma$-t helyettesítjük $s$-sel! Viszont **fontos, hogy a mintánkat véletlenszerűen válasszuk ki, mert csak így kapunk a mintaátlagok eloszlására a látott normális eloszlást!** Ugyebár a CHT-nak kellenek a véletlen kiválasztású mintaelemek a "*véletlen hatások összegződése*" részhez.
+
+### 3.1. Az átlag konfidencia-intervallumának általános alakja
+
+Ha **átalánosságban akarjuk felírni ezt a konfidencia-intervallumot**, akkor úgy szoktunk fogalmazni, hogy $1-\alpha$ **megbízhatóságú intervallum**ot írunk fel, ahol $\alpha$ a **hibázásunk valószínűsége**, tehát, annak a valószínűsége hogy a sokasági átlag *mégsem* a konfidencia-intervallumban van: $$P\left(\bar{y}-z_{1-\frac{\alpha}{2}} \times \frac{\sigma}{\sqrt{n}}< \mu <+z_{1-\frac{\alpha}{2}} \times \frac{\sigma}{\sqrt{n}}\right) = 1- \alpha$$
+
+Itt a $z$ érték azt akarta jelenteni, hogy azt a $z$ **értéket kell levadászni, ami esetén az "alá esés" valószínűsége a standard normális eloszlásban épp** $1-\frac{\alpha}{2}$.<br>
+Ennek okát szemlélteti az alábbi ábra.
+
+<center>
+![](normal_ci.jpg){width=60%}
+</center>
+
+<br>Ugyebár a cél az, hogy a $z \sim N(0,1)$ eloszlásban megtaláljuk azt a $k$ értéket, ahol $P(-k < z < +k)=1-\alpha$. Ugyebár a $95\%$ esetén is innen kaptuk a $2$-t. Ezt pedig akkor úgy kapjuk meg a **fenti ábra alapján**, hogy ha tudjuk, hogy a $\pm k$ közé esés valószínűsége $1- \alpha$, akkor a tartományon **kívülre esés valószínűsége** $\alpha$, a hibázásunk megengedett valószínűsége. Ami a normális eloszlás sűrűségfüggvényének **szimmetriája miatt egyenlően oszlik el** $-k$ alá és $+k$ felé. Tehát a $+k$ felé esési valószínűsége $\alpha / 2$. De mivel a pitonban a `stats` csomag `norm.ppf` függvénye **csak "alá esési" valószínűségekből dolgozik**, így a $+k$ alá esés valószínűséget kell tudnunk, ami a felé esés komplementere, azaz $1-\frac{\alpha}{2}$, ami az **ábrán a narancssárga rész területe a sűrűségfüggvényben**.
+
+Láthatjuk a logika szuperül működik a $95\%$-os megíbzhatóság, azaz $\alpha=5\%$ esetére.
+
+```{python}
+alfa = 0.05
+
+stats.norm.ppf(1-(alfa/2))
+```
+
+Az eredmény nem pontosan $2$, hanem kb. $1.96$. Ugyebár a **levezetésben kerekítettem**, de a megbízhatósági szorzó számítás lényege szerintem átjött. :)
+
+**Szumma-szummárum**. Az **átlag tetszőleges megbízhatóságú intervallumbecslése / konfidencia-intervalluma általános alakban a következő módon számítható**: $$\bar{y} \pm k \times SH$$
+
+Tehát, a **mintaátlagra ($\bar{y}$) rámérjük $\pm$ a standard hiba $k$-szorosát, ahol a $k$, mint megbízhatósági szorzó állítja be a kívánt megbízhatósági szintet**.<br>
+Ez az **általános formula azért nagyon fontos, mert a későbbiekben az átlagra vonatkozó becslések során mindig csak annyit változtatunk rajta, hogy az $SH$ és a $k$ mögött álló konkrét képlet fog csak változni, de ez a fenit alaplogika végig megmarad!!**
+
+### 3.2. A konfidencia-intervallum megbízhatóságának ellenőrzése
+
+Utolsó lépésben ellenőrizzük le konfidencia-intervallumos formulánk működését, és **nézzük meg, hogy a $\sigma$-val számolt $SH$-t használva** tudunk-e **egy $98\%$-os megbízhatóságú intervallumbecslés**t készíteni a Balatont átúszók időeredméyneinek átlagára a $k=z_{1-\frac{\alpha}{2}}$ megoldásunkkal.
+
+Tehát a $10000$ db mintánk **mintaátlagára a mostani helyzetben** a $$\triangle = k \times SH = z_{1-\frac{\alpha}{2}} \times \frac{\sigma}{\sqrt{n}}$$
+
+távolságot kell $\pm$ felmérni. Ezt a $\triangle$ távolságot hívjuk a **konfidencia-intervallum hosszának, vagy másképp a becslés teljes hibahatárának**.
+
+Nézzük akkor meg, hogy egy **ilyen becslés tényleg kb. $98\%$-os találati arányt eredményez-e?**
+
+```{python}
+n = 100
+alfa = 1 - 0.98
+k = stats.norm.ppf(1-alfa/2)
+SH = SokasagiSzoras / np.sqrt(n)
+delta = SH * k
+
+MintaVetelek100Elem['AtlagAlsoHatar'] = MintaVetelek100Elem['MintaAtlagok'] - delta
+MintaVetelek100Elem['AtlagFelsoHatar'] = MintaVetelek100Elem['MintaAtlagok'] + delta
+MintaVetelek100Elem.iloc[:,99:103]
+```
+
+Oké, akkor **megvannak az új intervallumbecsléseink** mind a $10000$ mintára. Lássuk a pontosságukat!
+
+```{python}
+MintaVetelekSzama = len(MintaVetelek100Elem)
+
+np.sum((MintaVetelek100Elem['AtlagAlsoHatar'] < SokasagiAtlag) & (MintaVetelek100Elem['AtlagFelsoHatar'] > SokasagiAtlag)) / MintaVetelekSzama
+```
+
+És **tényleg kb. $98\%$ a találati arány**, győzelem! :)
+
+### 3.3. A konfidencia-intervallum két fontos tulajdonsága
+
+A konfidencia-intervallum **megbízhatósági szintjével csínján kell bánni**. Ha megfigyeljük a korábbi számításainkat, akkor láthatjuk, hogy
+
+- $95\%$-os megbízhatósághoz $k=1.96$
+- $98\%$-os megbízhatósághoz viszont már $k=2.3$
+
+megbízhatósági szorzó tartozik.
+
+A $\triangle = k \times SH$ összefüggés miatt pedig könnyű látni, hogy **megbízhatósági szint növelésével a becslési hibahatár nő, azaz a konfidencia-intervallum tágul**. Teljesen logikus: ha **nagyobb találati arányt akarok, akkor "növelni kell a hálót", így nagyobb eséllyel akad fenn rajta a sokasági átlag**.<br>
+$100\%$-os megbízhatóság pedig egy esetben van, ha az intervallumbecslésünk a $\pm \infty$ tartomány, ami ugyebár nem túl hazsnos becslési intervallum... :)
+
+Érdemes kipróbálni a dolgot még az *1. fejezetben* kivett $100$ elemű mintán mondjuk $\alpha=\{0.2,0.1,0.05,0.01,0.001\}$ hibavalószínűségek mellett egy `for` ciklussal.<br>
+A számoláshoz felhasználom a korábban kiszámolt `MintaAtlag` és `SH` objektumokat.
+
+```{python}
+alfa_lista = [0.2, 0.1, 0.05, 0.01, 0.001]
+
+for aktualis_alfa in alfa_lista:
+  also_hatar = MintaAtlag - SH * stats.norm.ppf(1-aktualis_alfa/2)
+  felso_hatar = MintaAtlag + SH * stats.norm.ppf(1-aktualis_alfa/2)
+  print(
+    "Megbízhatóság: "+str((1-aktualis_alfa)*100)+"% - Konf. Int.: ["+
+    str(round(also_hatar,2))+", "+str(round(felso_hatar,2))+"]")
+
+
+```
+
+Szépen megfigyelhető a leírt jelenség: **a megbízhatóság növelésével a konfidencia-intervallum egyre csak tágul, azaz a becslési hibahatár folyamatosan nő**.
+
+- $90\%$ megbízhatóság esetén az átlagos időeredményt még valahova $157$ és $172$ perc közé tippeljük,
+- $99\%$ megbízhatóságnál viszont már $153$ és $176$ perc közé!
+
+A jelenséget mérsékelni a **mintaelemszám növelésével lehet**! **Nézzük meg az előző `for` ciklust egy $n=20$ elemű mintán az $n=100$ helyett!** Számoljuk ki az első 20 oszlop alapján a $\bar{y}$ mintaátlagot. Mivel a kiválasztás FAE volt, így olyan lesz a dolog, mintha csak 20 elemet választottunk volna ki a mintavétel során, nem pedig 100-at. Az $SH=\frac{\sigma}{\sqrt{n}}$ is könnyen újraszámolható $n=20$ mellett.
+
+```{python}
+MintaAtlag20Elem = np.mean(BalcsiMinta.PERC[0:20])
+n = 20
+SH20Elem = SokasagiSzoras / np.sqrt(n)
+
+alfa_lista = [0.2, 0.1, 0.05, 0.01, 0.001]
+
+for aktualis_alfa in alfa_lista:
+  also_hatar = MintaAtlag20Elem - SH20Elem * stats.norm.ppf(1-aktualis_alfa/2)
+  felso_hatar = MintaAtlag20Elem + SH20Elem * stats.norm.ppf(1-aktualis_alfa/2)
+  print(
+    "Megbízhatóság: "+str((1-aktualis_alfa)*100)+"% - Konf. Int.: ["+
+    str(round(also_hatar,2))+", "+str(round(felso_hatar,2))+"]")
+
+
+```
+
+Szépen láthatjuk, hogy az **átlagos átúszási időket $99\%$-os megbízhatósággal**
+
+- $n=20$ esetben $140$ és $191$ perc közé tesszük,
+- $n=100$ esetben pedig láttuk az előbb, hogy a becslés pontosabb (kisebb $\triangle$ hibahatárú): $153$ és $176$ perc közé teszi a sokasági átlagidőt.
+
+Nem meglepő az eredmény. Mivel a $\frac{\sigma}{\sqrt{n}}$ standard hiba **képlet nevezőjében van az $n$ elemszám, így növelése csökkenti a standard hibát, ezen keresztül pedig a teljes $\triangle$ becslési hibahatárt**. Ugyebár a <a href="Gyak03.html" target="_blank">3. heti tananyagban</a> megállapítottuk, hogy az átlag **konzisztens becslés**: elemszám növekedésével a $SH$-ja csökken, a $0$-ba tart.
+
+Emiatt a **választott $1-\alpha$ megbízhatósági szint a mintaelemszám függvénye**:
+
+- Nagyobb $n$ elemszám esetén egy $99\%$-os megbízhatóság is elég pontos intervallumbecslést szolgáltathat,
+- Kisebb mintaméret esetén valószínűleg meg kell elégedni valami moderáltabb (pl. $90\%-95\%$) megbízhatósági szinttel is.
+
+## 4. Intervallumbecslés a gyakorlatban
+
+Ezen a ponton **engedjük el a Balaton átúszókat**, és **próbáljuk ki az átlag konfidencia intervallum számítást olyan esetben, ahol nem ismerjük a teljes sokaságot, amiből mintát vettünk**.
+
+### 1. feladat: Altatók hatékonysága
+
+A sztorink a következő.
+
+Egy gyógyszergyár egy új altató készítmény hatását vizsgálja $10$ véletlenszerűen kiválasztott inszomniában szenvedő páciensen. Mind a tíz páciens esetében feljegyezték, hogy hány órát növekedett az alvásidejük a készítmény használatát követően. Korábbi klinikai vizsgálatok alapján ismeretes, hogy az altató készítmények által kiváltott alvásidő-változás normális eloszlású, $2$ óra szórással.												
+
+$Adatok = \{1.9, 0.8, 1.1, 0.1, -0.1, 4.4, 5.5, 1.6, 4.6, 3.4\}$
+
+Készítsünk $95\%$-os megbízhatósággal intervallumbecslést a várható átlagos alvásidő-változásra:
+
+a) a megadott feltételek alapján;
+b) feltételezve, hogy az eloszlás normális, de a szórás ismeretlen!
+c) Mekkora mintára van szükség, ha ugyan ekkora megbízhatóság (95%) mellett a b) pontban kapott hibahatárt a felére kívánjuk csökkenteni?
+
+### 1/a) feladat megoldás
+
+Ebben az a) feladatban nagyon el vagyunk kényeztetve. Az altató hatékonyságához van egy $n=10$ elemű mintánk, aminek az adatait tételesen ismerjük. Első páciens alvásideje $1.9$ órával nőtt az altató használata után, másodiké $0.8$ órával, stb. Van egy páciens, akinek csökkent az alvásideje a gyóygszerhasználat után: az 5. delikvensé, $0.1$ órával.<br>
+Ha ezeket az adatokat elrakjuk egy `numpy` tömbbe, akkor simán kiszámolható a megfigyelt 10 páciens esetében az átlagos alvásidő növekedés, azaz $\bar{y}$
+
+```{python}
+MintaAdatok = np.array([1.9, 0.8, 1.1, 0.1, -0.1, 4.4, 5.5, 1.6, 4.6, 3.4])
+MintaAtlag = np.mean(MintaAdatok)
+MintaAtlag
+```
+
+Tehát a megfigyelt páciensek esetében az átlagos alvásidő növekedés kb. $\bar{y}=2.3$ óra. Ami szép és jó, de mennyi lehet az **átlagos alvásidő növekedés az inszomniás páciensek összességére, a teljes sokaságra nézve? Ehhez kell a konfidencia-intervallum!**
+
+Itt az a) esetben minden **feltételezést elfogadhatunk, amit a feladat tesz**. Ebben van egy olyan rész, ami szerint "*korábbi kutatásokból*" ismerjük, hogy az alvásidő-változások szórása $2$. Ha ezt így elhisszük, akkor azt mondhatjuk, hogy az alvásidő-változások teljes sokaságra vonatkozó szórását vehetjük $2$-nek. Azaz, $\sigma=2$-t "*hazudunk*" a számolások során.<br>
+**FIGYELEM!** Ha a feladat szövege azt akarja közölni velünk, hogy van egy sokasági szórás, egy $\sigma$, amit ismerünk és használhatunk a számolásaink során, akkor azt mindig ilyen "*korábbi kutatásokból ismeretes...*" szövegrészbe fogja becsomagolni!
+
+Ha **elfogadjuk a feltételezéseinket, akkor minden adott a konfidencia-intervallum 3. fejezetben megismert képletének alkalmazásához**. Hiszen, ha $95\%$ a megbízhatóság, akkor $\alpha=5\%$. Tegyük is ezt: alkalmazzuk a képleteket az adatainkra!
+
+```{python}
+n = 10
+alfa = 1-0.95
+szigma = 2
+
+k_szorzo = stats.norm.ppf(1-alfa/2)
+SH = szigma/np.sqrt(n)
+delta = k_szorzo*SH
+
+also = MintaAtlag - delta
+felso = MintaAtlag + delta
+
+[also, felso]
+```
+
+Az eredmény alapján ez az **új alatató készítmény az inszomniás páciensek teljes sokaságában a 10 elemű mintánk alapján legalább $1.09$ óra és legfeljebb $3.6$ óra alvásidő növekedést okoz $95\%$-os valószínűséggel!**
+
+Ennek a cég vezetése nagyon örül, mert lehet olyan reklámszlogeneket elsütni az eredményünk alapján, hogy "*vizsgálatok igazolják, hogy altatónk $95\%$-os valószínűséggel legalább $1$ órával növeli a várható alvásidőt*". Egy ilyen mondat pedig minden marketinges álma *úgymond*. :)
+
+De **minden ilyen szép marad-e ha az alvásidők szórását nem a feltételezett** $\sigma=2$-vel, hanem a **mintából számolt korrigált szórással ($s$) számítjuk?**
+
+### 1/b) feladat megoldás
+
+TODO részletezni
+
+Ha **feloldjuk azt a feltevésünk, hogy ismerjük a sokasági szórást, és helyette a mintából kiszámítható korrigált szórást írjuk a standard hiba képletébe** (a korrigált mintaszórás ad torzítatlan becsést), akkor a **mintaátlagok normális helyett egy $n-1$ szabadságfokú t-eloszlást követnek**.
+
+<center>
+![](studentdistr.png){width=60%}
+</center>
+
+<br>A Student-féle t-eloszlás valójában egy **ellapított standard normális eloszlás** (lásd fenti ábra). A lapítás azt akarja kifejezni, hogy az eloszlás szórása nagyobb. Hiszen nagyobb szórás esetén az eloszlás szélein lévő számértékek is nagyobb valószínűséggel következhetnek be (mivel a lapítás miatt a sűrűségfüggvény magasabban fut ezeken a helyeken), így változatosabbá, jobban szóródóvá teszik az adatsorunk.
+
+Viszont, ahogy növeljük az eloszlás szabadságfokát (ábrán: *df=degrees of freedom*), egyre jobban "visszacsúcsosítjuk" az eloszlást a standard normális eloszlásba. Logikus, hogy ilyenkor ezt az eloszlást használjuk, mivel a standard hiba értékébe (ami a mintaátlagok normális eloszlásának szórás paramétere) egy biztosan ismert sokasági szórás érték helyett, annak egy mintából számított becslését rakjuk, így nagyobb bizonytalanságot, nagyobb szórást viszünk az eloszlásba.
+
+Ebben a helyzetben a konfidencia-intervallum úgy módosul, hogy $\sigma$ helyére $s$ kerül a $SH$-ban, és a $k$ megbízhatósági szorzót $t$-eloszlásból számoljuk $N(0,1)$ eloszlás helyett: $$P\left(\bar{y}-t_{1-\frac{\alpha}{2}}^{n-1} \times \frac{s}{\sqrt{n}}< \mu <+t_{1-\frac{\alpha}{2}}^{n-1} \times \frac{s}{\sqrt{n}}\right) = 1- \alpha$$
+
+Az $n-1$ szabadságfokú $t$ érték számításához a `stats` csomag `t.ppf` függvényét vesszük elő. Teljesen hasonló logikával működik, mint a `norm.ppf` függvény (vagy mint bármelyik eloszlás inverz értékét számoló függvénye). A $t$-eloszlás is szimmetrikus, tehát most is azt az értéket keressük az $n-1$ szabadságfokú $t$-eloszlásunkban, ahol az "*alá esési*" valószínűség $1-\frac{\alpha}{2}$. A `t.ppf` függvény `df` paraméterével állítható a szabadságfok.<br>
+Ezt a mi $n=10$ elemű mintánkra, $95\%$-os megbízhatósági szint mellett az alábbi módon számoljuk
+
+```{python}
+n = 10
+alfa = 1-0.95
+
+k_szorzo_z = stats.norm.ppf(1-alfa/2)
+k_szorzo_t = stats.t.ppf(1-alfa/2, df = (n-1))
+
+[k_szorzo_z, k_szorzo_t]
+```
+
+Láthatjuk, hogy a $t$-eloszlású $k$ szorzó értéke érdemben nagyobb, mint a standard normális eloszlású $k$ szorzóé! Mivel a $t$-eloszlás nagyobb valószínűséget tulajdonít az extrém magas+alacsony értékek bekövetkezésének, így ha ezt alkalmazzuk, akkor ugyan ahhoz a megbízhatósági szinthez egy magasabb $k$ megbízhatósági szorzót kapunk a $SH$-hoz!
+
+FELADAT MEGOLDÁS TODO
+
+<center>
+![](student.png){width=30%}
+</center>
+
+### 1/c) feladat megoldás
+
+TODO levezetni az $n=\frac{z_{1-\frac{\alpha}{2}}^2 \times \sigma^2}{\triangle^2}$ képletet!
+
+### 2. feladat
+
+TODO a lényegi részek
+
+Szerencsénkre a $t$-eloszlás 1/b) feladat megoldásában található ábráján látszik, hogy $30$-as szabadságfok esetén visszatérünk a már megismert standard normális eloszláshoz. Így $31$ vagy több elemű mintánkra újra a stanadard normális eloszlás $z$ értékeivel számolhatunk, mint $k$ megbízhatósági szorzó, annak ellenére, hogy a $SH$ képletében a sokasági szórást ($\sigma$) a mintából korrigáltan becsült értékével ($s$) helyettesítjük.<br>
+Tehát, a konfidencia-intervallum $n \geq 31$-re a következőképpen néz ki: $$P\left(\bar{y}-z_{1-\frac{\alpha}{2}} \times \frac{s}{\sqrt{n}}< \mu <+z_{1-\frac{\alpha}{2}} \times \frac{s}{\sqrt{n}}\right) = 1- \alpha$$
+
+Használjuk az *ESS2020.xlsx*-es feladat megoldására.
+
+## 5. Összefoglalás az átlag konfidencia-intervallumairól
+
+TODO
+
+## 6. Esettanulmány
+
+TODO

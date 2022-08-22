@@ -1,7 +1,7 @@
 ---
 title: "Eloszlások és Mintavételezés"
 author: "Kovács László"
-date: "2022. 08. 09."
+date: "2022. 08. 22."
 output:
   html_document:
     toc: true
@@ -367,6 +367,11 @@ Meg is vagyunk!
 ### 2.2. A megfigyelt minta alapján számolt statisztikai mutatók
 
 Most pedig **tegyük az elvi statisztikai mutatók értéke mellé az $50$ elemű mintákból számolt verzióikat!** Hasonlóan összerakhatjuk őket egy data frame-be, mint fentebb csináltuk az elvi értékekkel.
+
+A $100$-nál kisebb értékek arányának (relatív gyakoriságának) számolásához két technikai megjegyzés:
+
+- A számolásnál azt a trükköt sütjük el, hogy pl. az `AdatokEgyben['Normal'] < 100` parancs egy `bool` tömböt ad vissza aszerint, hogy az `AdatokEgyben['Normal'] < 100` logikai állítás kire `True` és `False`.
+- A `numpy` csomag `sum` függvénye pedig egy ilyen tömbre `True = 1` és `False = 0` kódolásokkal végzi el az összegzést: azaz megadja a *kedvező esetek*, a 100-nál kisebb értékek *darabszámát*.
 
 ```{python}
 NormalisMintaStat = [
