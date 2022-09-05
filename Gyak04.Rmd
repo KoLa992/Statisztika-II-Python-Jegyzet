@@ -332,7 +332,7 @@ MintaAtlag = np.mean(MintaAdatok)
 MintaAtlag
 ```
 
-Tehát a megfigyelt páciensek esetében az átlagos alvásidő növekedés kb. $\bar{y}=2.3$ óra. Ami szép és jó, de mennyi lehet az **átlagos alvásidő növekedés az inszomniás páciensek összességére, a teljes sokaságra nézve? Ehhez kell a konfidencia-intervallum!**
+Tehát a megfigyelt páciensek esetében az átlagos alvásidő növekedés kb. $\bar{y}=2.3$ óra. Ami szép és jó, de mennyi lehet az **átlagos alvásidő növekedés az inszomniás páciensek összességére, a teljes sokaságra nézve? Ehhez kell a konfidencia-intervallum! Hogy olyan betegekre is tudjunk mondani valamit, akiket a mintában NEM figyeltünk meg!**
 
 Itt az a) esetben minden **feltételezést elfogadhatunk, amit a feladat tesz**. Ebben van egy olyan rész, ami szerint "*korábbi kutatásokból*" ismerjük, hogy az alvásidő-változások szórása $2$. Ha ezt így elhisszük, akkor azt mondhatjuk, hogy az alvásidő-változások teljes sokaságra vonatkozó szórását vehetjük $2$-nek. Azaz, $\sigma=2$-t "*hazudunk*" a számolások során.<br>
 **FIGYELEM!** Ha a feladat szövege azt akarja közölni velünk, hogy van egy sokasági szórás, egy $\sigma$, amit ismerünk és használhatunk a számolásaink során, akkor azt mindig ilyen "*korábbi kutatásokból ismeretes...*" szövegrészbe fogja becsomagolni!
@@ -362,21 +362,23 @@ De **minden ilyen szép marad-e ha az alvásidők szórását nem a feltételeze
 
 ### 1/b) feladat megoldás
 
-TODO részletezni
+Itt a feladat azt mondja, hogy ne higyjünk mindenféle kétes "*korábbi kutatásnak*", ne fogadjuk el az általuk megadott $\sigma$-t, hanem **számoljunk magunknak egy korrigált mintaszórást**, azaz $s$-t (a korrigált mintaszórás ad torzítatlan becsést a valós, sokasági $\sigma$-ra), és számoljuk végig azzal a stanadard hibát $SH=\frac{s}{\sqrt{n}}$ módon.
 
-Ha **feloldjuk azt a feltevésünk, hogy ismerjük a sokasági szórást, és helyette a mintából kiszámítható korrigált szórást írjuk a standard hiba képletébe** (a korrigált mintaszórás ad torzítatlan becsést), akkor a **mintaátlagok normális helyett egy $n-1$ szabadságfokú t-eloszlást követnek**.
+Viszont, ha **feloldjuk azt a feltevésünk, hogy ismerjük a sokasági szórást az $SH$ számoláshoz** , akkor a **mintaátlagok normális helyett egy $n-1$ szabadságfokú t-eloszlást követnek**.
+
+A **t-eloszlás sűrűségfüggvénye az alábbi alakot ölti**. Az szabadságfokokat az angol *degrees of freedom* kifejezésből $df$-el jelöljük.
 
 <center>
 ![](studentdistr.png){width=60%}
 </center>
 
-<br>A Student-féle t-eloszlás valójában egy **ellapított standard normális eloszlás** (lásd fenti ábra). A lapítás azt akarja kifejezni, hogy az eloszlás szórása nagyobb. Hiszen nagyobb szórás esetén az eloszlás szélein lévő számértékek is nagyobb valószínűséggel következhetnek be (mivel a lapítás miatt a sűrűségfüggvény magasabban fut ezeken a helyeken), így változatosabbá, jobban szóródóvá teszik az adatsorunk.
+<br>Ahogy a fenti sűrűségfüggvényből is létszik Student-féle t-eloszlás valójában egy **ellapított standard normális eloszlás** (lásd fenti ábra). A lapítás azt akarja kifejezni, hogy az eloszlás szórása nagyobb. Hiszen nagyobb szórás esetén az eloszlás szélein lévő számértékek is nagyobb valószínűséggel következhetnek be (mivel a lapítás miatt a sűrűségfüggvény magasabban fut ezeken a helyeken), így változatosabbá, jobban szóródóvá teszik az adatsorunk.
 
-Viszont, ahogy növeljük az eloszlás szabadságfokát (ábrán: *df=degrees of freedom*), egyre jobban "visszacsúcsosítjuk" az eloszlást a standard normális eloszlásba. Logikus, hogy ilyenkor ezt az eloszlást használjuk, mivel a standard hiba értékébe (ami a mintaátlagok normális eloszlásának szórás paramétere) egy biztosan ismert sokasági szórás érték helyett, annak egy mintából számított becslését rakjuk, így nagyobb bizonytalanságot, nagyobb szórást viszünk az eloszlásba.
+Viszont, ahogy növeljük az eloszlás szabadságfokát ($df$), egyre jobban "*visszacsúcsosítjuk*" az eloszlást a standard normális eloszlásba. Logikus, hogy ilyenkor ezt az eloszlást használjuk, mivel a standard hiba értékébe (ami a mintaátlagok normális eloszlásának szórás paramétere) egy biztosan ismert sokasági szórás érték helyett, annak egy mintából számított becslését rakjuk, így **nagyobb bizonytalanságot, nagyobb szórást viszünk az eloszlásba**.
 
 Ebben a helyzetben a konfidencia-intervallum úgy módosul, hogy $\sigma$ helyére $s$ kerül a $SH$-ban, és a $k$ megbízhatósági szorzót $t$-eloszlásból számoljuk $N(0,1)$ eloszlás helyett: $$P\left(\bar{y}-t_{1-\frac{\alpha}{2}}^{n-1} \times \frac{s}{\sqrt{n}}< \mu <+t_{1-\frac{\alpha}{2}}^{n-1} \times \frac{s}{\sqrt{n}}\right) = 1- \alpha$$
 
-Az $n-1$ szabadságfokú $t$ érték számításához a `stats` csomag `t.ppf` függvényét vesszük elő. Teljesen hasonló logikával működik, mint a `norm.ppf` függvény (vagy mint bármelyik eloszlás inverz értékét számoló függvénye). A $t$-eloszlás is szimmetrikus, tehát most is azt az értéket keressük az $n-1$ szabadságfokú $t$-eloszlásunkban, ahol az "*alá esési*" valószínűség $1-\frac{\alpha}{2}$. A `t.ppf` függvény `df` paraméterével állítható a szabadságfok.<br>
+Az $n-1$ szabadságfokú $t$ érték számításához a `scipy` csomag `t.ppf` függvényét vesszük elő. Teljesen hasonló logikával működik, mint a `norm.ppf` függvény (vagy mint a  `scipy` bármelyik eloszlás inverz értékét számoló függvénye). A $t$-eloszlás is szimmetrikus, tehát most is azt az értéket keressük az $n-1$ szabadságfokú $t$-eloszlásunkban, ahol az "*alá esési*" valószínűség $1-\frac{\alpha}{2}$. A `t.ppf` függvény `df` paraméterével állítható a szabadságfok.<br>
 Ezt a mi $n=10$ elemű mintánkra, $95\%$-os megbízhatósági szint mellett az alábbi módon számoljuk
 
 ```{python}
@@ -389,9 +391,43 @@ k_szorzo_t = stats.t.ppf(1-alfa/2, df = (n-1))
 [k_szorzo_z, k_szorzo_t]
 ```
 
-Láthatjuk, hogy a $t$-eloszlású $k$ szorzó értéke érdemben nagyobb, mint a standard normális eloszlású $k$ szorzóé! Mivel a $t$-eloszlás nagyobb valószínűséget tulajdonít az extrém magas+alacsony értékek bekövetkezésének, így ha ezt alkalmazzuk, akkor ugyan ahhoz a megbízhatósági szinthez egy magasabb $k$ megbízhatósági szorzót kapunk a $SH$-hoz!
+Láthatjuk, hogy **a $t$-eloszlású $k$ szorzó értéke érdemben nagyobb, mint a standard normális eloszlású $k$ szorzóé ugyan arra a megengedett hibavalószínűségre**! Mivel a $t$-eloszlás nagyobb valószínűséget tulajdonít az extrém magas+alacsony értékek bekövetkezésének, így ha ezt alkalmazzuk, akkor ugyan ahhoz a megbízhatósági szinthez egy magasabb $k$ megbízhatósági szorzót kapunk a $SH$-hoz!
 
-FELADAT MEGOLDÁS TODO
+Ezek után igazából csak annyi a feladatunk, hogy a teljes becslési hibahatárt kiszámítsuk $\triangle = t_{1-\frac{\alpha}{2}}^{n-1} \times \frac{s}{\sqrt{n}}\right)$ módon, és ezt rámérjük $\pm$ a mintaátlagra, $\bar{y}$-ra. Ez már mehet ugyan úgy, mint az a) feladatban.
+
+```{python}
+korr_szoras = np.std(MintaAdatok, ddof = 1)
+
+k_szorzo_t = stats.t.ppf(1-alfa/2, df = (n-1))
+SH = korr_szoras/np.sqrt(n)
+delta = k_szorzo_t * SH
+
+also = MintaAtlag - delta
+felso = MintaAtlag + delta
+
+[also, felso]
+```
+
+Nem meglepő módon, a **t-eloszlású megbízhatósági szorzó miatt a $95\%$-os kinfidencia-intervallum kitágult**. Annak ellenére is, hogy az $SH$-ban gyakorlatilag nincs változás, mivel $s=2.0022$. Az altató átlagos alvásidő növekedése a betegek teljes sokaságban, már $0.9$ és $3.76$ óra közé tehető $95\%$-os valószínűséggel. Szóval, ebben a reálisabb helyzetben, amikor már a szórást magunknak számoljuk a mintaadatokból, és nem pedig "*elhisszük*" valakinek, akkor a bizonytalanság megnövekedése miatt alkalmazott t-eloszlásnak köszönhetően, a becslési hibahatár, a $\triangle$ kitágul. A marketingesek pedig már nem mondhatnak olyan szépeket, hogy "95%-os valószínűséggel legalább átlag $1$ órát növeli az alvásidőt az altató". RIPSZ! :(
+
+Viszont, amíg a **mintánk elemszámi kicsi**, $n \leq 30$, addig a **t-eloszlású konfidencia intervallum számításának van egy előfeltétele: az adatsor, amiből a mintát vesszük normális eloszlású kell, hogy legyen!!**<br>
+Esetünkben ez annyit tesz, hogy az inszomniás páciensek sokaságában az *alvásidő normális eloszlású* hisztogramot mutat.
+
+Na, most itt ezt kemény $n=10$ esetben marha nehéz értelmesen megvizsgálni a minta alapján, de lessünk egy hisztogramot a megfigyelt $10$ db alvásidőre! A hisztogram osztályközeinek számát most nem optimalizáljuk, elfogadjuk az alapbeállításokat.
+
+```{python}
+plt.hist(MintaAdatok)
+plt.show()
+```
+
+Hát, a fene se tudja ennyiből eldönteni, de tényleg. Akár normális eloszlásúak lehetnek az alvásidők. :) Bízzunk a *CHT*-ben: az egyéni alvásidők valószínűleg véletlen hatások összegeként állnak elő, így azok adatsora a sokaságban, a nem megfigyelt $10$ elemű mintán *kívüli* világban, lehet normális eloszlású is akár. :)
+
+Maga a *t-eloszlás* egyébként egy *William Gosset* nevű angol statisztikus kreatúrája. Mr. Gosset a *Guiness* sörgyárak minőségbitosítási vezetője volt, és azt a feladatot kapta, hogy oldja meg, hogy az üveges sörök minőségbiztosítása kis mintákból is megoldható legyen. Mivel a minőségbiztosításhoz ki kell bontani az üveget és megmérni benne az összetevőket, aztán utána ezek átlagára néznek konfidencia-intervallumokat. A minőségbiztosításra kinyitott sör pedig már nem elfogyasztható. *Kellemetlen*.<br>
+Így érhető, hogy minél kevesebb üvegből akarják az egész minőségbiztit megúszni. Erre adta megoldásként Gosset a t-eloszlást. Mivel a sörökben a különböző alapanyagok értéke normális eloszlást követ.
+
+Azonban emberünk el akart büszkélkedni a saját kis elszlásával a nagy világban, ezért *Student álnéven* publikálta is az eredményeit...innen lett az eloszlás neve *Student-féle t-eloszlás*. :) Viszont nagyon nem volt előrelátó az úriemberünk, hiszen akkoriban nyilván csak a Guiness sörgyár tudott elég kevés üvegből ugyan olyan "jó" megbízhatósággal minőségbiztosítani, mintha több elemű mintát vizsgáltak volna, így *Mr. Gosset* gyorsan lebukott.
+
+Tehát, ahogy az alábbi ábra is mutatja, szegény emberünk csak a sörtermelést szerette volna hatékonyabbá tenni, de végül mindenki életét tönkretette, aki statisztikai becsléselméletet tanul. :)
 
 <center>
 ![](student.png){width=30%}
@@ -399,21 +435,230 @@ FELADAT MEGOLDÁS TODO
 
 ### 1/c) feladat megoldás
 
-TODO levezetni az $n=\frac{z_{1-\frac{\alpha}{2}}^2 \times \sigma^2}{\triangle^2}$ képletet!
+Node, térjünk vissza az altató készítményünk hatékonyságára. Ugyebár a t-eloszlással készített konfidencia-intervallum eléggé elkeserítő eredményt hozott: nem tudjuk azt mondani $95\%$-os megbízhatósággal, hogy készítményünk legalább $1$ órával növeli az alvásidőt!
+
+Mi ennek az oka? Hát a **magas becslési hiba, az átlagra épített konfidencia-intervallum hossza**, tehát a $\triangle$. Ez most ugye nekünk $\pm 1.43$ óra.
+
+```{python}
+delta
+```
+Mondjuk ezt a becslési **hibahatárt szeretnénk levinni a felére**, $1.43/2$, azaz kb. $\triangle'= \pm 0.7$ órára. Ezt kétféleképpen lehet elérni. Hiszen "*magasról nézve*", a becslési hibahatár egy kéttényezős szorzat $$\triangle=k \times SH$$
+
+1. Addig állítgatom a megbízhatósági-szintet, azaz valójában $\alpha$-t, amíg a t-eloszlásból származó $k$ megbízhatósági szorzó olyan alacsony nem lesz, hogy az eddigi $SH$-val szorozgatva ki nem adja a $0.7$-es értéket $\triangle$-re. Ez az **illetlen megoldás**! Hiszen lehet, hogy ehhez az $\alpha$-t nagyon fel kell engedni, és a becslésnek nagyon alacsony lesz a megbízhatósága...az "$55\%$-os megbízhatósággal állítható az, hogy..." nem hangzik olyan jól marketing szempontból sem.
+
+2. Az **intelligens megoldás** a mintaelemszám, azaz $n$ növelése. Az $\alpha$-t adottnak vesszük, és így $k$-t nem bántjuk. Persze a t-eloszlás szabadságfoka miatt az elemszám $k$-ra is hat, de ahogy az eloszlás sűrűségfüggvényéből is látszik, kellően nagy $n$ esetén a t-eloszlás igazából a standard normálissal lesz ekvivalens, tovább tehát nem tudjuk csökkenteni $k$-t adott $\alpha$ mellett. Tehát ekkor a $k$ lényegében fix. Ellenben $n$ növekedése miatt az $SH$ része a szorzatnak biztosan csökkeni fog, hiszen az átlagra konzisztens becslést adunk, tehát $SH$ a $0$-ba tart $n$ növelése esetén. Ez ugye a $SH=\frac{s}{\sqrt{n}}$ összefüggésből adódik egyértelműen. Szóval az $s$-t (vagy éppen $\sigma$-t, ha azt ismerjük) adottnak vesszük, akkor kiszámolhatjuk, hogy mekkora $n$ szükséges a $\triangle'= \pm 0.7$ óra eléréséhez hibahatár fronton.
+
+Szóval, a 2. megoldást, az elemszám növelését választva a következő összefüggésből ki kell fejezni $n$-t: $$\triangle=k \times SH = z_{1-\frac{\alpha}{2}} \times \frac{s}{\sqrt{n}}$$
+
+Hiszen $\triangle$ helyére beírhatjuk nemes egyszerűséggel az elérni kívánt $\triangle$-t. A $k$ helyére azért írtam $z_{1-\frac{\alpha}{2}}$-t és nem a t-eloszlású szprzót, mert a standard normális eloszlású megbízhatóságú szorzó értéke alá úgysem tudunk menni a t-eloszlással adott $\alpha$ mellett, hiszen a t-elsozlású sűrűségfüggvényt végtelen szabadságfok mellett is csak a standard normális eloszlásba lehet maximum "*visszacsúcsosítani*", ahogy a b) feladat megoldásában szereplő ábrán láthattuk is.
+
+Ha pedig a fent formulából kifejeztük az elemszámot, akkor ehhez az összefüggéshez jutunk: $$n=\frac{z_{1-\frac{\alpha}{2}}^2 \times s^2}{\triangle^2}$$
+
+Ebbe pedig gond nélkül be tudunk helyettesíteni mindent.
+
+```{python}
+delta_uj = 0.7
+
+n_uj = k_szorzo_z**2 * korr_szoras**2 / delta_uj**2
+n_uj
+```
+
+Tehát a becslési ha felezéséhez $n=31.4$ elemű minta kéne... mivel egyik betegből sem vágnánk ki $0.4$ részt a vizsgálatra, így logikus módon az eredményt kerekítsük fel $n=32$-re. **Azaz, $32-10=22$ páciensen kéne még  extrában megvizsgálni az altató hatását ahhoz, hogy az átlagos alvásidő növekedést $95\%$-os megbízhatósággal és $\pm0.7$ órás becslési hibával meg lehessen adni**.<br>
+Persze, ha a mintaátlag vagy éppen a korrigált mintaszórás úgy módosul az új mintaelemek hatására, hogy a konfidencia-intervallum alsó határa továbbra sem éri el a vágyott $1$ órát, akkor tervünk dugába dőlt. Viszont, akkor ez inkább a gyógyszert fejlesztő vegyészek sara, mint a hatékonyságvizsgálatot végző statisztikusé, aki rávilágít a problémákra. :)
 
 ### 2. feladat
 
-TODO a lényegi részek
+Az <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/blob/main/ESS2020.xlsx" target="_blank">ESS2020.xlsx</a> fájlban található adatbázis a 2020-ban végzett európai szociális felmérés (European Social Survey 2020 = ESS2020) 1849 magyar kitöltöjének válaszait tartalmazza 14 kérdésre (plusz van egy *id* oszlop).
 
-Szerencsénkre a $t$-eloszlás 1/b) feladat megoldásában található ábráján látszik, hogy $30$-as szabadságfok esetén visszatérünk a már megismert standard normális eloszláshoz. Így $31$ vagy több elemű mintánkra újra a stanadard normális eloszlás $z$ értékeivel számolhatunk, mint $k$ megbízhatósági szorzó, annak ellenére, hogy a $SH$ képletében a sokasági szórást ($\sigma$) a mintából korrigáltan becsült értékével ($s$) helyettesítjük.<br>
-Tehát, a konfidencia-intervallum $n \geq 31$-re a következőképpen néz ki: $$P\left(\bar{y}-z_{1-\frac{\alpha}{2}} \times \frac{s}{\sqrt{n}}< \mu <+z_{1-\frac{\alpha}{2}} \times \frac{s}{\sqrt{n}}\right) = 1- \alpha$$
+Ha valamelyik oszlopban ürrs értéket találunk, akkor az adott sorban lévő kitöltő nem válaszolt a kérdésre. Az adatbázisban szereplő kitöltők a teljes 18 év feletti magyar népességből vett véletlen mintaként kezelhetők. Most feltesszük, hogy ez a véletlen minta visszatevéses, azaz $FAE$ is. A következő tananyagban látni fogjuk, hogy ez nem is valóságtól elrugaszkodott feltevés.
 
-Használjuk az *ESS2020.xlsx*-es feladat megoldására.
+Az adatbázis nyers formában <a href="https://ess-search.nsd.no/en/study/172ac431-2a06-41df-9dab-c1fd8f3877e7" target="_blank">eről a linkről</a> elérhető egy ingyenes regisztráció után.
+
+**Feladatunk** a mintavétel alapján megbecsülni, hogy hogy egy átlagos magyar polgár $97\%$-os megbízhatósággal várhatóan legalább és legfeljebb hány percet internetezik naponta!
+
+### 2. feladat megoldás
+
+Először is töltsök be az adatbázist `pandas` data frame-be és nézzük meg az elemszámot a feladat szempontjából releváns `NetUsePerDay_Minutes` oszlopban!
+
+```{python}
+ESS = pd.read_excel("ESS2020.xlsx")
+ESS.info()
+
+n = ESS.NetUsePerDay_Minutes.count() # így nem számoljuk be az üres értékeket
+n
+```
+
+Szóval, az üres értékeket nem számolva, a releváns oszlop `count` metódusával megtudhattuk, hogy az internetezési idő esetében $n=1099$ elemű mintából főzhetünk. **Ez bőven nagy minta**, mivel ebből a tárgyból közmegegyezéssel **az $n > 30$ eseteket nagy mintának tekintjük**, ahogy az 1/b) feladat megoldásában megadtuk. Emiatt **nem kell az intrenetezési idők normális eloszlását sem vizsgálni az intervallumbecslés elvégzéséhez $s$-t és t-eloszlást használva**!
+
+Mehetünk simán előre a $\triangle = t_{1-\frac{\alpha}{2}}^{n-1} \times \frac{s}{\sqrt{n}}\right)$ képletet használva.
+
+```{python}
+n = ESS.NetUsePerDay_Minutes.count() # így nem számoljuk be az üres értékeket
+
+minta_atlag = np.mean(ESS.NetUsePerDay_Minutes)
+korr_szoras = np.std(ESS.NetUsePerDay_Minutes, ddof = 1)
+
+SH = korr_szoras / np.sqrt(n)
+
+alfa = 1-0.97
+k_szorzo_t = stats.t.ppf(1-alfa/2, df = (n-1))
+
+delta = k_szorzo_t * SH
+
+also = minta_atlag - delta
+felso = minta_atlag + delta
+
+[also, felso]
+```
+
+Tehát, az $n=1099$ elemű mintánk alapján azt mondhatjuk, hogy az átlagos magyar $97\%$-os megbízhatósággal legalább napi $171.8$ percet és legfeljebb napi $190.8$ percet tölt internetezéssel.
+
+Az eredményünk nem nagyon változik, ha a $k$ megbízhatósági szorzót standard normális eloszlásból számoljuk t-eloszlás helyett, hiszen az $n$ olyan nagy, hogy az $n-1$ szbadságfokú t-eloszlás sűrűségfüggvénye lényegében semmiben nem fog különbözni a standard normális eloszlás sűrűségfüggvényétől.
+
+```{python}
+alfa = 1-0.97
+k_szorzo_z = stats.norm.ppf(1-alfa/2)
+
+delta = k_szorzo_z * SH
+
+also = minta_atlag - delta
+felso = minta_atlag + delta
+
+[also, felso]
+```
+
+Láthatjuk, hogy csak a tizedesjegyekben vannak nagyon minimális eltérések. Szóval **nagy mintaelemszám esetén a megbízhatósági szorzó nyugodtan számolható standard normális eloszlésból is a t-eloszlás helyett**.
+
+Szerencsénkre, a `scipy` csomagban az átlag konfidencia-intervallumának számítására standard normális és t-eloszlású $k$ szorzók esetében is **vannak beépített függvények**.<br>
+Ezek értelemszerűen `stats.norm.interval` és `stats.t.interval` nevekre hallgatnak.
+
+- A függvények `scipy` paraméterében adjuk meg a **megbízhatósági szintet**, tehát NEM a "rendes" statisztika által $\alpha$-val jelölt megengedett hibavalószínűséget!!! Ezt sajnos **meg kell szokni**!!
+- A `loc` paraméterben érkezik a **mintaátlag**.
+- A `scale` paraméterbe a **standard hibát rakjuk**, ami az **adatokból közvetlenül** is számítható a `stats.sem` függvénnyel.
+- Csak a `stats.t.interval` esetén kell használni a `df` paramétert, ami értelemszerűen a szabadságfok helye.
+
+Először nézzük meg, hogy tényleg használható a `stats.sem` függvény $SH$ szmításra. A `nan_policy = 'omit'` paraméterbeállítással szólunk neki, hogy a hiányzó értékeket ne vegye figyelembe a számítás során, ahogy mi is tettük.
+
+```{python}
+SH_Adatokbol = stats.sem(ESS.NetUsePerDay_Minutes, nan_policy = 'omit')
+
+[SH_Adatokbol, SH]
+```
+
+Egyezük, szuper! :)
+
+Most pedig szépen használhatjuk a kétféle eloszlássa dolgozó konfidencia-intervallum számító függvényt is.
+
+```{python}
+stats.norm.interval(
+  alpha=0.97,
+  loc=np.mean(ESS.NetUsePerDay_Minutes),
+  scale=stats.sem(ESS.NetUsePerDay_Minutes, nan_policy = 'omit'))
+  
+stats.t.interval(
+  alpha=0.97,
+  loc=np.mean(ESS.NetUsePerDay_Minutes),
+  scale=stats.sem(ESS.NetUsePerDay_Minutes, nan_policy = 'omit'),
+  df = (ESS.NetUsePerDay_Minutes.count() - 1))
+```
+
+Egyezünk a korábbi eredményeinkkel, szuperek vagyunk! :)
+
 
 ## 5. Összefoglalás az átlag konfidencia-intervallumairól
 
-TODO
+Ezen a ponton érdemes összefoglalni, hogy az átlag intervallumbecslése milyen feltételek mellett milyen konkrét formulák vannak.
+
+Az **alapképlet a konfidencia-intervallum hosszára, azaz a becslési hibahatárra**: $$\triangle = k \times SH$$
+
+1. A sokasági szórás, alias $\sigma$ ismert.
+  * $k=z_{1-\frac{\alpha}{2}}$<br>
+  * $SH=\frac{\sigma}{\sqrt{n}}$
+2. Az adatsor, amiből a mintát vettük *normális eloszlás*ú
+  * $k=t_{1-\frac{\alpha}{2}}^{n-1}$<br>
+  * $SH=\frac{s}{\sqrt{n}}$
+3. A mintánk elemszáma nagy: $n > 30$
+  * $k=t_{1-\frac{\alpha}{2}}^{n-1}$ vagy $k=z_{1-\frac{\alpha}{2}}$<br>
+  * $SH=\frac{s}{\sqrt{n}}$
+
+És ennyi, igazából, ha végiggondoljuk a 4. fejezet feladatait, ezt a $3$ esetet tudjuk elkülöníteni a $\triangle$ számítása során.
 
 ## 6. Esettanulmány
 
-TODO
+Vizsgáljuk meg $99\%$-os megbízhatósággal hogyan alakul az átlagos internetezéssel töltött idő a teljes magyar népességben pártpreferencia szerint!
+
+Érdekes megnézni, hogy egy $n=1099$ elemű mintában mért átlagos különbségek az egyes pártok intenetezési idejében mennyire általánosíthatók ki a pártokat támogató népesség egészére, tehát azokra az emberekre, akiket a mintában még NEM figyeltünk meg, azaz a **mintaelemeken kívüli világra**.
+
+Ehhez az út ott kezdődik, hogy a nominális ismérvünk, azaz a pártpreferemcia egyedi értékei szerint vesszük az átlaggal vizsgált mennyiségi ismérv részátlagait, és ezen részátlagok $SH^2$-eit, azaz *becslési varianciáit*. Ezt a kiinduló data frame `groupby` metódusával gyorsan meg tudjuk oldani.
+
+```{python}
+# Először megtisztítjuk a 'NetUsePerDay_Minutes' oszlop üres értékeitől a data frame-t
+df_szurt = ESS.loc[ESS.NetUsePerDay_Minutes.notna(),:]
+
+PartPrefKimutatas = df_szurt.groupby("PoliticalPartyPref").agg(
+  Elemszam = ('NetUsePerDay_Minutes', 'count'),
+  Atlag = ("NetUsePerDay_Minutes", np.mean),
+  SH = ("NetUsePerDay_Minutes", stats.sem)
+)
+# SH négyzetre emelés
+PartPrefKimutatas['BecslesiVar'] = PartPrefKimutatas['SH']**2
+
+PartPrefKimutatas
+```
+
+Ezek után az eredmény data frame minden oszlopát, és a `groupby`-ban használt nominális változó egyedi értékeit, a pártfpreferenciákat mentsük ki külön objektumokba.
+
+```{python}
+minta_atlagok = PartPrefKimutatas.Atlag
+becslesi_varok = PartPrefKimutatas.BecslesiVar
+partok = PartPrefKimutatas.index
+```
+
+Ezek után telepítsünk egy `statsmodels` néven futó csomagot!
+
+```{python eval = FALSE}
+pip install statsmodels
+```
+
+Majd importákjuk a csomag `combine_effects` függvényét. Ha ennek a függvénynek az `effect` paraméterében megadjuk a mért mintaátlagokat, a `variance` paraméterben az $SH^2$-ket, `row_names` paraméternél a nominális kategóriáink neveit (most a pártpreferenciák lehetséges egyedi értékeit) és az `alpha` paraméterben megadjuk az $\alpha$-t (itt tényleg a megengedett *hibavalószínűséget* hívja a gépállat `alpha`-nak, ahogy kell), akkor a függvény kiszámolja **minden nominális csoportra**, azaz esetünkben pártpreferenciára, a **vizsgált részátlagok $1-\alpha$ megbízhatóságú konfidencia-intervallumát**.<br>
+Annyi szépséghibája van csak a függvénynek, hogy mindezt **nagy mintát feltételezve teszi, tehát a $k$ megbízhatósági szorzót mindig standard normális eloszlásból számolja**. Szóval kis mintáknál ($n \leq 30$) a függvény a valós konfidencia-intervallumot *alulbecsli, azaz az eredmény túl szűk lesz*!<br>
+Ez most nekünk **csak az $n=13$ elemszámú 'Egyéb' pártpreferencia csoportban lehet problémás**! 
+
+Az eredménytáblát a `summary_frame` metódussal tudjuk levadászni. Az eredményül kapott táblában az utolsó két oszloppal és utolsó négy sorral nekünk nem kell foglalkozni, így csak az első négy oszlopot és az első négy sort választjuk csak ki a megjelenítéskor. A soroknél azért csak az első négyet, mert négy egyedi pártpreferencia értékünk van csak most! Egyébként a nominális ismérvünk egyedi értékeinek számához igazítjuk mindig a kiválasztást! . A `ci_low` és `ci_upp` oszlopok rendre a konfidencia intervallumunk alsó-felső határai.
+
+```{python}
+from statsmodels.stats.meta_analysis import combine_effects
+
+eredmeny = combine_effects(
+  effect = minta_atlagok,
+  variance = becslesi_varok,
+  row_names = partok,
+  alpha = (1-0.99)
+)
+eredmeny_tabla = eredmeny.summary_frame().iloc[0:4,0:4]
+```
+
+Remek! :) Értelmezés TODO
+
+A `statsmodels` csomag szépsége, hogy van egy `dot_plot` című függvénye, amivel csudiszép vizuális megjelenítés adható a csoportátlagoknak és a $99\%$-os megbízhatóságú konfidencia-intervallumaiknak. Ezeket az ábrákat **forest diagram**oknak hívják
+
+A `dot_plot` függvény `points` paraméterébe kerülnek a mintaátlagok, míg az `intervals` paraméterbe egy olyan $2$ oszlopos data frame kerül, ami tartalmazza a konfidencia-intervallum alsó és felső határának távolságát a mintaátlagoktól abszolút értékben, azaz lényegében a $\triangle$-t. Igen, itt egy olyan data frame kell neki, ahol mindkét oszlopban ugyan az az érték szerepel, mert ezt méri rá majd a gépállat a `points` paraméterre $\pm$.<br>
+Ahhoz, hogy szépen megjelenjenek a pártpreferenciák is, a függvénynek a `lines` paraméteren meg kell kapnia az eredménytábla soreindexeit is, hiszen a pártpreferencia értékek ott kerültek eltárolásra. 
+
+```{python}
+from statsmodels.graphics.dotplots import dot_plot
+
+# konfidencia-intervallumok méretének megadása az ábrához
+intervallumok = np.abs(eredmeny_tabla[["ci_low", "ci_upp"]] - eredmeny_tabla[["eff"]].values)
+intervallumok
+
+dot_plot(
+  points=eredmeny_tabla["eff"],
+  intervals = intervallumok,
+  lines=eredmeny_tabla.index)
+
+plt.tight_layout() # ne csússzanak ki a tengelyfeliratok
+plt.show()
+```
+
+Mint láthatjuk, TODO
