@@ -606,14 +606,6 @@ PartPrefKimutatas['BecslesiVar'] = PartPrefKimutatas['SH']**2
 PartPrefKimutatas
 ```
 
-Ezek után az eredmény data frame minden oszlopát, és a `groupby`-ban használt nominális változó egyedi értékeit, a pártfpreferenciákat mentsük ki külön objektumokba.
-
-```{python}
-minta_atlagok = PartPrefKimutatas.Atlag
-becslesi_varok = PartPrefKimutatas.BecslesiVar
-partok = PartPrefKimutatas.index
-```
-
 Ezek után telepítsünk egy `statsmodels` néven futó csomagot!
 
 ```{python eval = FALSE}
@@ -624,23 +616,27 @@ Majd importákjuk a csomag `combine_effects` függvényét. Ha ennek a függvén
 Annyi szépséghibája van csak a függvénynek, hogy mindezt **nagy mintát feltételezve teszi, tehát a $k$ megbízhatósági szorzót mindig standard normális eloszlásból számolja**. Szóval kis mintáknál ($n \leq 30$) a függvény a valós konfidencia-intervallumot *alulbecsli, azaz az eredmény túl szűk lesz*!<br>
 Ez most nekünk **csak az $n=13$ elemszámú 'Egyéb' pártpreferencia csoportban lehet problémás**! 
 
-Az eredménytáblát a `summary_frame` metódussal tudjuk levadászni. Az eredményül kapott táblában az utolsó két oszloppal és utolsó négy sorral nekünk nem kell foglalkozni, így csak az első négy oszlopot és az első négy sort választjuk csak ki a megjelenítéskor. A soroknél azért csak az első négyet, mert négy egyedi pártpreferencia értékünk van csak most! Egyébként a nominális ismérvünk egyedi értékeinek számához igazítjuk mindig a kiválasztást! . A `ci_low` és `ci_upp` oszlopok rendre a konfidencia intervallumunk alsó-felső határai.
+Az eredménytáblát a `summary_frame` metódussal tudjuk levadászni. Az eredményül kapott táblában az utolsó két oszloppal és utolsó négy sorral nekünk nem kell foglalkozni, így csak az első négy oszlopot és az első négy sort választjuk csak ki a megjelenítéskor. A soroknál azért csak az első négyet, mert *négy egyedi pártpreferencia értékünk van* itt és most! Egyébként a nominális ismérvünk egyedi értékeinek számához igazítjuk mindig a kiválasztást! . A `ci_low` és `ci_upp` oszlopok rendre a konfidencia intervallumunk alsó-felső határai.
 
 ```{python}
 from statsmodels.stats.meta_analysis import combine_effects
 
 eredmeny = combine_effects(
-  effect = minta_atlagok,
-  variance = becslesi_varok,
-  row_names = partok,
+  effect = PartPrefKimutatas.Atlag,
+  variance = PartPrefKimutatas.BecslesiVar,
+  row_names = PartPrefKimutatas.index,
   alpha = (1-0.99)
 )
 eredmeny_tabla = eredmeny.summary_frame().iloc[0:4,0:4]
+eredmeny_tabla
 ```
 
-Remek! :) Értelmezés TODO
+Remek! :) Az `eff` oszlop tartalmazza a mintaátlagokat, míg a `sd_eff` oszlop a $SH$-k lakóhelye. Tehát, ezek alapján azt mondhatjuk, hogy az egyesült ellenzék esetén egy átlagos kérdőívkitöltő $228.8$ percet netezik naponta, míg egy átlag Fidesz kitöltő csak napi $158.7$ percet.<br>
+Azonban, a teljes ellenzéki népességben az átlag netezési idő $204$ és $253$ perc között van $99\%$-os valószínűséggel. A teljes fideszes táborban pedig az átlagos neten töltött idő csak $143$ és $175$ perc között mozog, szintén $99\%$-os valószínűséggel.<br>
+Tehát, $99\%$-os valószínűséggel az átlag netezési idő az Ellenzék esetében magasabb, mint a Fidesz esetében a teljes népességben is, hiszen a "legrosszabb" ellenzéki átlagérték is már $204$ perc, míg a Fidesz esetén a "legjobb" átlagidő is csak $175$ perc.<br>
+Mindez persze a különböző felületeken (tv, rádió, internet) működő médiumok irányultságát figyelembe véve egyáltalán nem meglepő. :)
 
-A `statsmodels` csomag szépsége, hogy van egy `dot_plot` című függvénye, amivel csudiszép vizuális megjelenítés adható a csoportátlagoknak és a $99\%$-os megbízhatóságú konfidencia-intervallumaiknak. Ezeket az ábrákat **forest diagram**oknak hívják
+A `statsmodels` csomag szépsége, hogy van egy `dot_plot` című függvénye, amivel csudiszép vizuális megjelenítés adható a csoportátlagoknak és a konfidencia-intervallumaiknak. Ezeket az ábrákat **forest diagram**oknak hívják.
 
 A `dot_plot` függvény `points` paraméterébe kerülnek a mintaátlagok, míg az `intervals` paraméterbe egy olyan $2$ oszlopos data frame kerül, ami tartalmazza a konfidencia-intervallum alsó és felső határának távolságát a mintaátlagoktól abszolút értékben, azaz lényegében a $\triangle$-t. Igen, itt egy olyan data frame kell neki, ahol mindkét oszlopban ugyan az az érték szerepel, mert ezt méri rá majd a gépállat a `points` paraméterre $\pm$.<br>
 Ahhoz, hogy szépen megjelenjenek a pártpreferenciák is, a függvénynek a `lines` paraméteren meg kell kapnia az eredménytábla soreindexeit is, hiszen a pártpreferencia értékek ott kerültek eltárolásra. 
@@ -661,4 +657,39 @@ plt.tight_layout() # ne csússzanak ki a tengelyfeliratok
 plt.show()
 ```
 
-Mint láthatjuk, TODO
+Mint láthatjuk, igazából az Ellenzék átlagos netezési ideje az, ami konfidencia-intervallumokkal együtt is magasabb, mint a többi párt szavazóinak átlagos netezési ideje a teljes népességben. Sőt, a **többi párt esetében azt mondhatjuk, hogy egyáltalán nem biztos, hogy a teljes népességben ezek az átlag netezési idők különböznek** $99\%$-os megbízhatósággal, **mivel a konfidencia-intervallumok metszik egymást**. Szóval, hiába van a megfigyelt adatok körében a Fidesznek magasabb átlag netideje, mint az Egyéb pártoknak, de kevesebb, mint a Nem ismert eseteknek, a nem megfigyelt, mintán kívüli adatok körében, azaz a teljes népességben simán lehet ($99\%$-os megbízhatósággal), hogy a Fideszes szavazók neteznek átlag a legkevesebbet egy napon. Ehhez csak annyi kell, hogy az a Fidesz valós, sokasági átlaga a konfidencia-intervallum alsó határa körül legyen a teljes népességben, míg a többi párt (nem ismert és egyéb) átlagideje pedig a konfidencia-intervallumuk tetejénél "kössön ki" a teljes népesség körében.
+
+Érdemes még megfigyelni, hogy az Egyéb pártoknak a legszélesebb a konfidencia-intervalluma. Ez ugye azért van, mert mint láttuk a fejezet elején ide csak $n=13$ kitöltő tartozik. Így az $SH=\frac{s}{\sqrt{n}}$ összefüggés miatt érthető, hogy nagyon bizonytalanok vagyunk ennél a csoportnál az átlagos netezési idő becslésében. Ráadásul ez egy durva alábecslés is, amit itt a konfidencia-intervallum hosszára látunk! Hiszen a kis elemszám miatt a $k$ megbízhatósági szorzót itt $13-1$ szabadságfokú t-eloszlásból kellene számítani standard normális helyett, ahogy a `combine_effects` függvény csinálja. Persze, ez sem lenne teljesen pontos, mivel ahogy az alábbi hisztogram is szemlélteti, a napi netezési idők nem normális, hanem jobbra elnyúló eloszlásúak.
+
+```{python}
+ESS.NetUsePerDay_Minutes.hist()
+plt.show()
+```
+
+Ha valaki szeretné végigszámolni és ábrázoln a konfidencia-intervallumokat t-eloszlással, megteheti. Ezt viszont "manuálisan" kell megcsinálni a `groupby`-al létrehozott data frame oszlopok bővítésén keresztül.
+
+```{python}
+alfa = 1-0.99
+
+PartPrefKimutatas['ci_low_t'] = PartPrefKimutatas['Atlag'] - PartPrefKimutatas['SH'] * stats.t.ppf(1-alfa/2, df = (PartPrefKimutatas['Elemszam']-1))
+PartPrefKimutatas['ci_upp_t'] = PartPrefKimutatas['Atlag'] + PartPrefKimutatas['SH'] * stats.t.ppf(1-alfa/2, df = (PartPrefKimutatas['Elemszam']-1))
+
+PartPrefKimutatas
+```
+
+És végül a *forest diagram*.
+
+```{python}
+# konfidencia-intervallumok méretének megadása az ábrához
+intervallumok = np.abs(PartPrefKimutatas[["ci_low_t", "ci_upp_t"]] - PartPrefKimutatas[["Atlag"]].values)
+
+dot_plot(
+  points=PartPrefKimutatas["Atlag"],
+  intervals = intervallumok,
+  lines=PartPrefKimutatas.index)
+
+plt.tight_layout() # ne csússzanak ki a tengelyfeliratok
+plt.show()
+```
+
+Láthatóan tágultak a $99\%$-os konfidencia-intervallumok, de az még mindig igaz, hogy az Ellenzék átlagos ideje a sokaságban egyértelműen magasabb, mint a többi párt esetében tapasztalt még konfidencia-intervallumokkal együtt is. Bár a kis elemszámuknak köszönhetően az Egyéb pártra szavazók felső konfidencia-intervallum határa már majdnem beéri őket. :) Ez ugye várható volt, mert $n=13$ esetén azért sokat dob a $k$ megbízhatósági szorzó értékén az $n-1$ szabadságfokú t-eloszlás. :)
