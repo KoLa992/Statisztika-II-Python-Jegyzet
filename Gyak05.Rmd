@@ -1,0 +1,204 @@
+---
+title: "További FAE becslések és a Bootstrap módszer"
+author: "Kovács László"
+date: "2023. 02. 08."
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. A Konfidencia-intervallumok két általános tulajdonsága
+
+Az átlagra vonatkozó konfidencia-intervallumokkal kapcsolatos számolások során megállapítottunk **két olyan általános tulajdonságot a konfidencia-intervallumok hosszára, azaz a teljes becslési hibahatárra** $\triangle$-re vonatkozóvan, **amelyek igazak lesznek az összes többi** - a tárgyban vizsgált - **statisztikai mutató konfidencia-intervallumára** is:
+
+1. A megbízhatóság növelésével a konfidencia-intervallum egyre csak tágul, azaz a becslési hibahatár folyamatosan nő. Tehát, **nagyobb megbízhatóságú becslés csak pontatlanabb konfidencia-intervallum árán érhető el**.
+2. Mivel a továbbiakban is konzisztensen viselkedő becslőfüggvényekkel ($\hat{\theta}$-kal) fogunk dolgozni, így kijelenthető, hogy a **mintaelemszám ($n$) növelésével**, a $SH$ értéke csökken. A csökkenő $SH$ miatt pedig **az egész konfidencia-intervallum pontosabb lesz**. **Magyarul**  az elemszém növelésével a konfidencia-intervallum hossza, leánykori nevén **becslési hibahatár** ($\triangle$) **csökken**.
+
+A következő két fejezetben figyeljük meg, hogy **minden újabb statisztikai mutató konfidencia-intervalluma a feni két tulajdonságot betartva fog viselkedni**!
+
+## 2. Arányok konfidencia-intervalluma
+
+Vegyük elő újra a <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/blob/main/ESS2020.xlsx" target="_blank">ESS2020.xlsx</a> fájlban található adatbázist! Emlékeztetőül álljon itt, hogy ez az adatbázis a 2020-ban végzett európai szociális felmérés (European Social Survey 2020 = ESS2020) 1849 magyar kitöltöjének válaszait tartalmazza 14 kérdésre (plusz van egy *id* oszlop).
+
+Ugyebár az <a href="Gyak04.html" target="_blank">előző tananyag 4. fejezet 2. feladatában</a> azt mondtuk, hogy ha az adatbázis valamelyik oszlopában üres értéket találunk, akkor az azt jelenti, hogy az adott sorban lévő kitöltő nem válaszolt a kérdésre. Az adatbázisban szereplő kitöltők a teljes 18 év feletti magyar népességből vett véletlen mintaként kezelhetők. Most feltesszük, hogy ez a véletlen minta visszatevéses, azaz $FAE$ is. A következő tananyagban látni fogjuk, hogy ez nem is valóságtól elrugaszkodott feltevés.
+
+Először is töltsök be az adatbázist ismét az Excelből egy `pandas` data frame-be és nézzük meg az `info` metódussal milyen oszlopaink (azaz ismérveink) vannak!
+
+```{python}
+# Elemzéshez és ábrázoláshoz szükséges csomagok betöltése
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import scipy.stats as stats
+from statsmodels.stats.meta_analysis import combine_effects
+from statsmodels.graphics.dotplots import dot_plot
+
+# Adatbeolvasás data frame-be
+ESS = pd.read_excel("ESS2020.xlsx")
+ESS.info()
+```
+
+Láthatjuk, hogy megvan mind a 14+1 változónk a megfelelő adattípusokkal. Hurrá! :)
+
+**Feladatunk** ezúttal az lenne, hogy **99%-os megbízhatóságú konfidencia-intervallum**ot építsünk a **Fideszt támogatók arányára!**
+
+Szerencsére ezt aránylag könnyű megtenni, hiszen **egy adott tulajdonsággal bíró egyedek aránya lényegében egy átlag**! Konkrétan **egy olyan változó átlaga, ahol a tulajdonsággal bíró egyedek $1$ értéket, míg a tulajdonsággal NEM rendelkező egyedek $0$ értéket kapnak**.
+
+Ezt könnyű is szemléltetni Python-ban. Vegyük a feladat szempontjából releváns a `PoliticalPartyPref` ismérv **relatív gyakoriságait** a `value_counts` metódus segítségével:
+
+```{python}
+# Teljes mintaelemszám megadása
+n = ESS.PoliticalPartyPref.count()
+
+# Relatív Gyakoriságok
+ESS.PoliticalPartyPref.value_counts() / n
+```
+
+Ez alapján ugye a Fidesz támogatóinak aránya a megfigyelt 1849 elemű mintában $19.7\%$. Ezt az eredményt pedig úgy is megkaphatjuk, hogy csinálunk egy új `Fidesz` nevű oszlopot az `ESS` nevű data frame-be, amiben a Fidesz támogatók $1$ értéket kapnak, a többiek $0$-t, és vesszük az új oszlop átlagát.<br>
+Az új oszlop létrehozásához a `numpy` csomag `where` néven futó függvényét használjuk. Ez lényegében olyan, mint az Excel `HA` függvénye: egy logikai feltétel megadása után értéket adunk az új oszlopban a *feltétel igaz* ágon, majd utána a *feltétel hamis* ágon.
+
+```{python}
+# Létrehozzuk a Fidesz nevű oszlopot!
+ESS['Fidesz'] = np.where(ESS.PoliticalPartyPref=='Fidesz-KDNP', 1, 0)
+
+# És vesszük az új oszlop átlagát
+np.average(ESS.Fidesz)
+```
+
+Ismét megkaptuk a $19.7\%$-os támogatottsági arányt. Ez alapján pedig könnyen elkészíthetjük rá a 99%-os megíbzhatóságú konfidencia-intervallumot a `scipy` csomag `stats.norm.interval` függvényével. Hiszen a nagy mintaelemszám miatt nem szükséges a $k$ szorzót t-eloszlásból számolni, bőven megfelel nekünk a standard normális eloszlás alkalmazása is.
+
+```{python}
+stats.norm.interval(
+  alpha=0.99,
+  loc=np.mean(ESS.Fidesz),
+  scale=stats.sem(ESS.Fidesz, nan_policy = 'omit'))
+```
+
+Tehát, a mintánk alapján a **magyar népesség egészét tekintve az mondható el, hogy 99%-os valószínűséggel legalább $17.4\%$-uk támogatja a Fidesz-KDNP-t, viszont szintén 99%-os valószínűséggel kijelenthető, hogy a támogatottsági arányuk nem magasabb $22.1\%$-nál**.
+
+A teljes népességre nézve vett Fidesz támogatottság vizsgálható a `statsmodels` csomag `combine_effects` függvényével **regionális bontásban** is.
+
+Mielőtt a `combine_effects` függvényt használnánk, csináljuk meg a kiinduló kimutatást az `ESS` data frame `groupby` metódusával:
+
+1. A nominális ismérvünk, azaz most a `Region` egyedi értékei szerint vesszük az átlaggal vizsgált mennyiségi ismérv (most `Fidesz`) részátlagait
+2. Utána ezen részátlagok $SH^2$-eit, azaz *becslési varianciáit* is megadjuk.
+
+```{python}
+RegionKimutatas = ESS.groupby("Region").agg(
+  Elemszam = ('Fidesz', 'count'),
+  Atlag = ("Fidesz", np.mean),
+  SH = ("Fidesz", stats.sem)
+)
+# SH négyzetre emelés
+RegionKimutatas['BecslesiVar'] = RegionKimutatas['SH']**2
+
+RegionKimutatas
+```
+
+Látható, hogy a mintán belül a Fidesz támogatottsága az Dél-Dunántúlon csak 15.4%, míg Nyugat-Dunántúlon 16.7%. Kérdés, hogy ezek a különbségek a mintavételi hiba, azaz a 99%-os megbízhatóságú konfidencia-intervallum figyelembe vételével is megmaradnak-e!
+
+Ami fontos még az előbb elkészített kimutatásból, hogy **minden régióban megvan a nagy elemszám** ($n>30$), így nyugodtan használható a $k$ megbízhatósági szorzót standard normális eloszlásból számító `combine_effects` függvény. A függvény paraméterezési szabályait lásd a <a href="Gyak04.html" target="_blank">4. heti tananyag 6. fejezetében</a>.
+
+```{python}
+eredmeny = combine_effects(
+  effect = RegionKimutatas.Atlag,
+  variance = RegionKimutatas.BecslesiVar,
+  row_names = RegionKimutatas.index,
+  alpha = (1-0.99)
+)
+
+# a summary_frame eredményéból az első 8 sor kell nekünk,
+# mert 8 régió szerint vizsgáljuk a támogatottsági arányokat!
+eredmeny_tabla = eredmeny.summary_frame().iloc[0:8,0:4]
+eredmeny_tabla
+```
+
+Az eredményül kapott táblából ismételten látható, hogy a **mintán belül a Fidesz támogatottsága az Dél-Alföldön csak 12.6%, míg Dél-Dunántúlon már 15.4%**. Azonban, ha a konfidencia-intervallum segítségével a **teljes népességet vizsgáljuk, akkor ez 99%-os valószínűséggel egy NEM szignifikáns** (jelentős) **eltérés, mivel a két konfidencia-intervallum metszi egymást!** Tehát a teljes népességben elképzelhető legjobb esetben egy 17.6%-os támogatottság is a Dél-Alföldön, míg a legrosszabb esetben belefér a Dél-Dunántúlon 9.5%-os támogatottság is. Tehát, az, hogy a Dél-Dunántúlon magasabb a Fidesz támogatottsági arány a mintában, az lehet csak a mintavételi hiba műve 99%-os megbízhatósággal! Ellenben az **Észak-Magyarországi Fidesz támogatottság 99% valószínűséggel a sokaságban is magasabb, mint a Dél-Alföldi**, hiszen a Dél-Alföldön a támogatottság legjobb esetben is csak 17.6%, míg Észak-Magyarországon legrosszabb esetben is már 20.4%. Tehát a **két konfidencia-intervallum NEM metszi egymást, a mintában mért eltérések 99% valószínűséggel megmaradnak a sokaságban is!**
+
+Az eredményekről ugyan úgy készíthetünk **forest diagram**ot, mint a pártpreferenciák szerint bontott átlagos netezési időkről a <a href="Gyak04.html" target="_blank">4. heti tananyag 6. fejezetében</a>. Itt ugyebár a `statsmodels` csomag `dot_plot` függvényét vetjük be. Ennek a használatáról is bővebb információk a <a href="Gyak04.html" target="_blank">4. heti tananyag 6. fejezetében</a> találhatók.
+
+```{python}
+# konfidencia-intervallumok méretének megadása az ábrához
+intervallumok = np.abs(eredmeny_tabla[["ci_low", "ci_upp"]] - eredmeny_tabla[["eff"]].values)
+intervallumok
+
+# ábra elkészítése
+dot_plot(
+  points=eredmeny_tabla["eff"],
+  intervals = intervallumok,
+  lines=eredmeny_tabla.index)
+
+# ábra megjelenítése
+plt.tight_layout() # ne csússzanak ki a tengelyfeliratok
+plt.show()
+```
+
+Az előbb taglalt, 99%-os megbízhatósággal a sokaságban is szignifikáns eltérés Dél-Alföld és Észak-Magyarország között. Az is látszik, hogy **hasonló szignifikáns különbség még** ezen kívül **Dél-Alföld és Budapest Fidesz támogatottsági aránya között található**.
+
+### 2.1. Mintaelemszám meghatározása aránybecsléshez
+
+Érdemes az arány konfidencia-intervallumának számítása során felhasználni azt az információt, hogy egy csak 0-ból és 1-ből álló változó korrigált mintaszórása $s=\sqrt{p(1-p)}$ módon számítható, ahol $p$ az $1$ értékek aránya a mintában!<br>
+Nézzük is meg, hogy igaz-e ez! Ugyebár a Fidesz támogatottsági aránya a teljes 1849 elemű mintában $p=19.7\%$. Ez alapján a szórása a `Fidesz` nevű 0-1-ből álló változónak $s=\sqrt{p(1-p)}=\sqrt{0.197 \times (1-0.197)}=0.3977323$.
+
+Nézzük meg az eredményt az R `sd` függvényével is:
+
+```{python}
+np.std(ESS.Fidesz)
+```
+
+A kétféleképp számolt érték némi kerekítési hibát leszámítva egyezik! :) De hát ez nem meglepő, hogy így alakult, hiszen a <a href="Gyak03.html" target="_blank">3. heti tananyag 5. fejezetében</a> éppen azt mondtuk, hogy a mintaarányok (a $p$-k) standard mintavételi hibája a $SH(p) \approx \sqrt{\frac{p(1-p)}{n}}$ képlettel megadható. :)
+
+Ez azt jelenti, hogy **az arány konfidencia-intervallumának hossza** a $\triangle = SH \times k$ képlet alapján $\sqrt{\frac{p(1-p)}{n}} \times k$ módon számítható, hiszen az átlag standard hibája $\frac{s}{\sqrt{n}}$ volt, és most felhasználtuk, hogy csak 0-1-et tartalmazó változókra $s=\sqrt{p(1-p)}$. A $k$ megbízhatósági szorzó pedig ugyan úgy $N(0,1)$ eloszlással számolható *nagy méretű minták esetén*, mint az átlag konfidencia-intervallumánál. Hiszen magas $n$ esetén a $t(n-1)$ eloszlás sűrűségfüggvénye már lényegében egybeesik az $N(0,1)$ eloszlás sűrűségfüggvényével, ahogy a <a href="Gyak04.html" target="_blank">4. heti tananyag 4. fejezetének 2. feladatában</a> is láttuk.
+
+**Ennyi információ alapján pedig képesek vagyunk arra, hogy még mintavétel ELŐTT meghatározzuk, hogy az arány egy adott pontosságú és megbízhatóságú becsléséhez mekkora elemszámú mintára van szükségünk**.
+
+Hiszen $99\%$-os megbízhatósági szint mellett a szükséges megbízhatósági $k$ szorzó a standard normális, azaz $N(0,1)$ eloszlás inverz értéke alapján megadható $z_{1-\frac{\alpha}{2}}$ módon:
+
+```{python}
+alfa=1-0.99
+stats.norm.ppf(1-alfa/2)
+```
+
+Vegyük az értéket kerekítve $k=2.6$-nak!
+
+Ugyebár azt tudjuk, hogy a jelenlegi 1849 elemű mintánk esetén Fidesz támogatottsági aránya $p=19.7\%$, **amitől a támogatottsági arány valós sokasági értéke** 99%-os valószínűséggel $\pm$ **2.4 százalékpontos hibahatárral térhet el**: $$\pm \triangle = SH \times k = \sqrt{\frac{p(1-p)}{n}} \times k = \sqrt{\frac{0.197 \times (1-0.197)}{1849}} \times 2.6=0.0240$$
+
+De mi a helyzet, ha a **hibahatár értékét 1 százalékpontra akarom csökkenteni és meg akarom őrizni a 99%-os megízhatósági szintet**? Ekkor **nagyobb mintát kell venni, kérdés, hogy mennyivel nagyobbat**. Ezek alapján a kívánt $\triangle$ érték $0.01$ és a $k=2.6$ értékből sem akarok engedi. Azaz: $$0.01 = \sqrt{\frac{p(1-p)}{n}} \times 2.6$$
+
+Ebből $n$-t kifejezve: $$n=\frac{2.6^2 \times p(1-p)}{0.01^2}$$
+
+Ezen a ponton nagy a csábítás, hogy a képletből úgy számoljuk ki $n-t$, hogy $p=19.7\%$-kal dolgozzunk. De ezt **ne tegyük**! Mivel nem tudjuk, hogy a megnövelt elemszámú mintában mennyi is lesz $p$. Plusz, ha a **szükséges mintaelemszámot AZELŐTT akarjuk meghatározni, hogy a kérdéses $p$ arány becslésére már vettünk mintát, akkor aztán tényleg lövésünk nincs a $p$ értékéről**!
+
+Szerencsére, **rájöhetünk, hogy a $p(1-p)$ kifejezésnek könnyen meg tudjuk adni a maximumát**, hiszen az $f(p)=p(1-p)=p-p^2$ függvény egy fordította parabola, melynek maximuma $p=0.5$-nél kerül felvételre és értéke $max(p(1-p))=0.25$:
+
+<center>
+![](p_SH.jpg){width=50%}
+</center>
+
+Szóval az $N=\frac{2.6^2 \times p(1-p)}{0.01^2}$ formulába **mindig beírhatjuk a $0.25$-öt, hiszen ez a legrosszabb szituációnk, ekkor lesz aránybecslés esetén maximális a standard hibánk**. Ha elégség nagy mintát veszünk, hogy a maximális $SH$ mellett is $\triangle = 0.01$-et érjünk el, akkor minden egyéb esetben is jók vagyunk.
+
+Tehát, **az 1 százalékpontos hibahatár eléréséhez szükséges elemszám 99%-os megbízhatóság mellett** $N=\frac{2.6^2 \times 0.25}{0.01^2}=16900$ **fő**.<br>
+Ennek fényében különsöen érdekes meglesni [ezen a linken](https://ig.ft.com/sites/brexit-polling/) hogy hány fős mintából dolgoztak a 2016-os Brexit népszavazás eredményének előrejelzése során a közvéleménykutatók, ahol lehetett tudni, hogy nagyon kiélezett a verseny a maradás és elszakadás pártok között, így a két párt támogatottsági arányának becslése során **nagyon szükség lett volna erre az 1 százalékpontos hibahatárra és a 99%-os megbízhatósági szintre, ami a 16900 elemű minták biztosítanak arányok becslése során**.
+
+További érdekes példaként vegyük a Momentum Mozgalom 2021. október 11-én megosztott plakátját:
+
+<center>
+![](Momo Mintavételi hiba.jpg){width=45%}
+</center>
+
+Ha megnézzük a kép jobb alsó sarkát láthatjuk, hogy az adatok forrása a Medián közvélemény kutató intézet. A dátum alapján rájöhetünk, hogy [erről a Medián közvéleménykutatásról szól a plakát](https://hvg.hu/itthon/20211011_Median_MarkiZay_elonyhoz_juttathatja_az_ellenzeket). A linkelt HVG cikkből megtudhatjuk, hogy a Medián közvéleménykutatása egy $n=1000$ elemű véletlen mintát takar. Ebben az esetben számoljuk ki a különböző pártlisták támogatottsági arányaihoz a maximális $\triangle$ hibahatárt, azaz vegyük $p(1-p)$-t $0.25$-nek:$$\pm \triangle = SH \times k = \sqrt{\frac{p(1-p)}{n}} \times k = \sqrt{\frac{0.25}{1000}} \times 2.6=0.0411$$
+
+Tehát a hibahatár durván **4 százalékpont**. Ha ezt az értéket Dobrev Klára esetén levonjuk a Fidesz támmogatottsági arányából és hozzáadjuk az Ellenzék témogatottsági arányához, majd ha MZP esetén az Ellenzéki arányból levonjuk és a Fideszhez hozzáadjuk, akkor láthatjuk, hogy **a plakáton kimutatott Fidesz és Ellenzéki pártlisták támogatottsági arányai közötti különbség MZP és Dobrev esetén is bőven a mintavételi hibahatáron belül van**!<br>
+Tehát, egyik esetben sem mondható el a konfidencia-intervallum alapján, hogy a teljes népességben reális lenne a plakát állítása, miszerint csak MZP-vel verhető a Fidesz. Az **plakát üzenete csak a megfigyelt 1000 elemű mintán belül vehető igaznak**! Amit meg is erősít a 2022-es országgyűlési választások eredménye...

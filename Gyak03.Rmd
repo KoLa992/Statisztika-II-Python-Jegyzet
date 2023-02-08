@@ -448,7 +448,7 @@ Ugyanis, általánosságban **egy $\hat{\theta}$ becslőfüggvény akkor konzisz
 
 Azaz, a egyre nagyobb a mintaméret, akkor a vizsgált statisztikai mutatónk egy mintából számított értéke ($\hat{\theta}$) egyre közelebb lesz a mutató valós, sokasági értékéhez ($\theta$).
 
-Könnyen látható, hogy **mintaelemszám ($n$) függvényében, mind a mintaátlagok, mind a mintaarányok $f(n) \sim \frac{1}{n}$ stílusú hiperbola függvények, amik a végtelenbe tartó $n$ nevező esetén $0$-ba tartanak**:$$\lim_{n \rightarrow \infty}{SH(\bar{y})} = \lim_{n \rightarrow \infty}{\frac{\sigma}{\sqrt{n}}} = 0$$
+Könnyen látható, hogy **mintaelemszám ($n$) függvényében, mind a mintaátlagok, mind a mintaarányok standard hibái $f(n) \sim \frac{1}{n}$ stílusú hiperbola függvények, amik a végtelenbe tartó $n$ nevező esetén $0$-ba tartanak**:$$\lim_{n \rightarrow \infty}{SH(\bar{y})} = \lim_{n \rightarrow \infty}{\frac{\sigma}{\sqrt{n}}} = 0$$
 
 és $$lim_{n \rightarrow \infty}{SH(p)} = \lim_{n \rightarrow \infty}{\sqrt{\frac{P(1-P)}{n}}} = 0$$
 

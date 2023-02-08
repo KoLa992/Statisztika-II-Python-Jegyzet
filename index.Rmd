@@ -7,7 +7,7 @@ title: |
   Gazdaságinformatikus BSc
   </center> 
 output: html_document
-date: '2022.08.22.'
+date: '2023.02.08.'
 ---
 
 ```{r setup, include=FALSE}
@@ -22,7 +22,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## 4. hét: <a href="Gyak04.html" target="_blank">A sokasági átlag intervallumbecslése</a>
 
-## 5. hét: További FAE becslések és a Bootstrap módszer
+## 5. hét: <a href="Gyak05.html" target="_blank">További FAE becslések és a Bootstrap módszer</a>
 
 ## 6. hét: Becslések EV és R mintából
 

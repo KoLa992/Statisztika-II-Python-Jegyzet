@@ -470,7 +470,7 @@ Persze, ha a mintaátlag vagy éppen a korrigált mintaszórás úgy módosul az
 
 Az <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/blob/main/ESS2020.xlsx" target="_blank">ESS2020.xlsx</a> fájlban található adatbázis a 2020-ban végzett európai szociális felmérés (European Social Survey 2020 = ESS2020) 1849 magyar kitöltöjének válaszait tartalmazza 14 kérdésre (plusz van egy *id* oszlop).
 
-Ha valamelyik oszlopban ürrs értéket találunk, akkor az adott sorban lévő kitöltő nem válaszolt a kérdésre. Az adatbázisban szereplő kitöltők a teljes 18 év feletti magyar népességből vett véletlen mintaként kezelhetők. Most feltesszük, hogy ez a véletlen minta visszatevéses, azaz $FAE$ is. A következő tananyagban látni fogjuk, hogy ez nem is valóságtól elrugaszkodott feltevés.
+Ha valamelyik oszlopban üres értéket találunk, akkor az adott sorban lévő kitöltő nem válaszolt a kérdésre. Az adatbázisban szereplő kitöltők a teljes 18 év feletti magyar népességből vett véletlen mintaként kezelhetők. Most feltesszük, hogy ez a véletlen minta visszatevéses, azaz $FAE$ is. A 6. heti tananyagban látni fogjuk, hogy ez nem is valóságtól elrugaszkodott feltevés.
 
 Az adatbázis nyers formában <a href="https://ess-search.nsd.no/en/study/172ac431-2a06-41df-9dab-c1fd8f3877e7" target="_blank">eről a linkről</a> elérhető egy ingyenes regisztráció után.
 
@@ -527,7 +527,7 @@ felso = minta_atlag + delta
 [also, felso]
 ```
 
-Láthatjuk, hogy csak a tizedesjegyekben vannak nagyon minimális eltérések. Szóval **nagy mintaelemszám esetén a megbízhatósági szorzó nyugodtan számolható standard normális eloszlésból is a t-eloszlás helyett**.
+Láthatjuk, hogy csak a tizedesjegyekben vannak nagyon minimális eltérések. Szóval **nagy mintaelemszám esetén a megbízhatósági szorzó nyugodtan számolható standard normális eloszlásból is a t-eloszlás helyett**.
 
 Szerencsénkre, a `scipy` csomagban az átlag konfidencia-intervallumának számítására standard normális és t-eloszlású $k$ szorzók esetében is **vannak beépített függvények**.<br>
 Ezek értelemszerűen `stats.norm.interval` és `stats.t.interval` nevekre hallgatnak.
@@ -666,7 +666,7 @@ ESS.NetUsePerDay_Minutes.hist()
 plt.show()
 ```
 
-Ha valaki szeretné végigszámolni és ábrázoln a konfidencia-intervallumokat t-eloszlással, megteheti. Ezt viszont "manuálisan" kell megcsinálni a `groupby`-al létrehozott data frame oszlopok bővítésén keresztül.
+Ha valaki szeretné végigszámolni és ábrázolni a konfidencia-intervallumokat t-eloszlással, megteheti. Ezt viszont "manuálisan" kell megcsinálni a `groupby`-al létrehozott data frame oszlopok bővítésén keresztül.
 
 ```{python}
 alfa = 1-0.99
