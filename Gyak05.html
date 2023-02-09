@@ -244,7 +244,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">További FAE becslések és a Bootstrap módszer</h1>
 <h4 class="author">Kovács László</h4>
-<h4 class="date">2023. 02. 08.</h4>
+<h4 class="date">2023. 02. 09.</h4>
 
 </div>
 
@@ -406,7 +406,7 @@ plt.show()</code></pre>
 <div id="mintaelemszám-meghatározása-aránybecsléshez" class="section level3">
 <h3>2.1. Mintaelemszám meghatározása aránybecsléshez</h3>
 <p>Érdemes az arány konfidencia-intervallumának számítása során felhasználni azt az információt, hogy egy csak 0-ból és 1-ből álló változó korrigált mintaszórása <span class="math inline">\(s=\sqrt{p(1-p)}\)</span> módon számítható, ahol <span class="math inline">\(p\)</span> az <span class="math inline">\(1\)</span> értékek aránya a mintában!<br> Nézzük is meg, hogy igaz-e ez! Ugyebár a Fidesz támogatottsági aránya a teljes 1849 elemű mintában <span class="math inline">\(p=19.7\%\)</span>. Ez alapján a szórása a <code>Fidesz</code> nevű 0-1-ből álló változónak <span class="math inline">\(s=\sqrt{p(1-p)}=\sqrt{0.197 \times (1-0.197)}=0.3977323\)</span>.</p>
-<p>Nézzük meg az eredményt az R <code>sd</code> függvényével is:</p>
+<p>Nézzük meg az eredményt a <code>numpy</code> csomag <code>std</code> függvényével is:</p>
 <pre class="python"><code>np.std(ESS.Fidesz)</code></pre>
 <pre><code>## 0.3980397745115819</code></pre>
 <p>A kétféleképp számolt érték némi kerekítési hibát leszámítva egyezik! :) De hát ez nem meglepő, hogy így alakult, hiszen a <a href="Gyak03.html" target="_blank">3. heti tananyag 5. fejezetében</a> éppen azt mondtuk, hogy a mintaarányok (a <span class="math inline">\(p\)</span>-k) standard mintavételi hibája a <span class="math inline">\(SH(p) \approx \sqrt{\frac{p(1-p)}{n}}\)</span> képlettel megadható. :)</p>
@@ -434,6 +434,74 @@ stats.norm.ppf(1-alfa/2)</code></pre>
 <p>Ha megnézzük a kép jobb alsó sarkát láthatjuk, hogy az adatok forrása a Medián közvélemény kutató intézet. A dátum alapján rájöhetünk, hogy <a href="https://hvg.hu/itthon/20211011_Median_MarkiZay_elonyhoz_juttathatja_az_ellenzeket">erről a Medián közvéleménykutatásról szól a plakát</a>. A linkelt HVG cikkből megtudhatjuk, hogy a Medián közvéleménykutatása egy <span class="math inline">\(n=1000\)</span> elemű véletlen mintát takar. Ebben az esetben számoljuk ki a különböző pártlisták támogatottsági arányaihoz a maximális <span class="math inline">\(\triangle\)</span> hibahatárt, azaz vegyük <span class="math inline">\(p(1-p)\)</span>-t <span class="math inline">\(0.25\)</span>-nek:<span class="math display">\[\pm \triangle = SH \times k = \sqrt{\frac{p(1-p)}{n}} \times k = \sqrt{\frac{0.25}{1000}} \times 2.6=0.0411\]</span></p>
 <p>Tehát a hibahatár durván <strong>4 százalékpont</strong>. Ha ezt az értéket Dobrev Klára esetén levonjuk a Fidesz támmogatottsági arányából és hozzáadjuk az Ellenzék témogatottsági arányához, majd ha MZP esetén az Ellenzéki arányból levonjuk és a Fideszhez hozzáadjuk, akkor láthatjuk, hogy <strong>a plakáton kimutatott Fidesz és Ellenzéki pártlisták támogatottsági arányai közötti különbség MZP és Dobrev esetén is bőven a mintavételi hibahatáron belül van</strong>!<br> Tehát, egyik esetben sem mondható el a konfidencia-intervallum alapján, hogy a teljes népességben reális lenne a plakát állítása, miszerint csak MZP-vel verhető a Fidesz. Az <strong>plakát üzenete csak a megfigyelt 1000 elemű mintán belül vehető igaznak</strong>! Amit meg is erősít a 2022-es országgyűlési választások eredménye…</p>
 </div>
+<div id="szükséges-minimális-elemszám-aránybecsléshez" class="section level3">
+<h3>2.2. Szükséges minimális elemszám aránybecsléshez</h3>
+<p>Az <strong>arány intervallumbecslés</strong> esetén <strong>van</strong> a 2.1. fejezetben taglaltak mellett egy <strong>minimális elemszám követelménye is, aminél kisebb mintákban az intervallumbecslés egyáltalán NEM elvégezhető!!</strong></p>
+<p>Ez a követelemény abból jön, hogy az aránybecslést gyakorlatilag egy átlagbecslésre vezetjük vissza.<br> Hiszen átlagbecslés esetén <strong>kis elemszámú mintáknál feltételezzük az alapsokaság</strong> (tehát, amiből a mintát vettük) <strong>normális eloszlását, még akkor is, ha a megbízhatósági szorzót t-eloszlásból számítjuk!</strong> Egy <strong>csak <span class="math inline">\(0\)</span>-ból és <span class="math inline">\(1\)</span>-ből álló adatsor pedig bajosan fog normális eloszlást követni!</strong> :)</p>
+<p>Azt, hogy <strong>mi számít aránybecslés esetén nagy mintának, a következő szabály adja meg</strong>:</p>
+<ul>
+<li>Legyen az arány szempontjából <em>kedvező</em> esetek száma több, mint 10 a mintában, azaz: <span class="math inline">\(n \times p &gt;10\)</span></li>
+<li>Legyen az arány szempontjából <em>kedvezőtlen</em> esetek száma is több, mint 10 a mintában, azaz: <span class="math inline">\(n \times (1-p) &gt;10\)</span></li>
+</ul>
+<p>Ez a Fidesz támogatók arányának korűábbi példájára nézve úgy néz ki, hogy a teljes mintánk elemszáma <span class="math inline">\(n=1849\)</span> fő:</p>
+<pre class="python"><code>len(ESS) # tábla sorainak száma</code></pre>
+<pre><code>## 1849</code></pre>
+<p>Míg az arány szempontjából <em>kedvező</em> esetek, azaz a Fidesz-KDNP támogatók száma <span class="math inline">\(365\)</span> fő:</p>
+<pre class="python"><code>ESS.loc[ESS[&#39;PoliticalPartyPref&#39;] == &#39;Fidesz-KDNP&#39;, &#39;PoliticalPartyPref&#39;].count()</code></pre>
+<pre><code>## 365</code></pre>
+<p>Tehát a <strong>két feltétel itt a következőképpen teljesül</strong>:</p>
+<ul>
+<li>A <em>kedvező</em> esetek száma <span class="math inline">\(365 &gt; 10 \rightarrow\)</span> <strong>feltétel teljesül</strong></li>
+<li>A <em>kedvezőtlen</em> esetek száma <span class="math inline">\((1849-365) = 1484 &gt; 10 \rightarrow\)</span> <strong>feltétel teljesül</strong></li>
+</ul>
+<p>Tehát, <strong>mindkét feltétel teljesül</strong>, a Fidesz támogatók arányának <strong>intervallumbecslése elvégezhető</strong> volt, mivel <strong>megvan a minimális mintaelemszám</strong>. Yeah! :)</p>
+</div>
+<div id="aránybecslés-a-statsmodels-csomaggal" class="section level3">
+<h3>2.3. Aránybecslés a <code>statsmodels</code> csomaggal</h3>
+<p>Érdemes megemlékezni arról is, hogy Pythonban nem csak a <code>scipy</code> csomag segítségével lehet arányra vonatkozó intervallumbecslést készíteni hanem a <code>statsmodels</code> csomagban is van erre beépített megoldás.</p>
+<p>A <code>scipy</code> csomagban a <code>stats.norm.interval</code> függvény alkalmazásához ugyebár készíteni kellett egy külön új oszlopota data frame-ben az aránybecsléshez, ahol <span class="math inline">\(1\)</span>-gyel jelöltük az arányban vizsgált tulajdonsággal rendelkező mintaelemeket, <span class="math inline">\(0\)</span>-val a tulajdonsággal nem rendelkezőket. És a trükk az volt, hogy az arányra úgy tekintünk, mint az új <span class="math inline">\(0\)</span>-kat és <span class="math inline">\(1\)</span>-eket tartalmazó oszlop átlagára.</p>
+<p>Ha ezt az <strong>új oszlop létrehozást meg akarjuk úszni</strong>, akkor jöhet jól a <code>statsmodels</code> csomag <code>stats.proportion_confint</code> függvénye. Ebben a függvényben csak a következő paramétereket kell megadni:</p>
+<ul>
+<li><code>count</code>: Kedvező eseteket száma a mintában. Tehát azon értékek száma, amiket a <code>scipy</code>-os megoldásban <span class="math inline">\(1\)</span>-gyel kódolnánk az új oszlopban.</li>
+<li><code>nobs</code>: Minta teljes elemszáma, tehát az <span class="math inline">\(n\)</span>.</li>
+<li><code>alpha</code>: A megengedett becslési hibavalószínűség, tehát az <span class="math inline">\(\alpha\)</span>. Szóval, itt tényleg az <span class="math inline">\(1-\)</span> <em>megbízhatósági szint</em> kell.</li>
+<li><code>method</code>: Itt kell megadni, hogy a <span class="math inline">\(k\)</span> megbízhatósági szorzót milyen eloszlásból számítjuk. Mi nagy mintaméretet feltételezve mindig maradunk a standard normális eloszlásnál, ami itt a <code>&#39;normal&#39;</code> beállításnak fog megfelelni.</li>
+</ul>
+<p>A fenti paraméterek megértése után nézzük meg hogyan tudjuk az <code>ESS</code> adatbázison keresztül megbecsülni a magyar népességben a Fidesz támogatók arányát a teljes népességben ezzel a <code>stats.proportion_confint</code> függvénnyel! :)</p>
+<p>Először is kell egy kedvező esetek száma, ez a Fidesz-KDNP-t támogatók gyakorisága a data frame-ben a <code>PoliticalPartyPref</code> oszlop alapján. Utána pedig lövünk egy <span class="math inline">\(n\)</span>-t, ami természetesen a data frame sorinak a száma:</p>
+<pre class="python"><code>kedvezo_esetek = ESS.loc[ESS[&#39;PoliticalPartyPref&#39;] == &#39;Fidesz-KDNP&#39;, &#39;PoliticalPartyPref&#39;].count()
+osszes_eset = len(ESS) # tábla sorainak száma
+
+kedvezo_esetek</code></pre>
+<pre><code>## 365</code></pre>
+<pre class="python"><code>osszes_eset</code></pre>
+<pre><code>## 1849</code></pre>
+<p>Szuper, megvagyunk! Van összesen <span class="math inline">\(n=1849\)</span> megfigyelés és ebből <span class="math inline">\(365\)</span> Fidesz támogatónk. Ez utóbbi akkor a kedvező esetek száma. :)</p>
+<p>Paraméterezzük akkor ezzel fel a <code>stats.proportion_confint</code> függvényt, a korábbiakhoz haosnlóan <span class="math inline">\(99\%\)</span>-os megbízhatósági szintet használva:</p>
+<pre class="python"><code># Betöltjük a csomagot
+import statsmodels.api as sm
+
+# Használjuk a függvényt
+sm.stats.proportion_confint(count=kedvezo_esetek, nobs=osszes_eset, alpha=(1-0.99), method=&#39;normal&#39;)</code></pre>
+<pre><code>## (0.17356022274089133, 0.22124778158577174)</code></pre>
+<p>Nagyon szépen láthatjuk a korább eredményünk: a Fidesz támogatók aránya a teljes magyar népességben <span class="math inline">\(17.4\%\)</span> és <span class="math inline">\(22.1\%\)</span> között található <span class="math inline">\(99\%\)</span> valószínűséggel.</p>
+<p>Sőt, ha figyelembe vesszük, hogy a teljes magyar népesség 2020. január 1-jén 9 772 756 fő volt, akkor megkaphatjuk, hogy <strong>konkrétan hány főnyi Fidesz támogató lehet a magyar népességben</strong> <span class="math inline">\(99\%\)</span>-os megbízhatósággal. Egyszerűen csak <strong>az arány konfidencia-intervallum két határát kell felszorozni az <span class="math inline">\(N=9772756\)</span>-os sokasági elemszámmal</strong>.</p>
+<pre class="python"><code>[round(0.174 * 9772756, 0), round(0.221 * 9772756, 0)]</code></pre>
+<pre><code>## [1700460.0, 2159779.0]</code></pre>
+<p>Tehát Magyarországon <span class="math inline">\(99\%\)</span> valószínűséggel <span class="math inline">\(170\)</span> ezer és <span class="math inline">\(216\)</span> ezer fő közötti a Fidesz támogatók száma. Éljen! :)</p>
+</div>
+</div>
+<div id="a-bootstrap-becslések-általános-elve" class="section level2">
+<h2>3. A Bootstrap becslések általános elve</h2>
+<p>TODO</p>
+</div>
+<div id="a-medián-bootstrap-becslése" class="section level2">
+<h2>4. A Medián Bootstrap becslése</h2>
+<p>TODO</p>
+</div>
+<div id="a-szórás-bootstrap-becslése" class="section level2">
+<h2>5. A Szórás Bootstrap becslése</h2>
+<p>TODO</p>
 </div>
 
 

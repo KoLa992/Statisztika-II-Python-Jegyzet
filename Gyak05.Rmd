@@ -1,7 +1,7 @@
 ---
 title: "További FAE becslések és a Bootstrap módszer"
 author: "Kovács László"
-date: "2023. 02. 08."
+date: "2023. 02. 09."
 output:
   html_document:
     toc: true
@@ -152,7 +152,7 @@ Az előbb taglalt, 99%-os megbízhatósággal a sokaságban is szignifikáns elt
 Érdemes az arány konfidencia-intervallumának számítása során felhasználni azt az információt, hogy egy csak 0-ból és 1-ből álló változó korrigált mintaszórása $s=\sqrt{p(1-p)}$ módon számítható, ahol $p$ az $1$ értékek aránya a mintában!<br>
 Nézzük is meg, hogy igaz-e ez! Ugyebár a Fidesz támogatottsági aránya a teljes 1849 elemű mintában $p=19.7\%$. Ez alapján a szórása a `Fidesz` nevű 0-1-ből álló változónak $s=\sqrt{p(1-p)}=\sqrt{0.197 \times (1-0.197)}=0.3977323$.
 
-Nézzük meg az eredményt az R `sd` függvényével is:
+Nézzük meg az eredményt a `numpy` csomag `std` függvényével is:
 
 ```{python}
 np.std(ESS.Fidesz)
@@ -202,3 +202,94 @@ Ha megnézzük a kép jobb alsó sarkát láthatjuk, hogy az adatok forrása a M
 
 Tehát a hibahatár durván **4 százalékpont**. Ha ezt az értéket Dobrev Klára esetén levonjuk a Fidesz támmogatottsági arányából és hozzáadjuk az Ellenzék témogatottsági arányához, majd ha MZP esetén az Ellenzéki arányból levonjuk és a Fideszhez hozzáadjuk, akkor láthatjuk, hogy **a plakáton kimutatott Fidesz és Ellenzéki pártlisták támogatottsági arányai közötti különbség MZP és Dobrev esetén is bőven a mintavételi hibahatáron belül van**!<br>
 Tehát, egyik esetben sem mondható el a konfidencia-intervallum alapján, hogy a teljes népességben reális lenne a plakát állítása, miszerint csak MZP-vel verhető a Fidesz. Az **plakát üzenete csak a megfigyelt 1000 elemű mintán belül vehető igaznak**! Amit meg is erősít a 2022-es országgyűlési választások eredménye...
+
+### 2.2. Szükséges minimális elemszám aránybecsléshez
+
+Az **arány intervallumbecslés** esetén **van** a 2.1. fejezetben taglaltak mellett egy **minimális elemszám követelménye is, aminél kisebb mintákban az intervallumbecslés egyáltalán NEM elvégezhető!!**
+
+Ez a követelemény abból jön, hogy az aránybecslést gyakorlatilag egy átlagbecslésre vezetjük vissza.<br>
+Hiszen átlagbecslés esetén **kis elemszámú mintáknál feltételezzük az alapsokaság** (tehát, amiből a mintát vettük) **normális eloszlását, még akkor is, ha a megbízhatósági szorzót t-eloszlásból számítjuk!** Egy **csak $0$-ból és $1$-ből álló adatsor pedig bajosan fog normális eloszlást követni!** :)
+
+Azt, hogy **mi számít aránybecslés esetén nagy mintának, a következő szabály adja meg**:
+
+- Legyen az arány szempontjából *kedvező* esetek száma több, mint 10 a mintában, azaz: $n \times p >10$
+- Legyen az arány szempontjából *kedvezőtlen* esetek száma is több, mint 10 a mintában, azaz: $n \times (1-p) >10$
+
+Ez a Fidesz támogatók arányának korűábbi példájára nézve úgy néz ki, hogy a teljes mintánk elemszáma $n=1849$ fő:
+
+```{python}
+len(ESS) # tábla sorainak száma
+```
+
+Míg az arány szempontjából *kedvező* esetek, azaz a Fidesz-KDNP támogatók száma $365$ fő:
+
+```{python}
+ESS.loc[ESS['PoliticalPartyPref'] == 'Fidesz-KDNP', 'PoliticalPartyPref'].count()
+```
+
+Tehát a **két feltétel itt a következőképpen teljesül**:
+
+- A *kedvező* esetek száma $365 > 10 \rightarrow$ **feltétel teljesül**
+- A *kedvezőtlen* esetek száma $(1849-365) = 1484 > 10 \rightarrow$ **feltétel teljesül**
+
+Tehát, **mindkét feltétel teljesül**, a Fidesz támogatók arányának **intervallumbecslése elvégezhető** volt, mivel **megvan a minimális mintaelemszám**. Yeah! :)
+
+### 2.3. Aránybecslés a `statsmodels` csomaggal
+
+Érdemes megemlékezni arról is, hogy Pythonban nem csak a `scipy` csomag segítségével lehet arányra vonatkozó intervallumbecslést készíteni hanem a `statsmodels` csomagban is van erre beépített megoldás.
+
+A `scipy` csomagban a `stats.norm.interval` függvény alkalmazásához ugyebár készíteni kellett egy külön új oszlopota data frame-ben az aránybecsléshez, ahol $1$-gyel jelöltük az arányban vizsgált tulajdonsággal rendelkező mintaelemeket, $0$-val a tulajdonsággal nem rendelkezőket. És a trükk az volt, hogy az arányra úgy tekintünk, mint az új $0$-kat és $1$-eket tartalmazó oszlop átlagára.
+
+Ha ezt az **új oszlop létrehozást meg akarjuk úszni**, akkor jöhet jól a `statsmodels` csomag `stats.proportion_confint` függvénye. Ebben a függvényben csak a következő paramétereket kell megadni:
+
+- `count`: Kedvező eseteket száma a mintában. Tehát azon értékek száma, amiket a `scipy`-os megoldásban $1$-gyel kódolnánk az új oszlopban.
+- `nobs`: Minta teljes elemszáma, tehát az $n$.
+- `alpha`: A megengedett becslési hibavalószínűség, tehát az $\alpha$. Szóval, itt tényleg az $1-$ *megbízhatósági szint* kell.
+- `method`: Itt kell megadni, hogy a $k$ megbízhatósági szorzót milyen eloszlásból számítjuk. Mi nagy mintaméretet feltételezve mindig maradunk a standard normális eloszlásnál, ami itt a `'normal'` beállításnak fog megfelelni.
+
+A fenti paraméterek megértése után nézzük meg hogyan tudjuk az `ESS` adatbázison keresztül megbecsülni a magyar népességben a Fidesz támogatók arányát a teljes népességben ezzel a `stats.proportion_confint` függvénnyel! :)
+
+Először is kell egy kedvező esetek száma, ez a Fidesz-KDNP-t támogatók gyakorisága a data frame-ben a `PoliticalPartyPref` oszlop alapján. Utána pedig lövünk egy $n$-t, ami természetesen a data frame sorinak a száma:
+
+```{python}
+kedvezo_esetek = ESS.loc[ESS['PoliticalPartyPref'] == 'Fidesz-KDNP', 'PoliticalPartyPref'].count()
+osszes_eset = len(ESS) # tábla sorainak száma
+
+kedvezo_esetek
+osszes_eset
+```
+
+Szuper, megvagyunk! Van összesen $n=1849$ megfigyelés és ebből $365$ Fidesz támogatónk. Ez utóbbi akkor a kedvező esetek száma. :)
+
+Paraméterezzük akkor ezzel fel a `stats.proportion_confint` függvényt, a korábbiakhoz haosnlóan $99\%$-os megbízhatósági szintet használva:
+
+```{python}
+# Betöltjük a csomagot
+import statsmodels.api as sm
+
+# Használjuk a függvényt
+sm.stats.proportion_confint(count=kedvezo_esetek, nobs=osszes_eset, alpha=(1-0.99), method='normal')
+```
+
+Nagyon szépen láthatjuk a korább eredményünk: a Fidesz támogatók aránya a teljes magyar népességben $17.4\%$ és $22.1\%$ között található $99\%$ valószínűséggel.
+
+Sőt, ha figyelembe vesszük, hogy a teljes magyar népesség 2020. január 1-jén 9 772 756 fő volt, akkor megkaphatjuk, hogy **konkrétan hány főnyi Fidesz támogató lehet a magyar népességben** $99\%$-os megbízhatósággal. Egyszerűen csak **az arány konfidencia-intervallum két határát kell felszorozni az $N=9772756$-os sokasági elemszámmal**.
+
+```{python}
+[round(0.174 * 9772756, 0), round(0.221 * 9772756, 0)]
+```
+
+Tehát Magyarországon $99\%$ valószínűséggel $170$ ezer és $216$ ezer fő közötti a Fidesz támogatók száma. Éljen! :)
+
+
+## 3. A Bootstrap becslések általános elve
+
+TODO
+
+## 4. A Medián Bootstrap becslése
+
+TODO
+
+## 5. A Szórás Bootstrap becslése
+
+TODO
