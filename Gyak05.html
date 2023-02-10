@@ -244,7 +244,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">További FAE becslések és a Bootstrap módszer</h1>
 <h4 class="author">Kovács László</h4>
-<h4 class="date">2023. 02. 09.</h4>
+<h4 class="date">2023. 02. 10.</h4>
 
 </div>
 
@@ -493,14 +493,139 @@ sm.stats.proportion_confint(count=kedvezo_esetek, nobs=osszes_eset, alpha=(1-0.9
 </div>
 <div id="a-bootstrap-becslések-általános-elve" class="section level2">
 <h2>3. A Bootstrap becslések általános elve</h2>
+<p>Eddig a konfidencia-intervallumokkal kapcsolatban elég könnyű dolgunk volt <em>úgymond</em>, mert az <strong>átlag és arány esetében</strong> is a konfidencia inztervallum hosszát (<span class="math inline">\(\triangle\)</span>-t) ki tudtuk számolni standard hiba (<span class="math inline">\(SH\)</span>) szorozva megbízhatósági szorzó (<span class="math inline">\(k\)</span>) elven: <span class="math display">\[\triangle=SH \times k\]</span></p>
+<p>Azért tudott ez a formuula működni, mert a <strong>standard hibára tudtunk adni egy egyszerű képletet</strong> (<span class="math inline">\(\frac{s}{\sqrt{n}}\)</span> vagy <span class="math inline">\(\sqrt{\frac{p(1-p)}{n}}\)</span>) és <strong>a <span class="math inline">\(k\)</span>-t ki tudtuk számolni valami konkrét eloszlásból</strong> (standard normális vagy t-eloszlás).</p>
+<p>NODE, <strong>mi a helyzet ha ezek az eszközök NEM állnak rendelkezésre?</strong> Tehát, mi van akkor, ha</p>
+<ol style="list-style-type: decimal">
+<li>A standard hibáját egy statisztikai mutatónak (paraméternek, azaz <span class="math inline">\(\theta\)</span>-nak) nem lehet egysezrű képlettel kiszámolni.</li>
+<li>A <span class="math inline">\(k\)</span> számolásához nincs konkrét eloszlás, vagy ami van, az csak lehetetlen feltételekkel alkalmazható (pl. a vizsgált alapsokaság, amiből a mintát vettük az legyen normális eloszlású, mintamérettől függetlenül)</li>
+</ol>
+<p>Ezekben az esetekben <strong>segít rajtunk a Bootstrap becslés</strong>! Nézzük meg ennek a módszernek <strong>mi az általános alapelve z átlag standard hibáján keresztül</strong>.</p>
+<p>Ugyebár az átlag standard hibája úgy jön ki egy mintavételből, hogy fogjuk a minta korrigált szórását, <span class="math inline">\(s\)</span>-t, és ezt elosztjuk a mintaelemszám (<span class="math inline">\(n\)</span>) gyökével: <span class="math display">\[SH(\bar{y})=\frac{s}{\sqrt{n}}\]</span></p>
+<p>Számoljuk ki az <code>ESS</code> adatbázisból a napi netezési idő (<code>NetUsePerDay_Minutes</code> oszlop) átlagának standard hibáját! Csak emlékezzünk, hogy a <code>NetUsePerDay_Minutes</code> oszlopban volt pár hiányzó érték, ezeket ne vegyük figyelembe az <span class="math inline">\(n\)</span> meghatározásakor!</p>
+<pre class="python"><code>n = ESS.NetUsePerDay_Minutes.count() # így nem számoljuk be az üres értékeket
+
+korr_szoras = np.std(ESS.NetUsePerDay_Minutes, ddof = 1)
+
+SH_Keplet = korr_szoras / np.sqrt(n)
+SH_Keplet</code></pre>
+<pre><code>## 4.381340690645104</code></pre>
+<p>Szuper, a mintaátlag várható eltérése a valós, sokasági átlagos netezési időtől várhatóan <span class="math inline">\(\pm4.38\)</span> perc!</p>
+<p><strong>Hogyan jön ki ez az eredmény Bootstrap módon?</strong></p>
+<p>A <strong>Bootstrap becslés alapötlete a standard hiba alap definíciójából jön</strong>, amit a <a href="Gyak03.html" target="_blank">3. heti tananyag 5. fejezetében néztünk</a>. <strong>Vegyünk ki a sokaságból nagyon-nagyon sok</strong> (pl. 1000 vagy 10000 db) <strong>visszatevéses</strong> (azaz FAE) <strong>mintát, minden mintából számoljuk mi a mintaátlagot és a mintaátlagok szórása a standard hiba</strong> az átlagbecslés <em>torzítatlanság</em>a miatt.<br> Ugyebár ezzel a megközelítéssel az a <strong>baj, hogy a gyakorlatban csak egyetlen egy darab mintánk van, és nem ismerjük a sokaságot, így nem tudunk belőle nagyon-nagyon sok FAE mintát kivenni</strong>.<br> Nos, a <strong>Bootstrap módszer azt mondja, hogy ezt az alap szórás-elvű <span class="math inline">\(SH\)</span> számolást tudjuk SZIMULÁLNI akár egyetlen egy darab mintavételből is!</strong></p>
+<p>Ha <strong>van egy <span class="math inline">\(n\)</span> elemű mintánk, akkor abból vegyünk ki nagyon-nagyon sok (pl. 1000 db) szintén <span class="math inline">\(n\)</span> elemű FAE almintát!!</strong> A <strong>FAE, azaz visszatevéses elv miatt, az <span class="math inline">\(n\)</span> elemű alminták összetétele véletlenszerűen meg fog változni, és ezek a véletlen változások épp a mintavételi hiba tendenciáit követik le!!</strong><br> Ezek után más dolgounk nincs, mint <strong>kiszámolni minden almintából a mintaátlagot, és venni ezek sima, korrigálatlan szórását, és ez lesz a <span class="math inline">\(SH\)</span>!!</strong></p>
+<p>Lássuk akkor ezt a dolgot a gyakorlatban! <strong>Számoljuk ki az átlag standard hibáját Bootstrap elven!</strong></p>
+<p>Először is <strong>vegyünk a <code>NetUsePerDay_Minutes</code> oszlopból mondjuk <span class="math inline">\(1000\)</span> db FAE mintát, és tároljuk le ezeket az almintákat egy olyan data frame-ben, aminek <span class="math inline">\(1000\)</span> sorában lesznek a különböző mintavételek, míg <span class="math inline">\(n\)</span> db oszlopában az <span class="math inline">\(n\)</span> db mintaelem minden egyes mintavételezési körben</strong>.<br> Itt gyakorlatilag ugyanazokat a megoldásokat követjük Pythonban, mint a <a href="Gyak02.html" target="_blank">2. heti tananyag 3.1. fejezetében</a>.</p>
+<p><strong>Készítsük el először az almintákat tároló üres data frame-t!</strong> Mivel <span class="math inline">\(1099\)</span> db nem hiányzó értéke van a <code>NetUsePerDay_Minutes</code> oszlopnak, így <span class="math inline">\(n=1099\)</span> oszlopa lesz az új data frame-nek!</p>
+<pre class="python"><code>n = ESS.NetUsePerDay_Minutes.count() # így nem számoljuk be az üres értékeket
+
+oszlopnevek = (np.array(range(n))+1)
+oszlopnevek = oszlopnevek.astype(str)
+oszlopnevek = np.core.defchararray.add(&quot;Elem&quot;, oszlopnevek)
+oszlopnevek</code></pre>
+<pre><code>## array([&#39;Elem1&#39;, &#39;Elem2&#39;, &#39;Elem3&#39;, ..., &#39;Elem1097&#39;, &#39;Elem1098&#39;, &#39;Elem1099&#39;],
+##       dtype=&#39;&lt;U15&#39;)</code></pre>
+<pre class="python"><code>MintaDF = pd.DataFrame(columns = oszlopnevek)
+MintaDF</code></pre>
+<pre><code>## Empty DataFrame
+## Columns: [Elem1, Elem2, Elem3, Elem4, Elem5, Elem6, Elem7, Elem8, Elem9, Elem10, Elem11, Elem12, Elem13, Elem14, Elem15, Elem16, Elem17, Elem18, Elem19, Elem20, Elem21, Elem22, Elem23, Elem24, Elem25, Elem26, Elem27, Elem28, Elem29, Elem30, Elem31, Elem32, Elem33, Elem34, Elem35, Elem36, Elem37, Elem38, Elem39, Elem40, Elem41, Elem42, Elem43, Elem44, Elem45, Elem46, Elem47, Elem48, Elem49, Elem50, Elem51, Elem52, Elem53, Elem54, Elem55, Elem56, Elem57, Elem58, Elem59, Elem60, Elem61, Elem62, Elem63, Elem64, Elem65, Elem66, Elem67, Elem68, Elem69, Elem70, Elem71, Elem72, Elem73, Elem74, Elem75, Elem76, Elem77, Elem78, Elem79, Elem80, Elem81, Elem82, Elem83, Elem84, Elem85, Elem86, Elem87, Elem88, Elem89, Elem90, Elem91, Elem92, Elem93, Elem94, Elem95, Elem96, Elem97, Elem98, Elem99, Elem100, ...]
+## Index: []
+## 
+## [0 rows x 1099 columns]</code></pre>
+<p>Majd elkészítünk egy olyan verziót az <code>ESS</code> data frame-ből, amiben <strong>nincsenek benne a <code>NetUsePerDay_Minutes</code> oszlop hiányzó értékei</strong>. Így egy <span class="math inline">\(n=1099\)</span> soros data frame-ünk lesz.</p>
+<pre class="python"><code>ESS_Szurt = ESS[ESS[&#39;NetUsePerDay_Minutes&#39;].notna()]
+ESS_Szurt.info()</code></pre>
+<pre><code>## &lt;class &#39;pandas.core.frame.DataFrame&#39;&gt;
+## Int64Index: 1099 entries, 0 to 1847
+## Data columns (total 16 columns):
+##  #   Column                          Non-Null Count  Dtype  
+## ---  ------                          --------------  -----  
+##  0   id                              1099 non-null   int64  
+##  1   PoliticalRadioTVPerDay_Minutes  1082 non-null   float64
+##  2   NetUsePerDay_Minutes            1099 non-null   float64
+##  3   TrustInParlament                1099 non-null   object 
+##  4   PoliticalPartyPref              1099 non-null   object 
+##  5   Education_Years                 1090 non-null   float64
+##  6   WeeklyWork_Hours                541 non-null    float64
+##  7   Region                          1099 non-null   object 
+##  8   County                          1099 non-null   object 
+##  9   SecretGroupInfluenceWorldPol    1099 non-null   object 
+##  10  ScientistsDecievePublic         1099 non-null   object 
+##  11  COVID19                         1099 non-null   object 
+##  12  ContactCOVID19                  1099 non-null   object 
+##  13  GetVaccince                     1099 non-null   object 
+##  14  SomeContactCOVID19              1099 non-null   object 
+##  15  Fidesz                          1099 non-null   int32  
+## dtypes: float64(4), int32(1), int64(1), object(10)
+## memory usage: 141.7+ KB</code></pre>
+<p>Szuper, ezzel megvagyunk!</p>
+<p>Akkor most <strong>jöhet az <span class="math inline">\(1000\)</span> db <span class="math inline">\(n=1099\)</span> elemű alminta generálása <code>for</code> ciklusból</strong> és a tárolás az újonnan létrehozott data frame-ben.<br></p>
+<p>Most is <strong>megnövekedett futásidőre kell</strong> itt <strong>készülni</strong>! :)</p>
+<pre class="python"><code>for index in range(1000):
+  AktualisMinta = ESS_Szurt[&#39;NetUsePerDay_Minutes&#39;].sample(n = len(ESS_Szurt), replace = True)
+  AktualisMinta.index = oszlopnevek
+  MintaDF = MintaDF.append(AktualisMinta, ignore_index = True)
+
+MintaDF</code></pre>
+<pre><code>##      Unnamed: 0  Elem1  Elem2  Elem3  ...  Elem1096  Elem1097  Elem1098  Elem1099
+## 0             0    150     80     90  ...       120       360       105       330
+## 1             1     60    150    180  ...       240        60        90        60
+## 2             2     90     60    120  ...       120       140       150       150
+## 3             3     60     90    120  ...       360       120       180        60
+## 4             4     80    240     60  ...       120       180        95       330
+## ..          ...    ...    ...    ...  ...       ...       ...       ...       ...
+## 995         995    240     90    300  ...       510       150       240       120
+## 996         996    180     74    120  ...        45        60       240        90
+## 997         997    420     60    120  ...       240        90        45       240
+## 998         998     90    120     60  ...       120       330       180       300
+## 999         999    960    180    180  ...       150       120       180       180
+## 
+## [1000 rows x 1100 columns]</code></pre>
+<p>Akkor meg is van az <span class="math inline">\(1000\)</span> db almintánk! :) Számoljuk ki <strong>mindegyik almintában a mintaátlagot</strong>!<br> <strong>Figyeljünk</strong> itt is arra, hogy mivel a data frame oszlopai folyamatosan bővülnek amjd, így manuálisan le kell szorítani a <code>numpy</code> statisztikai függvények alkalmazását mindig az első <span class="math inline">\(n=1099\)</span> db oszlopra az <code>iloc</code> metódussal!</p>
+<pre class="python"><code>MintaDF[&#39;Atlagok&#39;] = np.mean(MintaDF.iloc[:,0:n], axis=1)
+
+MintaDF</code></pre>
+<pre><code>##      Unnamed: 0  Elem1  Elem2  Elem3  ...  Elem1097  Elem1098  Elem1099     Atlagok
+## 0             0    150     80     90  ...       360       105       330  181.517743
+## 1             1     60    150    180  ...        60        90        60  174.091902
+## 2             2     90     60    120  ...       140       150       150  176.921747
+## 3             3     60     90    120  ...       120       180        60  184.478617
+## 4             4     80    240     60  ...       180        95       330  184.444950
+## ..          ...    ...    ...    ...  ...       ...       ...       ...         ...
+## 995         995    240     90    300  ...       150       240       120  182.411283
+## 996         996    180     74    120  ...        60       240        90  182.355778
+## 997         997    420     60    120  ...        90        45       240  178.429481
+## 998         998     90    120     60  ...       330       180       300  182.266606
+## 999         999    960    180    180  ...       120       180       180  173.399454
+## 
+## [1000 rows x 1101 columns]</code></pre>
+<p>A <strong>standard hibánk pedig akkor ezeknek az alminta-átlagoknak lesz a sima korrigálatlan szórása</strong>!</p>
+<pre class="python"><code>SH_Bootstrap = np.std(MintaDF.Atlagok)
+
+SH_Bootstrap</code></pre>
+<pre><code>## 4.511376672501351</code></pre>
+<p>E voilá! Némi kerekítési hiba mellett ez kb. ugyan annyi, mint a <span class="math inline">\(\frac{s}{\sqrt{n}}\)</span> képlettel kapott verzió! :) Illetve, értelemszerűen <strong>itt mindenki más értéket kaphatott, mert nem fixáltuk a véletlenszám generátor magját a mintavételek során</strong>.</p>
+<pre class="python"><code>[SH_Keplet, SH_Bootstrap]</code></pre>
+<pre><code>## [4.381340690645104, 4.511376672501351]</code></pre>
+<p>Nyilván, ha <strong>több almintát veszünk, akkor pontosabb lesz a közelítés</strong>. Ezt úgy mondjuk szépen <strong>szakszóval, hogy növeljük a Bootstrap becslés replikációinak számát</strong>. :) Tehát a <strong>replikációk száma az alminták számát jelenti</strong>.</p>
+<p>NODE, <strong>mire volt jó, hogy ezt a fránya <span class="math inline">\(SH\)</span>-t ilyen körülményesen számoltuk ki a képlet helyett?</strong> Nos, <strong>átlag esetében a világon SEMMIRE!</strong><br> Viszont, ezzel a <strong>Bootstrap elvvel ki tudjuk számolni pl. a napi netezési időnk mediánjának standard hibáját, amire amúgy NINCS olyan egyszerű képlet, mint az átlag standard hibájára!</strong><br> Ugyebár ezt megtehetjük, mert megnéztük a <a href="Gyak03.html" target="_blank">3. heti tananyag 4. fejezetében</a>, hogya medián is egy <em>torzítatlanul</em> becsülhető statisutikai paraméter, mint az átlag.</p>
+<pre class="python"><code>MintaMedian = np.median(ESS_Szurt.NetUsePerDay_Minutes)
+MintaMedian</code></pre>
+<pre><code>## 120.0</code></pre>
+<pre class="python"><code>MintaDF[&#39;Medianok&#39;] = np.median(MintaDF.iloc[:,0:n], axis=1)
+SH_Median = np.std(MintaDF.Medianok)
+
+SH_Median</code></pre>
+<pre><code>## 11.718634732766441</code></pre>
+<p>Tehát tudjuk, hogy a megfigyelt <span class="math inline">\(n=1099\)</span> elemű mintában a medián napi netezési idő <span class="math inline">\(120\)</span> perc, és a <strong>standard hibából tudjuk, hogy ez az érték a teljes magyar népesség</strong> (sokaság) <strong>valós medián napi netezési idejétől várhatóan <span class="math inline">\(\pm11.72\)</span> perccel különbözik</strong>.</p>
+<p>Innen pedig már csak egy lépés, hogy legyen valami <span class="math inline">\(1-\alpha\)</span> megbízhatósági szintű <strong>konfidencia-intervallumunk a mediánra</strong> ezzel a Bootstrap módszerrel!</p>
+</div>
+<div id="a-medián-bootstrap-intervallumbecslése" class="section level2">
+<h2>4. A Medián Bootstrap intervallumbecslése</h2>
 <p>TODO</p>
 </div>
-<div id="a-medián-bootstrap-becslése" class="section level2">
-<h2>4. A Medián Bootstrap becslése</h2>
-<p>TODO</p>
-</div>
-<div id="a-szórás-bootstrap-becslése" class="section level2">
-<h2>5. A Szórás Bootstrap becslése</h2>
+<div id="a-szórás-bootstrap-intervallumbecslése" class="section level2">
+<h2>5. A Szórás Bootstrap intervallumbecslése</h2>
 <p>TODO</p>
 </div>
 

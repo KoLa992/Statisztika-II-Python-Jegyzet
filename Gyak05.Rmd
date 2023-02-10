@@ -1,7 +1,7 @@
 ---
 title: "További FAE becslések és a Bootstrap módszer"
 author: "Kovács László"
-date: "2023. 02. 09."
+date: "2023. 02. 10."
 output:
   html_document:
     toc: true
@@ -284,12 +284,133 @@ Tehát Magyarországon $99\%$ valószínűséggel $170$ ezer és $216$ ezer fő 
 
 ## 3. A Bootstrap becslések általános elve
 
+Eddig a konfidencia-intervallumokkal kapcsolatban elég könnyű dolgunk volt *úgymond*, mert az **átlag és arány esetében** is a konfidencia inztervallum hosszát ($\triangle$-t) ki tudtuk számolni standard hiba ($SH$) szorozva megbízhatósági szorzó ($k$) elven: $$\triangle=SH \times k$$
+
+Azért tudott ez a formuula működni, mert a **standard hibára tudtunk adni egy egyszerű képletet** ($\frac{s}{\sqrt{n}}$ vagy $\sqrt{\frac{p(1-p)}{n}}$) és **a $k$-t ki tudtuk számolni valami konkrét eloszlásból** (standard normális vagy t-eloszlás).
+
+NODE, **mi a helyzet ha ezek az eszközök NEM állnak rendelkezésre?** Tehát, mi van akkor, ha 
+
+1. A standard hibáját egy statisztikai mutatónak (paraméternek, azaz $\theta$-nak) nem lehet egysezrű képlettel kiszámolni.
+2. A $k$ számolásához nincs konkrét eloszlás, vagy ami van, az csak lehetetlen feltételekkel alkalmazható (pl. a vizsgált alapsokaság, amiből a mintát vettük az legyen normális eloszlású, mintamérettől függetlenül)
+
+Ezekben az esetekben **segít rajtunk a Bootstrap becslés**! Nézzük meg ennek a módszernek **mi az általános alapelve z átlag standard hibáján keresztül**.
+
+Ugyebár az átlag standard hibája úgy jön ki egy mintavételből, hogy fogjuk a minta korrigált szórását, $s$-t, és ezt elosztjuk a mintaelemszám ($n$) gyökével: $$SH(\bar{y})=\frac{s}{\sqrt{n}}$$
+
+Számoljuk ki az `ESS` adatbázisból a napi netezési idő (`NetUsePerDay_Minutes` oszlop) átlagának standard hibáját! Csak emlékezzünk, hogy a `NetUsePerDay_Minutes` oszlopban volt pár hiányzó érték, ezeket ne vegyük figyelembe az $n$ meghatározásakor!
+
+```{python}
+n = ESS.NetUsePerDay_Minutes.count() # így nem számoljuk be az üres értékeket
+
+korr_szoras = np.std(ESS.NetUsePerDay_Minutes, ddof = 1)
+
+SH_Keplet = korr_szoras / np.sqrt(n)
+SH_Keplet
+```
+
+Szuper, a mintaátlag várható eltérése a valós, sokasági átlagos netezési időtől várhatóan $\pm4.38$ perc!
+
+**Hogyan jön ki ez az eredmény Bootstrap módon?**
+
+A **Bootstrap becslés alapötlete a standard hiba alap definíciójából jön**, amit a <a href="Gyak03.html" target="_blank">3. heti tananyag 5. fejezetében néztünk</a>. **Vegyünk ki a sokaságból nagyon-nagyon sok** (pl. 1000 vagy 10000 db) **visszatevéses** (azaz FAE) **mintát, minden mintából számoljuk mi a mintaátlagot és a mintaátlagok szórása a standard hiba** az átlagbecslés *torzítatlanság*a miatt.<br>
+Ugyebár ezzel a megközelítéssel az a **baj, hogy a gyakorlatban csak egyetlen egy darab mintánk van, és nem ismerjük a sokaságot, így nem tudunk belőle nagyon-nagyon sok FAE mintát kivenni**.<br>
+Nos, a **Bootstrap módszer azt mondja, hogy ezt az alap szórás-elvű $SH$ számolást tudjuk SZIMULÁLNI akár egyetlen egy darab mintavételből is!**
+
+Ha **van egy $n$ elemű mintánk, akkor abból vegyünk ki nagyon-nagyon sok (pl. 1000 db) szintén $n$ elemű FAE almintát!!** A **FAE, azaz visszatevéses elv miatt, az $n$ elemű alminták összetétele véletlenszerűen meg fog változni, és ezek a véletlen változások épp a mintavételi hiba tendenciáit követik le!!**<br>
+Ezek után más dolgounk nincs, mint **kiszámolni minden almintából a mintaátlagot, és venni ezek sima, korrigálatlan szórását, és ez lesz a $SH$!!**
+
+Lássuk akkor ezt a dolgot a gyakorlatban! **Számoljuk ki az átlag standard hibáját Bootstrap elven!**
+
+Először is **vegyünk a `NetUsePerDay_Minutes` oszlopból mondjuk $1000$ db FAE mintát, és tároljuk le ezeket az almintákat egy olyan data frame-ben, aminek $1000$ sorában lesznek a különböző mintavételek, míg $n$ db oszlopában az $n$ db mintaelem minden egyes mintavételezési körben**.<br>
+Itt gyakorlatilag ugyanazokat a megoldásokat követjük Pythonban, mint a <a href="Gyak02.html" target="_blank">2. heti tananyag 3.1. fejezetében</a>.
+
+**Készítsük el először az almintákat tároló üres data frame-t!** Mivel $1099$ db nem hiányzó értéke van a `NetUsePerDay_Minutes` oszlopnak, így $n=1099$ oszlopa lesz az új data frame-nek!
+
+```{python warning = FALSE, message = FALSE}
+n = ESS.NetUsePerDay_Minutes.count() # így nem számoljuk be az üres értékeket
+
+oszlopnevek = (np.array(range(n))+1)
+oszlopnevek = oszlopnevek.astype(str)
+oszlopnevek = np.core.defchararray.add("Elem", oszlopnevek)
+oszlopnevek
+MintaDF = pd.DataFrame(columns = oszlopnevek)
+MintaDF
+```
+
+Majd elkészítünk egy olyan verziót az `ESS` data frame-ből, amiben **nincsenek benne a `NetUsePerDay_Minutes` oszlop hiányzó értékei**. Így egy $n=1099$ soros data frame-ünk lesz.
+
+```{python warning = FALSE, message = FALSE}
+ESS_Szurt = ESS[ESS['NetUsePerDay_Minutes'].notna()]
+ESS_Szurt.info()
+```
+
+Szuper, ezzel megvagyunk!
+
+Akkor most **jöhet az $1000$ db $n=1099$ elemű alminta generálása `for` ciklusból** és a tárolás az újonnan létrehozott data frame-ben.<br>
+
+Most is **megnövekedett futásidőre kell** itt **készülni**! :)
+
+```{python warning = FALSE, message = FALSE, eval = FALSE}
+for index in range(1000):
+  AktualisMinta = ESS_Szurt['NetUsePerDay_Minutes'].sample(n = len(ESS_Szurt), replace = True)
+  AktualisMinta.index = oszlopnevek
+  MintaDF = MintaDF.append(AktualisMinta, ignore_index = True)
+
+MintaDF
+```
+
+```{python warning = FALSE, message = FALSE, echo = FALSE}
+MintaDF = pd.read_excel("BootstrapAdatok.xlsx")
+MintaDF
+```
+
+Akkor meg is van az $1000$ db almintánk! :) Számoljuk ki **mindegyik almintában a mintaátlagot**!<br>
+**Figyeljünk** itt is arra, hogy mivel a data frame oszlopai folyamatosan bővülnek amjd, így manuálisan le kell szorítani a `numpy` statisztikai függvények alkalmazását mindig az első $n=1099$ db oszlopra az `iloc` metódussal!
+
+```{python}
+MintaDF['Atlagok'] = np.mean(MintaDF.iloc[:,0:n], axis=1)
+
+MintaDF
+```
+
+A **standard hibánk pedig akkor ezeknek az alminta-átlagoknak lesz a sima korrigálatlan szórása**!
+
+```{python}
+SH_Bootstrap = np.std(MintaDF.Atlagok)
+
+SH_Bootstrap
+```
+
+E voilá! Némi kerekítési hiba mellett ez kb. ugyan annyi, mint a $\frac{s}{\sqrt{n}}$ képlettel kapott verzió! :) Illetve, értelemszerűen **itt mindenki más értéket kaphatott, mert nem fixáltuk a véletlenszám generátor magját a mintavételek során**.
+
+```{python}
+[SH_Keplet, SH_Bootstrap]
+```
+
+Nyilván, ha **több almintát veszünk, akkor pontosabb lesz a közelítés**. Ezt úgy mondjuk szépen **szakszóval, hogy növeljük a Bootstrap becslés replikációinak számát**. :) Tehát a **replikációk száma az alminták számát jelenti**.
+
+NODE, **mire volt jó, hogy ezt a fránya $SH$-t ilyen körülményesen számoltuk ki a képlet helyett?** Nos, **átlag esetében a világon SEMMIRE!**<br>
+Viszont, ezzel a **Bootstrap elvvel ki tudjuk számolni pl. a napi netezési időnk mediánjának standard hibáját, amire amúgy NINCS olyan egyszerű képlet, mint az átlag standard hibájára!**<br>
+Ugyebár ezt megtehetjük, mert megnéztük a <a href="Gyak03.html" target="_blank">3. heti tananyag 4. fejezetében</a>, hogya medián is egy *torzítatlanul* becsülhető statisutikai paraméter, mint az átlag.
+
+```{python}
+MintaMedian = np.median(ESS_Szurt.NetUsePerDay_Minutes)
+MintaMedian
+
+MintaDF['Medianok'] = np.median(MintaDF.iloc[:,0:n], axis=1)
+SH_Median = np.std(MintaDF.Medianok)
+
+SH_Median
+```
+
+Tehát tudjuk, hogy a megfigyelt $n=1099$ elemű mintában a medián napi netezési idő $120$ perc, és a **standard hibából tudjuk, hogy ez az érték a teljes magyar népesség** (sokaság) **valós medián napi netezési idejétől várhatóan $\pm11.72$ perccel különbözik**.
+
+Innen pedig már csak egy lépés, hogy legyen valami $1-\alpha$ megbízhatósági szintű **konfidencia-intervallumunk a mediánra** ezzel a Bootstrap módszerrel!
+
+## 4. A Medián Bootstrap intervallumbecslése
+
 TODO
 
-## 4. A Medián Bootstrap becslése
-
-TODO
-
-## 5. A Szórás Bootstrap becslése
+## 5. A Szórás Bootstrap intervallumbecslése
 
 TODO
