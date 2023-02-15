@@ -21,11 +21,19 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## 1. Intervallumbecslés visszatevés nélküli egyszerű véletlen (EV) mintákból
 
-TODO
+Az eddigi hetek tananyagában végig FAE, azaz *visszatevéses* mintavételekkel dolgoztunk. Most nézzük meg, hogy mia helyzet akko, ha a **mintavételünk visszatevés nélküli véletlen mintavétel**, azaz **EV** minta.
 
-### 1.1. Átlag becslése EV mintákból
+Az okoskodásunk onnan indul, hogy azt mondjuk, hogy ha a minta kiválasztási aránya kicsi, azaz **ha a teljes adatsokaságunknak csak egy nagyon kis százalékát választjuk ki, akkor a FAE és EV mintavétel lényegében ugyan az**. Hiszen ebben az esetben még FAE mintavétrel esetén is nagyon kicsi az esélye, hogy a visszatevés miatt ténylegesen ismétlődés legyen, azaz többször is kiválasszuk ugyan azt az egyedet a mintánkba.
 
-TODO
+A minta **kiválasztási arányát** korábbi jelöléseinkkel élve $\frac{n}{N}$-nek jelöljük. Tehát, ha $\frac{n}{N} \rightarrow 0$, akkor $FAE \approx EV$.
+
+Ha viszont $\frac{n}{N}$ egy nagyobb érték, akkor viszont az **EV mintának pontosabbnak, azaz kisebb mintavételi hibájúnak kell lennie, minta FAE mintának**, hiszen minden mintaelem az EV mintában biztos, hogy új információt hoz be a mintába, míg FAE esetben lehet ismétlődés a visszatevés miatt.
+
+Ezt a tényt pedig **úgy képezzük le a konfidencia-intervallum képleteinkben**, hogy FAE mintavételeknél tanult standard hiba képleteket egyszerűen beszorozzuk $\sqrt{1-\frac{n}{N}}$-nel. Tehát: $$SH_{EV}=SH_{FAE} \times \sqrt{1-\frac{n}{N}}$$
+
+Ez a képlet azért végzi azt, amit mi akarunk, mert **ha nagyon $0$ közeli a kiválasztási arány**, akkor az $SH_{FAE}$-t gyakorlatilag $1$-gyel szorozzuk, azaz **nem változtatunk rajta semmit**. **Ha** pedig a **kiválasztási arány érdemben nagyobb, mint $0$,** akkor pedig egy $0$ és $1$ közti számmal szorozzuk $SH_{FAE}$-t, így a **szorzat ekkor biztosan kisebb lesz, mint $SH_{FAE}$ volt**.
+
+Aki nem hiszi, nyugodtan **kirajzoltathatja Pythonban, az EV korrekciós tényező, azaz a $\sqrt{1-\frac{n}{N}}$ viselkedését** különböző $\frac{n}{N}$ kiválasztási arányok mellett:
 
 ```{python}
 # Elemzéshez és ábrázoláshoz szükséges csomagok betöltése
@@ -33,13 +41,50 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import scipy.stats as stats
-from statsmodels.stats.meta_analysis import combine_effects
-from statsmodels.graphics.dotplots import dot_plot
 
-# Adatbeolvasás data frame-be
+# Üres lista létrehozása az EV tényezők tárolására
+EV_Lista = []
+# Vizsgált kiválasztási arányok listájának létrehozása
+# 0% és 90% közötti arányokat nézünk 10%-pontos lépésközzel
+# Felső határ 1 = 100% a nyílt intervallum miatt
+KivalArany_Lista = np.arange(0, 1, 0.1)
+
+# Ciklus indítása
+for AktualisKivalArany in KivalArany_Lista:
+  EV_Lista.append(np.sqrt(1-AktualisKivalArany))
+
+# Vizsgált kiválasztási arányok és a mért EV korrekciós tényezők data frame-be rendezése
+# Ahol a kiválasztási arányok a sorindexek
+EV_Data = pd.DataFrame(EV_Lista, columns=['EV_Tenyezok'], index = np.arange(0, 1, 0.1))
+
+# Ábrázolás a 'plot' metódussal: nem kell paraméterezni, mert csak egy oszlopunk van
+EV_Data.plot()
+plt.show()
+```
+
+Látszik, hogy ahogy nő a kiválasztási arány, annál kisebb százalékát kell venni $SH_{FAE}$-nek az $SH_{EV}$ számolása során. Éljen! :)
+
+Nézzük meg ezt az egész rendszert a gyakorlatban az átlag intervallumbecslése során, nagy mintás esetben!
+
+### 1.1. Átlag becslése EV mintákból
+
+Töltsük be a <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/blob/main/HKF_Jovedelem.xlsx" target="_blank">HKF_Jovedelem.xlsx</a> című Excel fájl tartalmát egy `pandas` data frame-be!<br>
+A táblában $n=8306$ db magyar háztartás két ismérvét (oszlopát) látjuk:
+
+1. Milyen típusú településen található a háztartás (Község, Többi város, Nagyváros, Budapest)
+2. A háztartás éves jövedelmét 2019-ben, ezer Ft-ban kifejezve
+
+Az adatok a <a href="https://www.ksh.hu/eletmod" target="_blank">KSH Jövedelmi és Életkörülmény Adatfelvételéből</a> (rövidítve *HKÉF* vagy *HKF*) származnak. A KSH linkelt leírása szerint az **adatok a magyar háztartások sokaságából visszatevés nélkül véletlen, azaz EV mintaként kezelhetők**.<br>
+Ez alapján egy nagyon fontos infó, hogy 2019-ben a magyar háztartások teljes száma 4 111 240 db volt. Tehát, a **sokaságunk teljes elemszáma $N=4111240$ db**.
+
+Lássuk is a beolvasást a `pandas` data frame-be!
+
+```{python}
 HKF = pd.read_excel("HKF_Jovedelem.xlsx")
 HKF.info()
 ```
+
+Remek: megvan a két keresett oszlopunk mind az $n=8306$ db háztartásra, plusz egy *ID* oszlop az elején, amit nem fogunk smmire sem használni. :)
 
 ### 1.2. Arány becslése EV mintákból
 
