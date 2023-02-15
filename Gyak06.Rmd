@@ -1,0 +1,58 @@
+---
+title: "Becslések EV és R mintából"
+author: "Kovács László"
+date: "2023. 02. 15."
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Intervallumbecslés visszatevés nélküli egyszerű véletlen (EV) mintákból
+
+TODO
+
+### 1.1. Átlag becslése EV mintákból
+
+TODO
+
+```{python}
+# Elemzéshez és ábrázoláshoz szükséges csomagok betöltése
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import scipy.stats as stats
+from statsmodels.stats.meta_analysis import combine_effects
+from statsmodels.graphics.dotplots import dot_plot
+
+# Adatbeolvasás data frame-be
+HKF = pd.read_excel("HKF_Jovedelem.xlsx")
+HKF.info()
+```
+
+### 1.2. Arány becslése EV mintákból
+
+TODO
+
+## 2. Átlag becslése Rétegzett (R) mintákból
+
+TODO
+
+### 2.1. Arányoan rétegzett (AR) minták esete
+
+TODO
+
+### 2.2. Egyéb R minták esete
+
+TODO

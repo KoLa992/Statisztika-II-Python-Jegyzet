@@ -353,11 +353,11 @@ Láthatjuk a **Tesla részvény vizsgálatának korábbi tapasztalataink alapjá
 A sűrűségfüggvényektől lehet "*visszafelé is kérdezni*". Tehát, nem csak arra képesek, hogy mondok egy eseményt (pl. mi a valószínűsége, hogy $80\$$-nál nagyobb veszteségem lesz a Teslán) és adnak hozzá valószínűséget, hanem arra is, hogy mondok nekik valószínűséget, és az **inverz értékeik** segítségével adnak hozzá értéket. Szóval, tudok tőlük olyat kérdezni, hogy pl. *Mi az az érték, aminél csak $5\%$ valószínűséggel veszítek többet a Teslán?*<br>
 Magyarul, a $P(Y_i < x) = 0.05$ kifejezésben megadja nekem a sűrűségfüggvény inverz értéke az $x$-et. Ilyenkor az történik a háttérben, hogy a sűrűségfüggvény primitívfüggvényéből (amit hívnak eloszlásfüggvénynek is, de a mi szempontunkból ez az elnevezés nem fontos) "*kifejezzük az $x$-et*".
 
-Természetesen, a `scipy`-nak erre is van beépített függvénye `norm.ppf` néven, ami 3 paramétert kíván: a $P(Y_i < x)$ alá esési valószínűséget, a $\mu$ átlagot (`loc`) és a $\sigma$ szórást (`scale`).<br>
+Természetesen, a `scipy`-nak erre is van beépített függvénye `norm.ppf` néven, ami 3 paramétert kíván: a $P(Y_i < x)$ alá esési valószínűséget (ezt a függvény `q`-nak hívja az angol kvantilis=quantile szóból), a $\mu$ átlagot (`loc`) és a $\sigma$ szórást (`scale`).<br>
 Akkor hát lássuk mi is az az érték, aminél csak $5\%$ valószínűséggel veszítek többet a Teslán?
 
 ```{python}
-stats.norm.ppf(0.05, loc = np.mean(Tesla.TESLA), scale = np.std(Tesla.TESLA))
+stats.norm.ppf(q = 0.05, loc = np.mean(Tesla.TESLA), scale = np.std(Tesla.TESLA))
 ```
 
 Oké, tehát csak $5\%$ valószínűséggel veszítünk kb. $42.85\$$-nál többet. Vagy másképp: $5\%$ a valószínűsége, hogy egy random napon a Tesla árváltozás kisebb lesz, mint $-42.85\$$. Jó tudni. :) Amúgy pénzügyekben ezeket az értékeket *5%-os Value at Risk*-nek szokás becézni, mint 5%-os kockáztatott érték. Általában úgy szól a törvényi szabályozás ezeket az értékeket a befektetési bankoknak be kell raknia biztonsági tartalékba egy-egy pénzügyi befektetési portfólió után.
@@ -382,7 +382,7 @@ Természetesen ilyen inverz érték formájában "pozitív" dolgot is kérdezhet
 Ekkor a kérdés ugyebár úgy szól matematikai formájában, hogy mi az az $x$, aminél $P(Y_i>x)=0.01$-et kapunk. De mivel a `scipy` csomag `norm.ppf` függvénye **csak alá esési valószínűséghez tud visszakeresni értékeket**, így inkább a kérdés átfogalmazott verzióját kérdezzük meg a gépszellemtől: **Mi az az $x$, aminél $P(Y_i<x)=0.99$-et kapunk?**
 
 ```{python}
-stats.norm.ppf(0.99, loc = np.mean(Tesla.TESLA), scale = np.std(Tesla.TESLA))
+stats.norm.ppf(q = 0.99, loc = np.mean(Tesla.TESLA), scale = np.std(Tesla.TESLA))
 ```
 
 Tehát, csak $1\%$ eséllyel tudok többet nyerni egy nap a Teslán, mint kb. $65\$$.

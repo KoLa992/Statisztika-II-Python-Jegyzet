@@ -1,7 +1,7 @@
 ---
 title: "További FAE becslések és a Bootstrap módszer"
 author: "Kovács László"
-date: "2023. 02. 10."
+date: "2023. 02. 15."
 output:
   html_document:
     toc: true
@@ -276,7 +276,7 @@ Nagyon szépen láthatjuk a korább eredményünk: a Fidesz támogatók aránya 
 Sőt, ha figyelembe vesszük, hogy a teljes magyar népesség 2020. január 1-jén 9 772 756 fő volt, akkor megkaphatjuk, hogy **konkrétan hány főnyi Fidesz támogató lehet a magyar népességben** $99\%$-os megbízhatósággal. Egyszerűen csak **az arány konfidencia-intervallum két határát kell felszorozni az $N=9772756$-os sokasági elemszámmal**.
 
 ```{python}
-[round(0.174 * 9772756, 0), round(0.221 * 9772756, 0)]
+[int(0.174 * 9772756), int(0.221 * 9772756)]
 ```
 
 Tehát Magyarországon $99\%$ valószínűséggel $170$ ezer és $216$ ezer fő közötti a Fidesz támogatók száma. Éljen! :)
@@ -391,7 +391,7 @@ Nyilván, ha **több almintát veszünk, akkor pontosabb lesz a közelítés**. 
 
 NODE, **mire volt jó, hogy ezt a fránya $SH$-t ilyen körülményesen számoltuk ki a képlet helyett?** Nos, **átlag esetében a világon SEMMIRE!**<br>
 Viszont, ezzel a **Bootstrap elvvel ki tudjuk számolni pl. a napi netezési időnk mediánjának standard hibáját, amire amúgy NINCS olyan egyszerű képlet, mint az átlag standard hibájára!**<br>
-Ugyebár ezt megtehetjük, mert megnéztük a <a href="Gyak03.html" target="_blank">3. heti tananyag 4. fejezetében</a>, hogya medián is egy *torzítatlanul* becsülhető statisutikai paraméter, mint az átlag.
+Ugyebár ezt megtehetjük, mert megnéztük a <a href="Gyak03.html" target="_blank">3. heti tananyag 4. fejezetében</a>, hogy a medián is egy *torzítatlanul* becsülhető statisztikai paraméter, mint az átlag.
 
 ```{python}
 MintaMedian = np.median(ESS_Szurt.NetUsePerDay_Minutes)
@@ -409,8 +409,131 @@ Innen pedig már csak egy lépés, hogy legyen valami $1-\alpha$ megbízhatósá
 
 ## 4. A Medián Bootstrap intervallumbecslése
 
-TODO
+Ahhoz, hogy megtudjuk a Bootstrap módszerrel előállított $1000$ db alminta alapján a medián $1-\alpha$ megbízhatóságú konfidencia-intervallumát, akkor egyszerűen vennünk kell az **almintákból kiszámolt 1000 db medián adatsorának $\alpha/2$ és $1-\alpha/2$ percentiliseit!**<br>
+Hiszen, az $1-\alpha$ megbízhatóságú konfidencia intervallumnak azt kell megadnia, hogy milyen két érték között mozoghat a valós, sokasági medián $1-\alpha$ valószínűséggel. Ezt pedig pl. **átlag esetében úgy állapítottuk meg, hogy vettük a sok-sok mintaátlag eloszlásának, konkrétan az $N\left(\mu, \frac{\sigma}{\sqrt{n}}\right)$ eloszlásnak a középső $1-\alpha$ százalékát!!**<br>
+A **Bootstrap** mintavételezés segítségével pedig pont a **sok-sok minta-medián eloszlását akartuk szimulálni, tehát ennek kell venni a középső $1-\alpha$ százalékát!** Ezt pedig a minta-medián értékek $\alpha/2$ és $1-\alpha/2$ percentilisei adják ki.
+
+Nézzük is meg az eredményt a netezési idők mediánjának $95\%$-os megbízhatóságú konfidencia-intervallumára! Pythonban a data frame `Medianok`-nak elnevezett oszlopának `quantile` metódusát tudjuk használni a keresett két percentilis kiszámításához.<br>
+Ugyebár ekkor $1-\alpha=95\%=0.95$, tehát $\alpha=0.05=5\%$:
+
+```{python}
+alfa = 0.05
+
+[MintaDF['Medianok'].quantile(alfa/2), MintaDF['Medianok'].quantile(1-alfa/2)]
+```
+
+Tehát, a **teljes magyar népesség körében a medián napi netezési idő $120$ és $150$ perc között van $95\%$ valószínűséggel.**.
+
+Az eredményből láthatjuk, hogy a medián konfidencia-intervalluma **NEM szimmetrikus a minta egészéből számított mediánra (ami szintén 120 perc volt, mint itt az alsó határ), mint ahogy az átlag konfidencia-intervalluma a minta egészéből számított átlagra szimmetrikus volt**!
+
+Ennek hátterében az áll, hogy a **minta-mediánok eloszlása nem szép szimmetrikus normális eloszlás, mint a mintaátlagoké**. Ez a szimulált alminták átlagainak és mediánjainak hisztogramjaiból rögtön szépen látszódik.
+
+```{python}
+MintaDF[['Atlagok', 'Medianok']].hist()
+plt.show()
+```
+
+És tényleg: a mediánok esetében a szimulált mintavételi eloszlás nagyon koncentrál a $120$-ra, míg az átlag esetében megkapjuk a jól ismert, csudiszép normális eloszlásunkat! :)<br>
+Medián esetén a torzabb eloszlás kép részben összefügg azzal, amit Stat. I-ből tanultunk: kis értékkészletű ismérvre a medián nem túl informatív mutatószám! Mindenesetre ezt a "torzságot" a Bootstrap elven számolt konfidencia-intervallumkezeli. :)
+
+Egyébként le is tudjuk csekkolni, hogy **átlag esetében a Bootstrap elven számított $95\%$-os megbízhatóságú konfidencia-intervallum ugyan azt az eredményt hozza némi kerekítési hibával, mint a standard normális eloszlású megbízhatóságú szorzóval dolgozó konfidencia-intervallum számolás**. Ugyebár most $n=1099$ nagy minta, így lehet standard normális eloszlású megbízhatóságú szorzóval dolgozni a t-eloszlású helyett ismeretlen sokasági szórás esetén is.
+
+```{python}
+# Standard normális eloszlású megbízhatóságú szorzós verzió
+stats.norm.interval(
+  alpha=0.95,
+  loc=np.mean(ESS.NetUsePerDay_Minutes),
+  scale=stats.sem(ESS.NetUsePerDay_Minutes, nan_policy = 'omit'))
+  
+# Boostrap verzió
+[MintaDF['Atlagok'].quantile(0.05/2), MintaDF['Atlagok'].quantile(1-0.05/2)]
+```
+
+Tényleg, csak minimális eltérés van a két eredmény között, ami amúgy csökkenthető, ha a Bootstrap módszerben több almintával, azaz magasabb replikációszámmal dolgozunk.
+
+Szerencsére, a **Bootstrap konfidencia intervallum**okat nem kell mindig ilyen szenvedős módon kiszámolni Pythonban, mint ahogy most tettük a külön data frame generálásra `for` ciklusból az almintáknak, hanem **a `scipy` csomagban létezik rá egy beépített függvény `stats.bootstrap` néven**. Ennek az is az előnye, hogy a **futásideje is sokkal jobb, mint a mi összebarkálcsolt megoldásunknak**. Hiszen ezen a függvényen több fejlesztő is dolgozott több hónapot, halálra van az egész kód mögötte optimalizálva. A függvény paraméterei a következőképpen működnek:
+
+1. Megadjuk az **adatsort, amiből** majd a Bootstrap **almintákat kell generálni**.
+2. Megadjuk annak a **statisztikai paraméter**nek (mutatószámnak) a `numpy` csomagban lévő függvényét, **amire a konfidencia-intervallumot** akarunk számolni.
+3. A `random_state` paraméterben **megahdatunk** a mintavételezés véletlenszám-generátorának egy *v**életlen magot**, amivel minden gépen ugyan azt az eredményt kapjuk.
+4. A `method` paraméterben kikötjük, hogy ugyan úgy **precentilisekkel határozza meg a konfidencia-intervallumot** a gépszellem, ahogyan mi is tettük ezt manuálisan.
+5. A **replikációszám**ot egy `n_resamples` paraméterben lehet variálni, de mivel alapesetben $10000$ db almintát készít a függvény, így **nem érdemes ebbe manuálisan belenyúlni ebbe a paraméterbe**. A $10000$ replikáció általában elég szokott lenni. :)
+
+Lássuk akkor a függvényt akcióban, a napi netezési idők mediánjának $95\%$-os megbízhatóságú konfidencia-intervalluma esetében!<br>
+Annyi technikai előfeltétel van, hogy az első paraméteren átadott adatsort a függvénynek `sequence` formátumban kell átadni, így a függvény alkalmazása előtt még ezt a konverziós lépést lehet látni a kódban:
+
+```{python}
+# Konvertálás sequence típusra
+NetUse_Seq = (ESS_Szurt.NetUsePerDay_Minutes,)
+
+stats.bootstrap(NetUse_Seq, np.median, confidence_level=0.95,
+                         random_state=1992, method='percentile')
+```
+
+E voilá! Itt is van a $120-150$ perces konfidencia-intervallum és a $11.7$ perc körüli $SH$ is! :)
 
 ## 5. A Szórás Bootstrap intervallumbecslése
 
-TODO
+A szórás $1-\alpha$ konfidencia-intervallumára van egy zárt formulás képletünk, ami elég egyszerűen néz ki: $$P\left(\sqrt{\frac{(n-1)s^2}{\chi^2_{\alpha/2}(n-1)}}< \sigma <\sqrt{\frac{(n-1)s^2}{\chi^2_{1-\alpha/2}(n-1)}}\right) = 1 - \alpha$$
+
+A képletben a $\chi^2(n-1)$ az egyetlen ismeretlen betű. Ez azért van itt, mert a mintaszórásnégyzetek eloszlása egy $n-1$ szabadságfokú $\chi^2$-eloszlás, úgy mint ahogy a mintaátlagok eloszlása egy $n-1$ szabadságfokú $t$-eloszlás, ha a sokasági szórást nem ismerjük előre.<br>
+A $\chi^2(df)$-eloszlás egy **jobrra elnyúló normális eloszlás**. Az **elnyúlás mértékét a szabadságfoka** (angolul degrees of freedom = $df$) **szabályozza: minél nagyobb a szabadságfok, annál kevésbé jobbra elnyúló az eloszlás**:
+
+<center>
+![](chisqrdist.jpg){width=50%}
+</center>
+
+A $\chi^2_{\alpha/2}(n-1)$ és $\chi^2_{1-\alpha/2}(n-1)$ értékek egy $n-1$ (mintaelemszám mínusz egy) szabadságfokú $\chi^2$-eloszlás **inverz értékei $\alpha/2$ és $1-\alpha/2$ aláesési valószínűségek mellett**. Ezeket Pythonban kiszámolni pofon egyszerű, hiszen van beépített függvény rá a `scipy` csomagban, teljesen logikusan a normális, exponenciális és t-eloszlások után `stats.chi2.ppf` néven. A függvény első paramétere az ismert alá esési valószínűség, második paramétere a szabadságfok, pont mint a `stats.t.ppf` esetében.
+
+A konfidencia-intervallum ezek után pedig csak annyi, hogy kiindulunk a mintaelemszám mínusz egy szorozva korrigált mintabeli szórásnégyzet ($(n-1)s^2$) értékből, és azt leosztjuk az intervallum alsó határához $\chi^2_{1-\alpha/2}(n-1)$-gyel, a felső határához pedig $\chi^2_{\alpha/2}(n-1)$-gyel, és az egész hányadosból gyököt vonunk.
+
+Nézzük meg az elvet **alkalmazás közben a napi netezési idők szórásának $97%$-os megbízhatóságú konfidencia-intervallumára**!<br>
+Arra emlékezzünk csak technikai oldalon, hogy a $\chi^2_{\alpha/2}(n-1)$ ad majd kisebb inverz értéket, így ővele a felső határnál kell osztani (hogy az eredmény nagyobb legyen), míg a $\chi^2_{1-\alpha/2}(n-1)$ érték ad magasabb inverz értéket, így ővele az alsó határnál kell osztani (hogy az eredmény kisebb legyen).
+
+```{python}
+# Mintabeli korrigált szórás számítása
+s = np.std(ESS_Szurt.NetUsePerDay_Minutes, ddof=1)
+s
+
+# Konfidencia-intervallum számítása
+n = len(ESS_Szurt)
+alfa = 1-0.97
+
+khi_negyzet_also = stats.chi2.ppf(alfa/2, df = (n-1))
+khi_negyzet_felso = stats.chi2.ppf(1-alfa/2, df = (n-1))
+
+kozos_szamlalo = (n-1)*(s**2)
+
+[np.sqrt(kozos_szamlalo/khi_negyzet_felso), np.sqrt(kozos_szamlalo/khi_negyzet_also)]
+```
+
+Tehát, a megfigyelt mintában a napinetezési idők szórása $145.2$ perc, ami a **teljes magyar népesség körében $97\%$ valószínűséggel $138.8$ és $152.3$ perc között mozoghat**.
+
+Érdemes megfigyelni, hogy a **konfidencia-intervallum NEM szimmetrikus a mintából számított szórásra azaz $s$-re, mint ahogy az átlag konfidencia-intervalluma a minta egészéből számított átlagra szimmetrikus volt**! Közelebb van valamivel a mintából számolt szórás ($s$) a konfidencia-intervallum alsó határához, mint a flsőhöz! Itt ennek az oka az, hogy **a $\chi^2$-eloszlás egy jobbra elnyúló eloszlás**, tehát azt gondolja, hogy a kisebb értékek jellemzőek inkább a mintaszórások eloszlására, így **a mintából mért szórást ($s$-t) is inkább a konfidnecia-intervallum "aljára teszi"**.
+
+Ez mind szép és jó, de **ez a $\chi^2$-eloszlásos konfidencia-intervallum képlet jelen esetben feltételezi, hogy az adatsor, amiből a mintát vettük** (tehát a napi netezési idők) **az normális eloszlású a sokaságban!!!** Ez pedig marhára **NEM TELJESÜL, ahogy azt egy gyors hisztogram készítés után láthatjuk is!**
+
+```{python}
+ESS_Szurt.NetUsePerDay_Minutes.hist()
+plt.show()
+```
+
+**Jobbra elnyúló** ez az időeloszlás, mint a fene. Ebből aztán semmilyen sokaságban **NEM** lesz **szép szimmetrikus normális eloszlás**!
+
+Tehát, a **szórás konfidencia-intervallum képlete nem reális eredményeket mutat a valós, sokasági szórásra, mert a képlet mögötti feltételezés NEM teljesül!**<br>
+Mit lehet tenni? **Hát alkalmazzuk a Bootstrap becslést, mivel annak semmilyen csúnya előfeltétele nincs**. Csak az kell itt is, hogy az eredeti sokaságból FAE mintavételünk legyen, de megbeszéltük a <a href="Gyak04.html" target="_blank">4. heti tananyag 4. fejezetének 2. feladatában</a>, hogy az ESS2020 mintavétel esetén ez a FAE mintavétel feltételezhető.
+
+Szóval, akkor csináljuk meg a Bootstrap becslést a napi netezési idők szórására is, $97\%$-os megbízhatósági szinten! A beépített `scipy` csomagos függvénnyel most is simán tudunk dolgozni, mint a medián esetében is tettük:
+
+```{python}
+stats.bootstrap(NetUse_Seq, np.std, confidence_level=0.97,
+                         random_state=1992, method='percentile')
+```
+
+Ez alapján pedig a **napi netezési idők szórása a teljes magyar népesség körében $97\%$ valószínűséggel $131.3$ és $159.0$ perc között mozoghat**. Ami érdemben más, mint a $\chi^2$-es formulából kapott $138.8$ és $152.3$ perc közötti intervallum, de a **Bootstrap verzió a reálisabb, hiszen az NEM feltételezi a netezési idők normális eloszlását a teljes sokaságban!**
+
+Szóval ez a Bootstrap becslés elég menő dolog. Pl. **lehet vele intervallumbecslést készíteni átlag esetében is kis mintákra** ($n\leq 30$), **amikor a mintavételezett adatsor eloszlása asokaságban NEM normális eloszlású és NEM tudjuk a valós sokasági szórást:**
+
+<center>
+![](BootstrapMeme.png){width=35%}
+</center>
