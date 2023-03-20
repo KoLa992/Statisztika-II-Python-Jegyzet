@@ -393,7 +393,7 @@ k_szorzo_t = stats.t.ppf(1-alfa/2, df = (n-1))
 
 Láthatjuk, hogy **a $t$-eloszlású $k$ szorzó értéke érdemben nagyobb, mint a standard normális eloszlású $k$ szorzóé ugyan arra a megengedett hibavalószínűségre**! Mivel a $t$-eloszlás nagyobb valószínűséget tulajdonít az extrém magas+alacsony értékek bekövetkezésének, így ha ezt alkalmazzuk, akkor ugyan ahhoz a megbízhatósági szinthez egy magasabb $k$ megbízhatósági szorzót kapunk a $SH$-hoz!
 
-Ezek után igazából csak annyi a feladatunk, hogy a teljes becslési hibahatárt kiszámítsuk $\triangle = t_{1-\frac{\alpha}{2}}^{n-1} \times \frac{s}{\sqrt{n}}\right)$ módon, és ezt rámérjük $\pm$ a mintaátlagra, $\bar{y}$-ra. Ez már mehet ugyan úgy, mint az a) feladatban.
+Ezek után igazából csak annyi a feladatunk, hogy a teljes becslési hibahatárt kiszámítsuk $\triangle = t_{1-\frac{\alpha}{2}}^{n-1} \times \frac{s}{\sqrt{n}}$ módon, és ezt rámérjük $\pm$ a mintaátlagra, $\bar{y}$-ra. Ez már mehet ugyan úgy, mint az a) feladatban.
 
 ```{python}
 korr_szoras = np.std(MintaAdatok, ddof = 1)
@@ -490,7 +490,7 @@ n
 
 Szóval, az üres értékeket nem számolva, a releváns oszlop `count` metódusával megtudhattuk, hogy az internetezési idő esetében $n=1099$ elemű mintából főzhetünk. **Ez bőven nagy minta**, mivel ebből a tárgyból közmegegyezéssel **az $n > 30$ eseteket nagy mintának tekintjük**, ahogy az 1/b) feladat megoldásában megadtuk. Emiatt **nem kell az intrenetezési idők normális eloszlását sem vizsgálni az intervallumbecslés elvégzéséhez $s$-t és t-eloszlást használva**!
 
-Mehetünk simán előre a $\triangle = t_{1-\frac{\alpha}{2}}^{n-1} \times \frac{s}{\sqrt{n}}\right)$ képletet használva.
+Mehetünk simán előre a $\triangle = t_{1-\frac{\alpha}{2}}^{n-1} \times \frac{s}{\sqrt{n}}$ képletet használva.
 
 ```{python}
 n = ESS.NetUsePerDay_Minutes.count() # így nem számoljuk be az üres értékeket

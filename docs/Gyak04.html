@@ -576,7 +576,7 @@ k_szorzo_t = stats.t.ppf(1-alfa/2, df = (n-1))
 [k_szorzo_z, k_szorzo_t]</code></pre>
 <pre><code>## [1.959963984540054, 2.2621571627409915]</code></pre>
 <p>Láthatjuk, hogy <strong>a <span class="math inline">\(t\)</span>-eloszlású <span class="math inline">\(k\)</span> szorzó értéke érdemben nagyobb, mint a standard normális eloszlású <span class="math inline">\(k\)</span> szorzóé ugyan arra a megengedett hibavalószínűségre</strong>! Mivel a <span class="math inline">\(t\)</span>-eloszlás nagyobb valószínűséget tulajdonít az extrém magas+alacsony értékek bekövetkezésének, így ha ezt alkalmazzuk, akkor ugyan ahhoz a megbízhatósági szinthez egy magasabb <span class="math inline">\(k\)</span> megbízhatósági szorzót kapunk a <span class="math inline">\(SH\)</span>-hoz!</p>
-<p>Ezek után igazából csak annyi a feladatunk, hogy a teljes becslési hibahatárt kiszámítsuk <span class="math inline">\(\triangle = t_{1-\frac{\alpha}{2}}^{n-1} \times \frac{s}{\sqrt{n}}\right)\)</span> módon, és ezt rámérjük <span class="math inline">\(\pm\)</span> a mintaátlagra, <span class="math inline">\(\bar{y}\)</span>-ra. Ez már mehet ugyan úgy, mint az a) feladatban.</p>
+<p>Ezek után igazából csak annyi a feladatunk, hogy a teljes becslési hibahatárt kiszámítsuk <span class="math inline">\(\triangle = t_{1-\frac{\alpha}{2}}^{n-1} \times \frac{s}{\sqrt{n}}\)</span> módon, és ezt rámérjük <span class="math inline">\(\pm\)</span> a mintaátlagra, <span class="math inline">\(\bar{y}\)</span>-ra. Ez már mehet ugyan úgy, mint az a) feladatban.</p>
 <pre class="python"><code>korr_szoras = np.std(MintaAdatok, ddof = 1)
 
 k_szorzo_t = stats.t.ppf(1-alfa/2, df = (n-1))
@@ -664,7 +664,7 @@ ESS.info()</code></pre>
 n</code></pre>
 <pre><code>## 1099</code></pre>
 <p>Szóval, az üres értékeket nem számolva, a releváns oszlop <code>count</code> metódusával megtudhattuk, hogy az internetezési idő esetében <span class="math inline">\(n=1099\)</span> elemű mintából főzhetünk. <strong>Ez bőven nagy minta</strong>, mivel ebből a tárgyból közmegegyezéssel <strong>az <span class="math inline">\(n &gt; 30\)</span> eseteket nagy mintának tekintjük</strong>, ahogy az 1/b) feladat megoldásában megadtuk. Emiatt <strong>nem kell az intrenetezési idők normális eloszlását sem vizsgálni az intervallumbecslés elvégzéséhez <span class="math inline">\(s\)</span>-t és t-eloszlást használva</strong>!</p>
-<p>Mehetünk simán előre a <span class="math inline">\(\triangle = t_{1-\frac{\alpha}{2}}^{n-1} \times \frac{s}{\sqrt{n}}\right)\)</span> képletet használva.</p>
+<p>Mehetünk simán előre a <span class="math inline">\(\triangle = t_{1-\frac{\alpha}{2}}^{n-1} \times \frac{s}{\sqrt{n}}\)</span> képletet használva.</p>
 <pre class="python"><code>n = ESS.NetUsePerDay_Minutes.count() # így nem számoljuk be az üres értékeket
 
 minta_atlag = np.mean(ESS.NetUsePerDay_Minutes)
