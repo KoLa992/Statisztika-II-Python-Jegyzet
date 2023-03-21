@@ -244,7 +244,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Becslések EV és R mintából</h1>
 <h4 class="author">Kovács László</h4>
-<h4 class="date">2023. 02. 15.</h4>
+<h4 class="date">2023. 03. 21.</h4>
 
 </div>
 
@@ -310,24 +310,55 @@ HKF.info()</code></pre>
 ##  2   EvesJovEFt      8306 non-null   float64
 ## dtypes: float64(1), int64(1), object(1)
 ## memory usage: 194.8+ KB</code></pre>
-<p>Remek: megvan a két keresett oszlopunk mind az <span class="math inline">\(n=8306\)</span> db háztartásra, plusz egy <em>ID</em> oszlop az elején, amit nem fogunk smmire sem használni. :)</p>
+<p>Remek: megvan a két keresett oszlopunk mind az <span class="math inline">\(n=8306\)</span> db háztartásra, plusz egy <em>ID</em> oszlop az elején, amit nem fogunk semmire sem használni. :)</p>
+<p>Ezek után simán bevethetjük az átlagos háztartási jövedelem <span class="math inline">\(99\%\)</span>-os megbízhatóságú intervalumbecslésére a jól bevált <code>stats.norm.interval</code> című függvényt. Hiszen a <span class="math inline">\(\triangle=k \times SH\)</span> képletben a nagy, <span class="math inline">\(n=8306\)</span>-os elemszám miatt a megbízhatósági szorzó simán jöhet standard normális eloszlásból, azaz <span class="math inline">\(k=z_{1-\frac{\alpha}{2}}\)</span>. Az <span class="math inline">\(SH\)</span> pedig akkor egy EV minta <span class="math inline">\(SH\)</span>-ja, ami az előző fejezet alapján <span class="math inline">\(SH_{FAE} \times \sqrt{1-\frac{n}{N}}\)</span> módon meghadható a függvény <code>scale</code> paraméterében.</p>
+<pre class="python"><code>N = 4111240
+n = len(HKF)
+
+stats.norm.interval(
+  alpha=0.99,
+  loc=np.mean(HKF.EvesJovEFt),
+  scale=stats.sem(HKF.EvesJovEFt)*np.sqrt(1-n/N))</code></pre>
+<pre><code>## (4567.729318773609, 4730.116789870932)
+## 
+## &lt;string&gt;:1: DeprecationWarning: Use of keyword argument `alpha` for method `interval` is deprecated. Use first positional argument or keyword argument `confidence` instead.</code></pre>
+<p>Tehát, viszzatevés nélküli véletlen mintavételként kezelve a HKF adatokat,azt kapjuk, hogy <strong>egy átlagos magyar háztartás éves jövedeleme</strong> <span class="math inline">\(4568\)</span> és <span class="math inline">\(4730\)</span> ezer Ft, azaz <strong><span class="math inline">\(4.5\)</span> és <span class="math inline">\(4.7\)</span> millió Ft között mozog <span class="math inline">\(99\%\)</span>-os valószínűséggel</strong>.</p>
+<p>A kiválasztási arányunk ugyebármost nagyon kicsi: <span class="math inline">\(\frac{n}{N}=\frac{8306}{4111240}=0.002\)</span>, szóval az eredmény lényegében nem különbözik attól, mintha az egészet az EV korrekciós szorzó nélkül csináltuk volna végig a műveletet:</p>
+<pre class="python"><code>stats.norm.interval(
+  alpha=0.99,
+  loc=np.mean(HKF.EvesJovEFt),
+  scale=stats.sem(HKF.EvesJovEFt))</code></pre>
+<pre><code>## (4567.647175824164, 4730.198932820376)</code></pre>
+<p>A várható éves jövdelem így is kb. <span class="math inline">\(4.5\)</span> és <span class="math inline">\(4.7\)</span> millió Ft között mozog <span class="math inline">\(99\%\)</span>-os valószínűséggel.</p>
 </div>
 <div id="arány-becslése-ev-mintákból" class="section level3">
 <h3>1.2. Arány becslése EV mintákból</h3>
-<p>TODO</p>
+<p>Ugyan ez a logika teljesen jól működik az arányok becslése esetén is. Ez nem véletlen, hiszen letisztáztuk az <a href="Gyak05.html" target="_blank">5. heti tananyagban</a>, hogy az arány, mint statisztikai mutató valójában egy olyan adatsor átlaga, hogy az arányban vizsgált tuljadonsággal bíró megfigyelések <span class="math inline">\(1\)</span>-gyel vannak kódolva, a többiek pedig <span class="math inline">\(0\)</span>-val.</p>
+<p>Csináljuk is meg egy új oszlopban azt a <span class="math inline">\(0-1\)</span> adatsort, amivel mondjuk a budapesti háztartások aránya becsülhető lesz.</p>
+<pre class="python"><code>HKF[&#39;BP_e&#39;] = np.where(HKF.TelepulesTipus==&quot;Budapest&quot;, 1, 0)
+np.mean(HKF.BP_e)</code></pre>
+<pre><code>## 0.18552853359017576</code></pre>
+<p>Szuper, meg is vagyunk, a megfigyelt mintában a budapesti háztartások aránya <span class="math inline">\(18.55\%\)</span>.</p>
+<p>Ezek után, ha ezen az új oszlopon alkalmazzuk a <code>stats.norm.interval</code> függvényt az 1.1. fejezetben látott módon a <code>scale</code> paraméterben a <span class="math inline">\(\sqrt{1-\frac{n}{N}}\)</span> korrekciós tényezővel, akkor meg is van a <strong>budapesti háztartások sokaságiarányának <span class="math inline">\(99\%\)</span>-os megbízhatóságú intervallumbecslése</strong>:</p>
+<pre class="python"><code>N = 4111240
+n = len(HKF)
+
+stats.norm.interval(
+  alpha=0.99,
+  loc=np.mean(HKF.BP_e),
+  scale=stats.sem(HKF.BP_e)*np.sqrt(1-n/N))</code></pre>
+<pre><code>## (0.1745523489357643, 0.19650471824458723)
+## 
+## &lt;string&gt;:1: DeprecationWarning: Use of keyword argument `alpha` for method `interval` is deprecated. Use first positional argument or keyword argument `confidence` instead.</code></pre>
+<p>Szóval az <strong>összes magyar háztartásból kb. <span class="math inline">\(17.5\% - 19.6\%\)</span> lehet budapesti</strong>, <span class="math inline">\(99\%\)</span> valószínűséggel.</p>
 </div>
 </div>
-<div id="átlag-becslése-rétegzett-r-mintákból" class="section level2">
-<h2>2. Átlag becslése Rétegzett (R) mintákból</h2>
-<p>TODO</p>
-<div id="arányoan-rétegzett-ar-minták-esete" class="section level3">
-<h3>2.1. Arányoan rétegzett (AR) minták esete</h3>
-<p>TODO</p>
-</div>
-<div id="egyéb-r-minták-esete" class="section level3">
-<h3>2.2. Egyéb R minták esete</h3>
-<p>TODO</p>
-</div>
+<div id="átlag-becslése-arányosan-rétegzett-ar-mintákból" class="section level2">
+<h2>2. Átlag becslése Arányosan Rétegzett (AR) mintákból</h2>
+<p>A KSH a HKF adatbázisáról nem csak simán azt állítja, hogy egyszerű véletlen (EV) minta a magyar háztartásokból, hanem, hogy <strong>településtípus szerint arányosan rétegzett EV mita</strong>. Ez azt jelenti, hogy <strong>a <span class="math inline">\(4\)</span> db településtípusból</strong> (Budapest, Nagyváros, Többi város, Község) <strong>külön-külön vettek EV mintát, úgy, hogy a végső <span class="math inline">\(n=8306\)</span> elemű mintában az egyes településtípusok aránya annyi legyen, mint a teljes sokaságban</strong> (összes magyar háztartás) <strong>a településtípusok aránya</strong>. Tehát a minta tökéletesen reprezentatívra lett beállítva a településtípusra.</p>
+<p>Ennek a mintavételi technikának a lényege, hogy ha <strong>meg akarom becsülni a magyar háztartások átlagos éves jövedelmét</strong>, akkor a <strong>standard hibában NEM KELL számolnom a településtípusok KÖZÖTTI jövedelem szórással</strong>! Hiszen ezt a külső szórást már kezelte a településtípusonkénti külön-különmintavétel!<br> Magyarul, az <span class="math display">\[SH_{EV} = \frac{s}{\sqrt{n}} \times \sqrt{1-\frac{n}{N}}\]</span></p>
+<p>képlet <strong>helyett elég a standard hibában csak a belső korrigált mintaszórással</strong>, <span class="math inline">\(s_b\)</span>-vel számolnom: <span class="math display">\[SH_{AR} = \frac{s_b}{\sqrt{n}} \times \sqrt{1-\frac{n}{N}}\]</span></p>
+<p>Mivel Stat. I-ből és az <a href="Gyak01.html" target="_blank">1. heti tananyag 4. fejezetéből</a> tudjuk, hogy egy <strong>számértékű ismérv teljes varianciája, a külső és belső variancia összege</strong>, így ha a külső variancával nem kel számolni a standard hibában, csak a belsővel, akkor <strong>kijelenthető, hogy az arányosan rétegzett mintavétel becslési hibája az átlagra kisebb, mint az EV</strong> (vagy a FAE) <strong>mintavételek esetén</strong>: <span class="math inline">\(SH_{AR} \leq SH_{EV}\)</span></p>
 </div>
 
 

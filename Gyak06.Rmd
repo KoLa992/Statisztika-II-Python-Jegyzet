@@ -1,7 +1,7 @@
 ---
 title: "Becslések EV és R mintából"
 author: "Kovács László"
-date: "2023. 02. 15."
+date: "2023. 03. 21."
 output:
   html_document:
     toc: true
@@ -84,20 +84,67 @@ HKF = pd.read_excel("HKF_Jovedelem.xlsx")
 HKF.info()
 ```
 
-Remek: megvan a két keresett oszlopunk mind az $n=8306$ db háztartásra, plusz egy *ID* oszlop az elején, amit nem fogunk smmire sem használni. :)
+Remek: megvan a két keresett oszlopunk mind az $n=8306$ db háztartásra, plusz egy *ID* oszlop az elején, amit nem fogunk semmire sem használni. :)
+
+Ezek után simán bevethetjük az átlagos háztartási jövedelem $99\%$-os megbízhatóságú intervalumbecslésére a jól bevált `stats.norm.interval` című függvényt. Hiszen a $\triangle=k \times SH$ képletben a nagy, $n=8306$-os elemszám miatt a megbízhatósági szorzó simán jöhet standard normális eloszlásból, azaz $k=z_{1-\frac{\alpha}{2}}$. Az $SH$ pedig akkor egy EV minta $SH$-ja, ami az előző fejezet alapján $SH_{FAE} \times \sqrt{1-\frac{n}{N}}$ módon meghadható a függvény `scale` paraméterében.
+
+```{python}
+N = 4111240
+n = len(HKF)
+
+stats.norm.interval(
+  alpha=0.99,
+  loc=np.mean(HKF.EvesJovEFt),
+  scale=stats.sem(HKF.EvesJovEFt)*np.sqrt(1-n/N))
+```
+
+Tehát, viszzatevés nélküli véletlen mintavételként kezelve a HKF adatokat,azt kapjuk, hogy **egy átlagos magyar háztartás éves jövedeleme** $4568$ és $4730$ ezer Ft, azaz **$4.5$ és $4.7$ millió Ft között mozog $99\%$-os valószínűséggel**.
+
+A kiválasztási arányunk ugyebármost nagyon kicsi: $\frac{n}{N}=\frac{8306}{4111240}=0.002$, szóval az eredmény lényegében nem különbözik attól, mintha az egészet az EV korrekciós szorzó nélkül csináltuk volna végig a műveletet:
+
+```{python}
+stats.norm.interval(
+  alpha=0.99,
+  loc=np.mean(HKF.EvesJovEFt),
+  scale=stats.sem(HKF.EvesJovEFt))
+```
+
+A várható éves jövdelem így is kb. $4.5$ és $4.7$ millió Ft között mozog $99\%$-os valószínűséggel.
 
 ### 1.2. Arány becslése EV mintákból
 
-TODO
+Ugyan ez a logika teljesen jól működik az arányok becslése esetén is. Ez nem véletlen, hiszen letisztáztuk az <a href="Gyak05.html" target="_blank">5. heti tananyagban</a>, hogy az arány, mint statisztikai mutató valójában egy olyan adatsor átlaga, hogy az arányban vizsgált tuljadonsággal bíró megfigyelések $1$-gyel vannak kódolva, a többiek pedig $0$-val.
 
-## 2. Átlag becslése Rétegzett (R) mintákból
+Csináljuk is meg egy új oszlopban azt a $0-1$ adatsort, amivel mondjuk a budapesti háztartások aránya becsülhető lesz.
 
-TODO
+```{python}
+HKF['BP_e'] = np.where(HKF.TelepulesTipus=="Budapest", 1, 0)
+np.mean(HKF.BP_e)
+```
 
-### 2.1. Arányoan rétegzett (AR) minták esete
+Szuper, meg is vagyunk, a megfigyelt mintában a budapesti háztartások aránya $18.55\%$.
 
-TODO
+Ezek után, ha ezen az új oszlopon alkalmazzuk a `stats.norm.interval` függvényt az 1.1. fejezetben látott módon a `scale` paraméterben a $\sqrt{1-\frac{n}{N}}$ korrekciós tényezővel, akkor meg is van a **budapesti háztartások sokaságiarányának $99\%$-os megbízhatóságú intervallumbecslése**:
 
-### 2.2. Egyéb R minták esete
+```{python}
+N = 4111240
+n = len(HKF)
 
-TODO
+stats.norm.interval(
+  alpha=0.99,
+  loc=np.mean(HKF.BP_e),
+  scale=stats.sem(HKF.BP_e)*np.sqrt(1-n/N))
+```
+
+Szóval az **összes magyar háztartásból kb. $17.5\% - 19.6\%$ lehet budapesti**, $99\%$ valószínűséggel.
+
+## 2. Átlag becslése Arányosan Rétegzett (AR) mintákból
+
+A KSH a HKF adatbázisáról nem csak simán azt állítja, hogy egyszerű véletlen (EV) minta a magyar háztartásokból, hanem, hogy **településtípus szerint arányosan rétegzett EV mita**. Ez azt jelenti, hogy **a $4$ db településtípusból** (Budapest, Nagyváros, Többi város, Község) **külön-külön vettek EV mintát, úgy, hogy a végső $n=8306$ elemű mintában az egyes településtípusok aránya annyi legyen, mint a teljes sokaságban** (összes magyar háztartás) **a településtípusok aránya**. Tehát a minta tökéletesen reprezentatívra lett beállítva a településtípusra.
+
+Ennek a mintavételi technikának a lényege, hogy ha **meg akarom becsülni a magyar háztartások átlagos éves jövedelmét**, akkor a **standard hibában NEM KELL számolnom a településtípusok KÖZÖTTI jövedelem szórással**! Hiszen ezt a külső szórást már kezelte a településtípusonkénti külön-különmintavétel!<br>
+Magyarul, az $$SH_{EV} = \frac{s}{\sqrt{n}} \times \sqrt{1-\frac{n}{N}}$$
+
+képlet **helyett elég  a standard hibában csak a belső korrigált mintaszórással**, $s_b$-vel számolnom: $$SH_{AR} = \frac{s_b}{\sqrt{n}} \times \sqrt{1-\frac{n}{N}}$$
+
+Mivel Stat. I-ből és az <a href="Gyak01.html" target="_blank">1. heti tananyag 4. fejezetéből</a> tudjuk, hogy egy **számértékű ismérv teljes varianciája, a külső és belső variancia összege**, így ha a külső variancával nem kel számolni a standard hibában, csak a belsővel, akkor **kijelenthető, hogy az arányosan rétegzett mintavétel becslési hibája az átlagra kisebb, mint az EV** (vagy a FAE) **mintavételek esetén**: $SH_{AR} \leq SH_{EV}$
