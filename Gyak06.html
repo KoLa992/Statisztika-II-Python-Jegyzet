@@ -244,7 +244,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Becslések EV és R mintából</h1>
 <h4 class="author">Kovács László</h4>
-<h4 class="date">2023. 03. 21.</h4>
+<h4 class="date">2023. 03. 27.</h4>
 
 </div>
 
@@ -329,7 +329,7 @@ stats.norm.interval(
   loc=np.mean(HKF.EvesJovEFt),
   scale=stats.sem(HKF.EvesJovEFt))</code></pre>
 <pre><code>## (4567.647175824164, 4730.198932820376)</code></pre>
-<p>A várható éves jövdelem így is kb. <span class="math inline">\(4.5\)</span> és <span class="math inline">\(4.7\)</span> millió Ft között mozog <span class="math inline">\(99\%\)</span>-os valószínűséggel.</p>
+<p>A várható éves jövedelem így is kb. <span class="math inline">\(4.5\)</span> és <span class="math inline">\(4.7\)</span> millió Ft között mozog <span class="math inline">\(99\%\)</span>-os valószínűséggel.</p>
 </div>
 <div id="arány-becslése-ev-mintákból" class="section level3">
 <h3>1.2. Arány becslése EV mintákból</h3>
@@ -356,9 +356,114 @@ stats.norm.interval(
 <div id="átlag-becslése-arányosan-rétegzett-ar-mintákból" class="section level2">
 <h2>2. Átlag becslése Arányosan Rétegzett (AR) mintákból</h2>
 <p>A KSH a HKF adatbázisáról nem csak simán azt állítja, hogy egyszerű véletlen (EV) minta a magyar háztartásokból, hanem, hogy <strong>településtípus szerint arányosan rétegzett EV mita</strong>. Ez azt jelenti, hogy <strong>a <span class="math inline">\(4\)</span> db településtípusból</strong> (Budapest, Nagyváros, Többi város, Község) <strong>külön-külön vettek EV mintát, úgy, hogy a végső <span class="math inline">\(n=8306\)</span> elemű mintában az egyes településtípusok aránya annyi legyen, mint a teljes sokaságban</strong> (összes magyar háztartás) <strong>a településtípusok aránya</strong>. Tehát a minta tökéletesen reprezentatívra lett beállítva a településtípusra.</p>
-<p>Ennek a mintavételi technikának a lényege, hogy ha <strong>meg akarom becsülni a magyar háztartások átlagos éves jövedelmét</strong>, akkor a <strong>standard hibában NEM KELL számolnom a településtípusok KÖZÖTTI jövedelem szórással</strong>! Hiszen ezt a külső szórást már kezelte a településtípusonkénti külön-különmintavétel!<br> Magyarul, az <span class="math display">\[SH_{EV} = \frac{s}{\sqrt{n}} \times \sqrt{1-\frac{n}{N}}\]</span></p>
-<p>képlet <strong>helyett elég a standard hibában csak a belső korrigált mintaszórással</strong>, <span class="math inline">\(s_b\)</span>-vel számolnom: <span class="math display">\[SH_{AR} = \frac{s_b}{\sqrt{n}} \times \sqrt{1-\frac{n}{N}}\]</span></p>
+<p>Ennek a mintavételi technikának a lényege, hogy ha <strong>meg akarom becsülni a magyar háztartások átlagos éves jövedelmét</strong>, akkor a <strong>standard hibában NEM KELL számolnom a településtípusok KÖZÖTTI jövedelem szórással</strong>! Hiszen ezt a <strong>külső szórást már kezelte a településtípusonkénti külön-különmintavétel!!</strong><br> Magyarul, az <span class="math display">\[SH_{EV} = \frac{s}{\sqrt{n}} \times \sqrt{1-\frac{n}{N}}\]</span></p>
+<p>Képlet <strong>helyett elég a standard hibában csak a belső korrigált mintaszórással</strong>, <span class="math inline">\(s_b\)</span>-vel számolnom: <span class="math display">\[SH_{AR} = \frac{s_b}{\sqrt{n}} \times \sqrt{1-\frac{n}{N}}\]</span></p>
 <p>Mivel Stat. I-ből és az <a href="Gyak01.html" target="_blank">1. heti tananyag 4. fejezetéből</a> tudjuk, hogy egy <strong>számértékű ismérv teljes varianciája, a külső és belső variancia összege</strong>, így ha a külső variancával nem kel számolni a standard hibában, csak a belsővel, akkor <strong>kijelenthető, hogy az arányosan rétegzett mintavétel becslési hibája az átlagra kisebb, mint az EV</strong> (vagy a FAE) <strong>mintavételek esetén</strong>: <span class="math inline">\(SH_{AR} \leq SH_{EV}\)</span></p>
+<p>Nézzük is meg akkor a dolgot élesben! Ugyebár tudjuk, hogy a háztartások átlagos éves jövedeleme a teljes magyar népességben <span class="math inline">\(99\%\)</span>-os valószínűséggek <span class="math inline">\(4.5\)</span> és <span class="math inline">\(4.7\)</span> millió Ft körül mozog, ha a HKF adatokat EV mintavételként kezeljük. Most a SH-t rendesen a <span class="math inline">\(SH_{EV}=\frac{s}{\sqrt{n}} \times \sqrt{1-\frac{n}{N}}\)</span> képlettel számoljuk ki, és nem vetjük be a <code>stats.sem</code> függvényt.</p>
+<pre class="python"><code>N = 4111240
+n = len(HKF)
+s = np.std(HKF.EvesJovEFt)
+
+sh_ev = s/np.sqrt(n)*np.sqrt(1-n/N)
+
+stats.norm.interval(
+  alpha=0.99,
+  loc=np.mean(HKF.EvesJovEFt),
+  scale=sh_ev)</code></pre>
+<pre><code>## (4567.734206576373, 4730.111902068167)</code></pre>
+<p>Viszont, azt mondja az AR minta, hogy a standard hiba <span class="math inline">\(\frac{s}{\sqrt{n}}\)</span> részében <strong>elég csak a településtípusok szerinti belső szórással, <span class="math inline">\(s_b\)</span>-vel számolni</strong>. Ehhez viszont kell egy <strong>aggregált tábla településtípusonként</strong> a</p>
+<ul>
+<li><strong>mintaelemszámokról</strong> (<span class="math inline">\(n_j\)</span>)</li>
+<li><strong>mintaátlagokról</strong> (<span class="math inline">\(\bar{y}_j\)</span>)</li>
+<li><strong>korrigált mintaszórásokról</strong> (<span class="math inline">\(s_j\)</span>)</li>
+<li><strong>sokasági elemszámokról</strong> (<span class="math inline">\(N_j\)</span>)</li>
+</ul>
+<p>Láthatjuk, hogy a településtípusokat, azaz a rétegzett mintavétel <strong>rétegeit <span class="math inline">\(j\)</span> indexszel jelöljük</strong>. Ezt az aggregált táblát a data frame-k <code>groupby</code> és <code>agg</code> metódusaival könnyen összehozhatjuk, ahogy az <a href="Gyak01.html" target="_blank">1. heti tananyag 4. fejezetében</a> is láthattuk pl.</p>
+<pre class="python"><code>Segéd = HKF.groupby(&#39;TelepulesTipus&#39;).agg(
+  Elemszam = (&#39;EvesJovEFt&#39;, &#39;count&#39;),
+  Reszatlagok = (&#39;EvesJovEFt&#39;, np.mean),
+  KorrigalatlanSzorasok = (&#39;EvesJovEFt&#39;, np.std)
+)
+
+Segéd</code></pre>
+<pre><code>##                 Elemszam  Reszatlagok  KorrigalatlanSzorasok
+## TelepulesTipus                                              
+## Budapest            1541  5395.202989            3686.786788
+## Község              2765  4344.417552            2580.432303
+## Nagyváros           1786  4790.141025            2803.906596
+## Többi város         2214  4395.863000            2516.663955</code></pre>
+<p>A fenti kód nem korrigált szórásokat számol technikailag, de a mi szempontunkból ez most nem oszt nem szoroz, mert a legkisebb elemszámú rétegben (<span class="math inline">\(n_{BP}=1541\)</span>) is a korrekció csak <span class="math inline">\(\sqrt{\frac{n}{n-1}}=\sqrt{\frac{1541}{1541-1}}=1.0006\)</span>, tehát elhanyagolható szorzótényező.</p>
+<p>De bármikor tudjuk alkalmazni a korrekciós tényezőt a szórásokon egy új oszlopban:</p>
+<pre class="python"><code>Segéd[&#39;KorrigaltSzorasok&#39;] = np.sqrt(Segéd.Elemszam/(Segéd.Elemszam-1)) * Segéd.KorrigalatlanSzorasok
+Segéd</code></pre>
+<pre><code>##                 Elemszam  Reszatlagok  KorrigalatlanSzorasok  KorrigaltSzorasok
+## TelepulesTipus                                                                 
+## Budapest            1541  5395.202989            3686.786788        3687.983602
+## Község              2765  4344.417552            2580.432303        2580.899054
+## Nagyváros           1786  4790.141025            2803.906596        2804.691894
+## Többi város         2214  4395.863000            2516.663955        2517.232500</code></pre>
+<p>Viszont a rend kedvéért <strong>egészítsük ki</strong> az aggregált segédtáblát a <strong>sokasági elemszámokkal</strong>. Itt <strong>kihasználjuk, hogy arányosan rétegzett mintavételről van szó</strong>. Tehát, a rétegek sokasági elemszáma a teljes sokasági elemszámhoz úgy aránylik, mint a rétegek mintabeli elemszáma a teljes mintavétel elemszámához, azaz <span class="math display">\[\frac{n_j}{n} = \frac{N_j}{N}, \forall j\]</span></p>
+<p>Ebből gyorsan ki tudjuk számolni minden réteg sokasági elemszámát, hiszen tudjuk, hogy <span class="math inline">\(N=4111240\)</span> háztartást jelent. A végén természetesen egészre kerekítjuk az <span class="math inline">\(N_j\)</span>-ket:</p>
+<pre class="python"><code>Segéd[&#39;SokasagiElemszam&#39;] = round(Segéd.Elemszam/np.sum(Segéd.Elemszam) * N, 0)
+Segéd</code></pre>
+<pre><code>##                 Elemszam  Reszatlagok  ...  KorrigaltSzorasok  SokasagiElemszam
+## TelepulesTipus                         ...                                     
+## Budapest            1541  5395.202989  ...        3687.983602          762752.0
+## Község              2765  4344.417552  ...        2580.899054         1368598.0
+## Nagyváros           1786  4790.141025  ...        2804.691894          884021.0
+## Többi város         2214  4395.863000  ...        2517.232500         1095869.0
+## 
+## [4 rows x 5 columns]</code></pre>
+<p>Ezzel is megvagyunk. Akkor minden adott, hogy kiszámoljuk a belső szórást a következő képlettel, ami szintén ismerős az <a href="Gyak01.html" target="_blank">1. heti tananyag 4. fejezetéből</a>. <span class="math display">\[s_b\sqrt{\frac{\sum_j{n_j \times s_j^2}}{n}}\]</span></p>
+<p>Ezt gyorsan ki is tudjuk számolni Pythonban <code>numpy</code> függvények segítségével.</p>
+<pre class="python"><code>belső_szórás = np.sqrt(np.sum(Segéd.Elemszam * Segéd.KorrigaltSzorasok**2)/np.sum(Segéd.Elemszam))
+belső_szórás</code></pre>
+<pre><code>## 2849.7867055139272</code></pre>
+<p>Tehát, egy konkrét <strong>háztartás éves jövdeleme a megfigyelt mintában várhatóan kb. <span class="math inline">\(s_b=\pm 53\)</span> ezer Ft-tal tér el saját településtípusának átlagos jövedelmétől</strong>.</p>
+<p>Ezzel pedig gyorsan meg is van az <strong>arányosan rétegzett standard hiba</strong>, ami kb. <span class="math inline">\(0.28\)</span> ezer Ft-tal (<span class="math inline">\(280\)</span> Ft-tal) <strong>kisebb, mint a sima EV módra számolt standard hiba</strong>:</p>
+<pre class="python"><code>N = 4111240
+n = len(HKF)
+
+sh_ar = belső_szórás/np.sqrt(n) * np.sqrt(1-n/N)
+sh_ar</code></pre>
+<pre><code>## 31.23757005707566</code></pre>
+<pre class="python"><code>sh_ev</code></pre>
+<pre><code>## 31.519498452027705</code></pre>
+<p>Ez pedig érezteti magát a <strong>némlileg szűkebb, azaz kisebb <span class="math inline">\(\triangle=SH_{AR} \times z_{1-\frac{\alpha}{2}}\)</span> becslési hibahatárral bíró <span class="math inline">\(99\%\)</span>-os konfidencia-intervallumban</strong>:</p>
+<pre class="python"><code>stats.norm.interval(
+  alpha=0.99,
+  loc=np.mean(HKF.EvesJovEFt),
+  scale=sh_ar)</code></pre>
+<pre><code>## (4568.460405997593, 4729.385702646948)
+## 
+## &lt;string&gt;:1: DeprecationWarning: Use of keyword argument `alpha` for method `interval` is deprecated. Use first positional argument or keyword argument `confidence` instead.</code></pre>
+<p>Arányos rétegzéssel a <strong>változatlan megbízhatóságú konfidencia-intervallum</strong> <span class="math inline">\(4567 - 4730\)</span> ezer Ft-ról <span class="math inline">\(4568 - 4729\)</span> ezer Ft-ra <strong>szűkül</strong>.</p>
+<p>Na jó, ne áltassunk magunkat: <strong>ez szinte nulla csökkenés mind a standard hibában, mind a <span class="math inline">\(\triangle\)</span>-ben</strong>! Tehát kb az <span class="math inline">\(AR\)</span> mintavétel nem ért semmit. <strong>Miért van ez? Lássuk a magyarázatot!</strong></p>
+<div id="az-ar-mintavételek-hatékonysága" class="section level3">
+<h3>2.1. Az AR mintavételek hatékonysága</h3>
+<p>Az, hogy mennyire jó az <span class="math inline">\(AR\)</span> mintavétel az <span class="math inline">\(EV\)</span>-hez képest attól függ, hogy <strong>mekkora a külső szórás mértéke, amit el tudunk hagyni azzal, hogy csak a belső szórással számolunk a standard hibában a teljes szórás helyett</strong>. Ezt pedig <strong>az határozza meg, hogy a rétegzéshez használt minőségi ismérv hány százalékban határozza meg annak a mennyiségi ismérvnek az alakulását, aminek az átlagát becsülni szeretnénk</strong>.<br> Magyarul a <strong>variancia-hányados</strong> kell nekünk: <span class="math display">\[H^2 = \frac{s_k^2}{s^2} = 1-\frac{s_b^2}{s^2}\]</span></p>
+<p>És hát valóban a 2. képlettel kiszámolva azt láthatjuk, hogy a <strong>településtípus alig határozza csak meg a háztartások éves jövdelemének alakulását</strong>:</p>
+<pre class="python"><code>round((1-belső_szórás**2/s**2) * 100, 2)</code></pre>
+<pre><code>## 1.78</code></pre>
+<p>Mindössze <span class="math inline">\(1.78\%\)</span>-ban magyarázza a jövdelemek alakulását a településtípus. Ez <strong>megegyezik azzal hány SZÁZALÉKKAL csökkenti az AR mintavétel az EV standard hiba négyzetét</strong>:</p>
+<pre class="python"><code>round((sh_ar**2/sh_ev**2 - 1) * 100, 2)</code></pre>
+<pre><code>## -1.78</code></pre>
+<p>Másképpen fogalmazva az <strong>arányos rétegzés annyi SZÁZALÉKRA csökkenti a <span class="math inline">\(SH^2\)</span>-et, amennyi az <span class="math inline">\(1-H^2\)</span> értéke</strong>. Innentől kezdve ezt a csökkentés hívjuk <strong>relatív hatásfoknak</strong>, azaz: <span class="math display">\[Rel=\frac{SH_{AR}^2}{SH_{EV}^2}=1-H^2=\frac{s_b^2}{s^2}\]</span></p>
+<p>Ezek az összefüggések Pythonban is szépen kiszámíthatók.</p>
+<pre class="python"><code>(sh_ar**2/sh_ev**2)</code></pre>
+<pre><code>## 0.9821908631514371</code></pre>
+<pre class="python"><code>belső_szórás**2/s**2</code></pre>
+<pre><code>## 0.9821908631514371</code></pre>
+<p>Tehát, az <strong>arányos rétegzés miatt <span class="math inline">\(98.2\%\)</span>-RA csökken csak a standard hiba négyzete</strong>.</p>
+<p>Természetesen az, hogy maga a <strong>standard hiba hány százalékRA csökken</strong>, azt a fenti összefüggés, zóval a <strong>relatív hatásfok gyöke</strong> adja meg.</p>
+<pre class="python"><code>(sh_ar/sh_ev)</code></pre>
+<pre><code>## 0.9910554288996338</code></pre>
+<pre class="python"><code>belső_szórás/s</code></pre>
+<pre><code>## 0.9910554288996338</code></pre>
+<p>Szóval, a <strong>standard hiba az arányos rétegzés miatt csak <span class="math inline">\(99.1\%\)</span>-RA, azaz <span class="math inline">\(0.9\%\)</span>-KAL csökkent csak le, mivel a rétegzéshez használt településtípus csak <span class="math inline">\(1.78\%\)</span>-ban magyarázza csak az éves jövedelmek alakulását, aminek az alakulását becsülni akartuk</strong>.</p>
+<p>Mindazonáltal az <strong>átlagbecslés háromféle mintavételi mód</strong> (FAE, EV, AR) <strong>szerinti standard hibája között</strong> felállítható a következő <strong>összefüggés</strong>: <span class="math display">\[SH_{FAE} \geq SH_{EV} \geq SH_{AR}\]</span></p>
+<p>Hiszen az EV standard hiba valamivel kisebb, mint a FAE a <span class="math inline">\(\sqrt{1-\frac{n}{N}}\)</span> korrekciós tényező miatt, és az AR standard hiba valamivel kisebb, mint az EV amiatt, mert csak belső szórást használunk a képletben a teljes helyett: <span class="math display">\[\frac{s}{\sqrt{n}} \geq \frac{s}{\sqrt{n}} \times \sqrt{1-\frac{n}{N}} \geq \frac{s_b}{\sqrt{n}} \times \sqrt{1-\frac{n}{N}}\]</span></p>
+</div>
 </div>
 
 
