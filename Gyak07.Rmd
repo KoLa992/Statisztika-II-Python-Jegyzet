@@ -1,0 +1,333 @@
+---
+title: "Hipotézisvizsgálat alapjai"
+author: "Kovács László"
+date: "2023. 04. 05."
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. A hipotézisvizsgálat alapgondolata
+
+Istenigazából a **hipotézisvizsgálat** csak egy **alternatív mód a konfidencia-intervallumok mellett egy statisztikai mutatószám (paraméter) mintavételi hibájának figyelembe vételére**, amikor a mutatószám egy mintából számított értékéből akarjuk megismerni a valós, sokasági értékét. Azonban, a **hipotézisvizsgálat gondolatvilága a kérdést némileg eltérően közelíti meg, mint az eddig tanult konfidencia-intervallumok**.
+
+Hipotézisvizsgálat során megfogalmazunk egy **állítást vagy szebb szóval hipotézist egy statisztikai mutatószám** (átlag, arány, medián, szórás, stb.) **valós, sokasági értékéről, és utána megpróbáljuk állítani, hogy ezt a felvetést/hipotézist a megfigyelt mintaadatok alátámasztják-e vagy sem**. Most így alapesetben a paraméteres statisztikai hipotézisvizsgálatokat vagy rövidebben az úgynevezett **paraméteres (statisztikai) próbákat vizsgáljuk**, mert a **megfogalmazott hipotézisünk mindig egy statisztikai paraméter** (azaz statisztikai mutatószám) valós, **sokasági értékéről szól** majd egyelőre.
+
+Nézzünk meg **ismét egy $n=100$ elemű FAE mintát a 2022-es Balaton átúszást teljesítők sokaságából** a <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/blob/main/LIDLBalaton2022.xlsx" target="_blank">LIDLBalaton2022.xlsx</a> fájl alapján.<br>
+Ahogy a <a href="Gyak03.html" target="_blank">3. heti tananyagban</a> is néztük, ebben a fájlban a Balaton átúszás résztvevőinek *neve, neme és percben mért időeredménye* található. Ez az adatsor lesz most is a **sokaságunk**.
+
+```{python}
+# Elemzéshez és ábrázoláshoz szükséges csomagok betöltése
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import scipy.stats as stats
+
+# Adatbeolvasás data frame-be
+Balcsi = pd.read_excel("LIDLBalaton2022.xlsx")
+
+Balcsi.info()
+```
+
+Szuper, vegyük is ki azt az $n=100$ elemű FAE mintát! Rögzítsük meg a `random_state` paraméter $1992$-nek, hogy mindannyian ugyan azt a $100$ elemű véletlen mintát kapjuk!
+
+```{python}
+BalcsiMinta = Balcsi.sample(n = 100, replace = True, random_state = 1992)
+
+BalcsiMinta.info()
+```
+
+Namármost. A **teljes sokaság átlagos átúszási idejéről $6$ db különböző állítást tudok megfogalmazni** egy konkrét érték, pl. az $2.5$ óra, azaz $150$perc viszonylatában. A valós, sokasági átlagos időeredményt most is $\mu$-vel jelöljük:
+
+1. Optimista vagyok, és azt mondom, hogy gyorsak voltak a népek és az átlagos átúszási idő a sokaságban kisebb, mint $150$ perc: $\mu < 150$
+2. Pesszimista magyarként azt is mondhatom, hogy lassú volt az úszótömeg és az átlagos időeredmény a sokaságban nagyobb, mint $150$ perc: $\mu > 150$
+3. De még azt is el tudom képzelni, hogy a valós átlag úszási idő épp $150$ perc: $\mu = 150$
+4. Vagy abban is hihetek, hogy a sokaságban az átlag időeredmény minden csak nem $150$ perc: $\mu \neq 150$
+5. A *félig optimista* mondhatja azt, hogy a sokasági átlagos időeredmény *legfeljebb* $150$ perc: $\mu \leq 150$
+6. Kizárásos alapon a *félig pesszimista* pedig úgy fog vélekedni, hogy a sokasági átlagos úszási idő *legalább* $150$ perc: $\mu \geq 150$
+
+Oké, akkor van $6$ db elméletem...azaz *hipotézis*em. Nézzük meg mennyi az **átlag a megfigyelt $100$ elemű mintában**:
+
+```{python}
+BalcsiMinta.PERC.mean()
+```
+
+No, a megfigyelt $100$ átúszó alapján a mintaátlag kb. $164$ perc. Ez alapján a 2. állítás, a pesszimista ürge mondása tűnik igaznak, az **átlag nagyobb, mint** $150$ perc. NODE! **Amit itt látunk az csak $100$ ember átlagos ideje, a teljes sokaságban az átlagos átúszási idő ettől eltérhet!**<br>
+Szebben fogalmazva, **a $164$ és $150$ közti különbség simán betudható a mintavételi hibának is!!**<br>
+**Ezért végzünk hipotézisvizsgálatot**, hogy eldöntsük, hogy a $\mu > 150$ hipotézis (állítás) igaznak vehető-e még a mintavételi hibával együtt is.
+
+Igazából, ha belegondolunk, akkor mind a $6$ állítás visszavezethető ahhoz a kérdéshez, hogy a valós, sokasági átlag, $\mu$ **eltér-e** annyira a $150$-től, hogy az **eltérés már meghaladja a mintavételi hibát**. Ezt úgy mondjuk szépen, hogy **azt vizsgáljuk, SZIGNIFIKÁNS-e az eltérés a valós $\mu$ és $150$ között!**
+
+Most itt éppen ki tudjuk számolni a teljes sokaság ismeretében, hogy $\mu=167$ perc, ami **tényleg magasabb, mint** $150$.
+
+```{python}
+Balcsi.mean()
+```
+
+A **gyakorlatban viszont mindezt NEM tudjatjuk, hiszen csak az $n=100$ elemű minta áll rendelkezésünkre!!** Szóval **marad az, hogy hipotézisvizsgálattal ellenőrizzük, hogy a $\bar{y}=164$ megfigyelt mintaátlag szignifikánsan eltér-e a $150$-től**.
+
+Az eddigi logikánk alapján létre tudunk hozni egy úgynevezett **nullhipotézist** ($H_0$) és **alternatyv hipotézist** ($H_1$) az **eredeti állításunkból**.
+
+A pontos logika itt a következő. A $H_0$-ban mindig olyan állítást fogalmazunk meg, ami **a vizsgált statisztikai paraméter tekintetében megengedi az egyenlőséget**.<br>
+A $H_1$ pedig az **eredeti állítástól függ**:
+
+- Ha az **eredeti állítás megengedi az egyenlőséget**, akkor az állítás $H_0$-ba kerül és **a $H_1$-ben tagadjuk az eredeti állítást**. Ebből adódóan azt várjuk, hogy a hipotézisvizsgálat végén **a $H_0$ állítás bizonyuljon igaznak**. Ebben az esetben azt szeretnénk, hogy **a valós sokasági átlag átúszási idő ne különbözzön szignifikánsan a $150$ perctől**.
+- Ha az **eredeti állítás nem engedi meg az egyenlőséget**, akkor az a $H_1$-be "költözik", és **a $H_0$-ban az eredeti állítást tagadjuk**. Ebből adódóan azt várjuk, hogy a hipotézisvizsgálat végén **a $H_1$ állítás bizonyuljon igaznak**. Ebben az esetben azt szeretnénk, hogy **a valós sokasági átlag átúszási idő szignifikánsan különbözzön a $150$ perctől**.
+
+Ezen elveket figyelembe véve a $6$ eredeti állításunkhoz a következő $H_0$ és $H_1$ párok adhatók meg:
+
+1. Állítás: $\mu < 150$ || $H_0:\mu \geq 150$ || $H_1:\mu < 150$ || Állítás a $H_1$-ben található.
+2. Állítás: $\mu > 150$ || $H_0:\mu \leq 150$ || $H_1:\mu > 150$ || Állítás a $H_1$-ben található.
+3. Állítás: $\mu = 150$ || $H_0:\mu = 150$ || $H_1:\mu \neq 150$ || Állítás a $H_0$-ban található.
+4. Állítás: $\mu \neq 150$ || $H_0:\mu = 150$ || $H_1:\mu \neq 150$ || Állítás a $H_1$-ben található.
+5. Állítás: $\mu \leq 150$ || $H_0:\mu \leq 150$ || $H_1:\mu > 150$ || Állítás a $H_0$-ban található.
+6. Állítás: $\mu \geq 150$ || $H_0:\mu \geq 150$ || $H_1:\mu < 150$ || Állítás a $H_0$-ban található.
+
+Az 1-2. és 5-6 állításokban, ahol **nem "tiszta" egyenlőség van $H_0$-ban szoktunk úgynevezett technikai nullhipotézist, $H_0^T$-t alkalmazni**. Ez csak annyit jelent, hogy a **nem "tiszta" egyenlőséggel adott $H_0$-t átírjuk tiszta egyenlőségre**.<br>
+Tehát, pl. az **1. és 5. állítás technikai nullhipotézissel**:
+
+1. Állítás: $\mu < 150$ || $H_0^T:\mu = 150$ || $H_1:\mu < 150$ || Állítás a $H_1$-ben található.
+5. Állítás: $\mu \leq 150$ || $H_0^T:\mu = 150$ || $H_1:\mu > 150$ || Állítás a $H_0$-ban található.
+
+A hipotézisvizsgákat vagy más néven **statisztikai próbákat a $H_1$-ben adott relációs jeleik alapján három csoportba kategórizálják**:
+
+- Ha $H_1$-ben $\neq$ jel van, akkor **kétoldali próba**
+- Ha $H_1$-ben $<$ jel van, akkor **baloldali próba**
+- Ha $H_1$-ben $>$ jel van, akkor **jobboldali próba**
+
+### 1.1. A p-érték fogalma
+
+Ha szépenfelírtuk a megfelelő $H_0$ és $H_1$ párokat, akkor meghatározzuk, hogy a megfigyelt mintánk alapjánk melyik tekinthető igaznak a kettő közül. Erre a célra egy **p-érték nevű statisztikai mutatószámot használunk**. A **p-érték megadja mekkora a valószínűsége, hogy a $H_0$ elutasításával hibás döntést hozunk**<br>
+Szóval, ha azt kapom, hogy **p-érték = 30%**, akkor azt mondhatom, hogy **30% valószínűséggel HIBÁZOM, ha azt mondom, hogy $H_0$ egy hamis állítás a mintánk alapján**.
+
+Ez alapján a **döntési szabály** $H_0$ és $H_1$ között a következő. Amennyiben a **p-érték túl magas, elfogadjuk** $H_0$-t, mivel elutasítása túl nagy hibavalószínűséggel járna. Ellenben ha a **p-érték túl alacsony**, akkor elutasítjuk $H_0$-t és **elfogadjuk** $H_1$**-et**, mivel $H_0$ elutasítása nagyon alacsony hibavalószínűséggel jár.
+
+A kérdés az hogyan döntöm el, hogy egy p-érték túl magas/alacsony-e? Erre van nekünk az úgynevezett **szignifikancia-szint, amit** $\alpha$**-val jelölünk**. A szignifikancia-szint a **maximális elfogadott hibavalószínűség $H_0$ elutasításához**.
+
+Tehát, ha azt mondjuk, hogy $\alpha=5\%$, akkor $5\%$ alatti p-érték esetén **elutasítjuk $H_0$-t, mivel elutasítása kisebb hibával jár, mint a megengedett maximum**. Másrészről, ha a p-értékünk $5\%$ feletti, akkor meg **elfogadjuk $H_0$-t, mivel elutasítása nagyobb hibával jár, mint a megengedett maximum**.
+
+Ezen a ponton tehát a **következőt hinnénk**:
+
+- **p-érték** $>\alpha \rightarrow H_0$
+- **p-érték** $\leq\alpha \rightarrow H_1$
+
+De természetesen **AZ ÉLET SOSEM ILYEN EGYSZERŰ!!** a fő probléma itt abból jön, hogy **simán lehetnek olyan mintaadataink, hogy a meghozott döntés marhára függ attól mit mondok pontosan $\alpha$-nak!** Pl. oké, maximum megenegedett hibavalószínűségem $\alpha=5\%$. A p-értékre meg kapok egy $4.8\%$-ot. Na akkor $\alpha=5\%$ esetén elutasítanánk $H_0$-t, de egy $\alpha=3\%$-nál már épp elutasítanánk $H_0$-t.<br>
+Emiatt alkalmazzuk a **szokásos szignifikancia-szintek tartományát, ami $1\%-10\%$ között mozog**. Nem akarunk $10\%$-nál nagyobb megenegedett $\alpha$ hibát, mert az már tényleg magas hibavalószínűség. Másrészről meg $0\%$ **hibavalószínűségünk meg csak úgy lehet, ha megfigyeljük az egész sokaságot, és tudjuk mennyi a vizsgált statisztikai paraméter valós, sokasági értéke**. Ekkor meg pont a mintavétel lényegét veszítjük el, hogy nem kell megfigyelni minden múltbeli és jövőbeli adatpontot ahhoz, hogy dönteni tudjunk a vizsgált mutatószámunk valós, sokasági értékéről. Ez utóbbi $\alpha=0\%$ eset hasonló ahhoz, amikor azt mondtuk, hogy a $100\%$ megbízhatóságú konfidencia-intervallumnak sincs semmi értéelme, mert akkor azt mondanánk, hogy a mintavételünk alapján a vizsgált statisztikai mutatószámunk (paraméterünk) bárho lehet $\pm\infty$ között... :)<br>
+Továbbá, majd **szimulációkból látni fogjuk, hogy $1\%$ és $10\%$ közti p-értéket simán produkál a valóságban igaz és hamis $H_0$ állítás is**!
+
+Szóval, az előbbi családregényünk alapján az tűnik egy normálisabb megoldásnak, ha **azt mondjuk, hogy $1\%$ és $10\%$ közti p-érték esetén nem választunk $H_0$ és $H_1$ között, mert ekkor a döntésünk nagyon érzékeny lenne a konkrét $\alpha$ megválasztására**<br>
+Ha egy $1\%$ és $10\%$ közti p-értéket produkálnak a mintaadataink, akkor a legjobb, amit tehetünk, hogy **addig növeljük a mintaméretet ($n$-t) amíg a p-érték egyértelműen $1\%$ alá vagy $10\%$ fölé nem kerül**. Ezt a módszert hívja a statisztika <a href="https://en.wikipedia.org/wiki/Sequential_analysis" target="_blank">szekvenciális analízisnek</a>, és a klinikai gyógyszerkísérletekben és az ipari minőségbiztosításban rendszeresen alkalmazzák. A módszer alapjait pedig egy <a href="https://hu.wikipedia.org/wiki/Wald_%C3%81brah%C3%A1m" target="_blank">Wald Ábrahám</a> nevű magar statisztikus dolgozta ki az Amerikai Légierőnek a II. világháború alatt (zsidó származása miatt itthon "nem kellett"). Szóval, mint minden fontos területet a világon, ezt is magyarok találták ki. :) #Jézusmagyarvót
+
+Tehát, az egy fokkal **korrektebb döntés szabályok hipotézisvizsgálat esetén**:
+
+- **p-érték** $>10\% \rightarrow H_0$
+- $1\% <$ **p-érték** $\leq 10\% \rightarrow$ **nincs döntés**
+- **p-érték** $\leq1\% \rightarrow H_1$
+
+További fejfájásokat okoz, hogy nagyon óvatosan kell bánni az $1\%$ és $10\%$ közti p-értékkel azért is, mert a **p-érték és az $\alpha$ csak egy nézőpontból írják le a hipotézisvizsgálat során elkövethető döntési hibát**! A **p-érték és az $\alpha$ csak az úgyenevzett ELSŐFAJÚ hibáról ad információt: a valóságban igaz $H_0$ elutasításának valószínűségéről**!<br>
+NODE, van nekünk **MÁSODFAJÚ hibánk is**, ami a **valóságban hamis $H_0$ téves elfoggadását jelenti**. Az a rossz hír, hogy ennek a **másodfajú hibának a valószínűségét nem tudjuk kiszámolni a megfigyelt minta alapján!!**<br>
+Ez a hipotézoisvizsgálat nagy átka: ha **elfogadunk egy $H_0$-t, akkor igazából nem tudjuk, hogy mekkora valószínűséggel hibázunk, csak azt tudjuk, hogy mennyi a $H_0$ elutasításának hibavalószínűsége, mert ez pont a p-érték**.<br>
+Ezért nagyon sokan fogalmaznak szándékosan ilyen furán a $H_0$-ról, hogy nem elfogadjuk a $H_0$-t, hanem **nem tudjuk elutasítani a $H_0$-t**.
+
+A probléma alaposabb megértésében szerintem remek szolgálatot tesz az alábbi mém. :)
+
+<center>
+![](Type2.png){width=40%}
+</center>
+
+<br>Most pedig nézzük meg **hogyan kell kiszámolni a p-értéket a megfigyelt minta alapjánabban az esetben, amikor a vizsgált statisztikai paraméter az átlag**, azaz $\mu$!
+
+## 2. A sokasági átlagra vonatkozó 't-próba'
+
+A p-érték számításához **mindig szükségünk van egy próbafüggvény nevű statisztikai mutatóra, amit csak a megfigyelt mintaadatokból ki tudunk mindig számolni**. Eztán a **p-értéket a próbafüggvényből egy nevezetes valószínűségi eloszlás (standard normális, t-eloszlás, khi-négyzet, stb.) alapján tudjuk kiszámolni**.
+
+Jelöljük a **sokasági átlag HIPOTETIKUS értékét** $\mu_0$-nak. Ez az érték, amit az állításban **feltételezek** a valós, sokasági átlagról. Az 1. fejezetben ez volt a $150$ perc. Ezzel a jelöléssel az alábbi módon néz ki az átlagra vonatkozó próbafüggvény: $$\frac{\bar{y}-\mu_0}{\frac{s}{\sqrt{n}}}$$
+
+Tehát, a próbafüggvényünk most nem más, mint a **minta és hipotetikus átlag különbsége osztva az átlag standard hibájával**.
+
+Ha a $H_0$-ban jól okoskodunk, és **tényleg sikerült a valós $\mu$ sokasági átlagot venni a $\mu_0$ elvi** (hipotetikus) **átlagnak, akkor sok-sok mintavétel esetén a próbafüggvényünk $n-1$ szabadságfokú t-eloszlást követ**: $$\frac{\bar{y}-\mu}{\frac{s}{\sqrt{n}}} \sim t(n-1)$$
+
+A képlet mögött az az elv nyugszik, hogy **a $\mu = \mu_0$ technikai nullhipotézist ($H_0^T$) alkalmazzuk mind a 6 különböző típusú $H_0$ és $H_1$ párosnál, így meg tudjuk majd adni a próbafüggvény eloszlását sok-sok mintavétel esetén**.
+
+Ezt az egészet gyorsan ellenőrizni tudjuk, ha **kiveszünk $10000$ db $n=100$ elemű FAE mintát a Balaton átúszók sokaságából**, ahogy a <a href="Gyak03.html" target="_blank">3. heti tananyagban</a> is tettük.<br>
+Most csak **visszatöltjük a $10000$ db FAE mintát tartalmazó Excel táblát egy data frame-be**, amit a <a href="Gyak02.html" target="_blank">2. heti tananyagban</a> hoztunk létre. Ez az Excel fájl <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/blob/main/MintaDataFrame.xlsx" target="_blank">innen</a> elérhető.
+
+```{python}
+MintaVetelek100Elem = pd.read_excel("MintaDataFrame.xlsx")
+MintaVetelek100Elem
+```
+
+Oké, az eredményből látjuk is, hogy úgy néz ki a data frame, hogy **1 sor tartalmaz 1 db 100 elemű mintát és a mintaelemeket** (tehát a mintába besorsolt versenyző percben mért időeredményét) **az oszlopkban tároljuk**.
+
+Kiszámoljuk mindenegyes mintavételre a minta átlagos időeredményét és azok korrigált szórását. Csak figyeljünk, hogy az alkalmazott `numpy` függvényeket `axis = 1` paraméterrel használjuk, hogy ne oszlopok, hanem sorok szerint vegyék az átlagokat és a szórásokat. Plusz, figyeljünk, hogy a függvényeket minidg csak az első $100$ oszlopra engedjük rá, hiszen ott vannak a tényleges mintaelemek. Ezt ugyebár a data framek `iloc` metódusával tudjuk biztosítani, ahogy a <a href="Gyak03.html" target="_blank">3. heti tananyag 2. fejezetében</a> csináltuk.
+
+```{python}
+MintaVetelek100Elem['Atlagok'] = np.mean(MintaVetelek100Elem.iloc[:,0:100], axis=1)
+MintaVetelek100Elem['Szorasok'] = np.std(MintaVetelek100Elem.iloc[:,0:100], axis=1, ddof=1)
+
+MintaVetelek100Elem
+```
+
+Ezek után pedig **ki tudjuk számolni a próbafüggvényünket egy olyan $H_0$ és $H_1$ párosra, amiről tudjuk, hogy a sokaságban $H_0$ igaz, és egy olyanra, ahol tudjuk, hogy a sokaságban $H_0$ hamis**:
+
+- **IGAZ** $H_0$ esete: $H_0:\mu=167$ és $H_1 < 167$
+- **HAMIS** $H_0$ esete: $H_0^T:\mu=150$ és $H_1 > 150$
+
+```{python}
+mu_0_igaz = np.mean(Balcsi.PERC) # ez ekkor a valós sokasági átlag
+mu_0_hamis = 150 # tetszőleges érték
+n = 100 # mintaméret
+
+MintaVetelek100Elem['ProbaFv_H0Igaz'] = (MintaVetelek100Elem.Atlagok - mu_0_igaz)/(MintaVetelek100Elem.Szorasok/np.sqrt(n))
+MintaVetelek100Elem['ProbaFv_H0Hamis'] = (MintaVetelek100Elem.Atlagok - mu_0_hamis)/(MintaVetelek100Elem.Szorasok/np.sqrt(n))
+
+MintaVetelek100Elem
+```
+
+Okké! Akkor miután megvannak a kétféle esetben a próbafüggvényeink, **nézzük meg a kétféle próbafüggvények hisztogramja a $10000$ db mintavétel alapján hogyan alakul a $t(n-1)$, azaz $t(100-1)$ eloszlás sűrűségfüggvényéhez** képest.<br>
+A sűrűségfüggvény hisztogramhoz való illeszkedését ábrázoló kód teljes mértékben az <a href="Gyak03.html" target="_blank">1. heti tananyag 2.3. és 3. fejezeteiben</a> lévő kódok logikáját követi.
+
+```{python}
+# Igaz és Hamis H0 esetén próbafüggvények kisztogramja
+# A 'label' paraméter majd a színfeliratokat adja az ábrán
+MintaVetelek100Elem.ProbaFv_H0Igaz.hist(density = True, label="ProbaFv_H0Igaz")
+MintaVetelek100Elem.ProbaFv_H0Hamis.hist(density = True, label="ProbaFv_H0Hamis")
+# A sűrűségfüggvény x tengelye az Igaz H0 esetén vett próbafüggvények min-max tartományában lesz az 'x' tengelyen
+x_tengely = np.arange(np.min(MintaVetelek100Elem.ProbaFv_H0Igaz), np.max(MintaVetelek100Elem.ProbaFv_H0Igaz), 0.01)
+# A t-eloszlású sűrűségfüggvény (pdf) értékek az 'y' tengelyen
+y_tengely = stats.t.pdf(x_tengely, df = n-1)
+# Sűrűségfüggvény felrakása a hisztogramra
+plt.plot(x_tengely, y_tengely, label = "t-eloszlás")
+# Színfeliratok megjelenítése a jobb felső sarokban
+plt.legend(loc="upper right")
+# Ábra mutatása
+plt.show()
+```
+
+Szuper! Tehát **igaz $H_0$ esetén tényleg t-eloszlást követ a próbafüggvény a sok-sok mintavételünk esetén**. Hamis $H_0$ esetén pedig valami más szimmetrikus eloszlás rajzolódik ki a hisztogramon, ami NEM a t-eloszlás. De hogy ez most konkrétan mi, nem annyira érdekel minket. :)
+
+Ebből, hogy a próbafüggvény t-eloszlást követ sok-sok mintavétel esetén, ha $H_0$ igaz, **ki tudjuk számolni a p-értéket**. gyakorlatilag területeket számolunk a *t-eloszlás* sűrűségfüggvénye alatt. A konkrét számoláshoz végig kell gondolnunk, hogy **mi a legjobb eset $H_0$ szempontjából a próbafüggvényre nézve**:
+
+- **Kétoldali** próbák ($H_0: \mu=\mu_0$ és $H_1: \mu \neq \mu_0$) esetén: ha a **próbafüggvény pontosan** $0 \rightarrow$ ez az elvi eset arra utal, hogy a hipotetikus átlag és a valós, sokasági átlag ugyanaz, így a $H_1$ $0$ valószínűséggel következik be.
+- **Baloldali** próbák ($H_0: \mu\geq\mu_0$ és $H_1: \mu < \mu_0$) esetén: ha a **próbafüggvény =** $+\infty \rightarrow$ ez az elvi eset arra utal, hogy a sokasági átlag ($\mu$) az pont $+\infty$, aminél minden $\mu_0$ kisebb, így a $H_1$ $0$ valószínűséggel következik be.
+- **Jobboldali** próbák ($H_0: \mu=\mu_0$ és $H_1: \mu > \mu_0$) esetén: ha a **próbafüggvény =** $-\infty \rightarrow$ ez az elvi eset arra utal, hogy a sokasági átlag ($\mu$) az pont $-\infty$, aminél minden $\mu_0$ nagyobb, így a $H_1$ $0$ valószínűséggel következik be.
+
+Ez alapján,ha **van egy ismert próbafüggvény értékem, amit $t$-vel jelölök, akkor a p-érték a $t(n-1)$ eloszlásból az alábbi ábrán látható módon számítható ki**:
+
+<center>
+![](pval_fromt.jpg){width=80%}
+</center>
+
+<br>Látható, hogy **mindhárom esetben a p-érték úgy lesz kiszámolva, hogy ha a konkrét $t$ próbafüggvényünk messzebb kerül a $H_0$ számára legjobb esettől, akkor a p-érték csökken $\rightarrow$ hiszen egyre kisebb és kisebb hibát vétünk, ha elutasítjuk a $H_0$-t!!**
+
+Mindezek alapján akkor **számoljuk ki** a `scipy` csomag `stats.t.cdf` függvénye segítségével a **p-értéket mind a $10000$ db mintában a korábban vizsgált két $H_0$ és $H_1$ párunkra, ahol egyszer igaz, egyszer pedig hamis volt a** $H_0$:
+
+- **IGAZ** $H_0$ esete: $H_0:\mu=167$ és $H_1 < 167$
+- **HAMIS** $H_0$ esete: $H_0:\mu=150$ és $H_1 > 150$
+
+Figyeljünk arra, hogy az $1-$ rész a `stats.t.cdf` függvényen a hamis $H_0$ esetben a **jobboldali próba** miatt van:
+
+```{python}
+n = 100 # mintaméret
+
+MintaVetelek100Elem['p_ertek_H0Igaz'] = stats.t.cdf(MintaVetelek100Elem.ProbaFv_H0Igaz, df = n-1)
+MintaVetelek100Elem['p_ertek_H0Hamis'] = 1-stats.t.cdf(MintaVetelek100Elem.ProbaFv_H0Hamis, df = n-1)
+
+MintaVetelek100Elem
+```
+
+Remek! Az első és az utolsó $5$ db minta alapján az elvárt eredményeket kaptuk a p-értékekre: magas értékek igaz $H_0$, alacsony értékek hamis $H_0$ esetén. Pontosabb értelmezéshez nézzük meg **az $5.$, azaz a data frame-ben $4$-es sorindexszel rendelkező minta esetét**:
+
+- **Igaz $H_0$ esetén $41.58\%$-os valószínűséggel hibázunk, ha elutasítjuk $H_0$-t ezen minta alapján**.
+- **Hamis $H_0$ esetén $0.02\%$-os valószínűséggel hibázunk, ha elutasítjuk $H_0$-t ezen minta alapján**.
+
+Ugyanakkor a $2.$ mintában látjuk, hogy a p-érték csak $1.7\%$ igaz $H_0$ és $3.6\%$ hamis $H_0$ esetén. Szóval, a **"nem hozunk döntést, ha a p-érték $1\% - 10\%$ között mozog", egy elég jogos szabálynak tűnik**! :)
+
+Hasonlóan megerősíti az $1\% - 10\%$ közötti p-értékek esetén vett óvatosságot, ha  az igaz és hamis $H_0$ esetén vizsgált p-értékeket doboz ábrán vizsgáljuk:
+
+```{python}
+MintaVetelek100Elem.boxplot(column=['p_ertek_H0Igaz', 'p_ertek_H0Hamis'])
+plt.show()
+```
+
+Ahogyan vártuk is, igaz $H_0$ esetén a p-értékek középső $50\%$-a, azaz interkavrtilis trejedelme ($IKT$) látványosan magasabban van, mint hamis $H_0$ esetében. Ugyanakkor, azt is nagyon fontos látni az ábrán, hogy **a nagy p-értékek kilógó értéknek számítanak hamis $H_0$ esetén, de a kis p-értékek nem kilógó értékek igaz $H_0$ esetében!** Tehát, néha megérheto szigorúbb $\alpha$-t használni, mint $1\%$. Sokan csak akkor utasítják el $H_0$-t, ha a p-érték kisebb, mint $0.1\%=0.001$, szóval $\alpha=0.001$ mellett dolgoznak.
+
+### 2.1. A 't-próba' beépített függvénnyel
+
+Azért van némi szerencsénk, mert az **átlagra vonatkozó t-próba p-értékét szépen ki lehet számolni beépített `scipy` függvénnyel** is!
+
+Vegyük például az 1. fejezet elején kivett $n=100$ elemű mintát, amit a `BalcsiMinta` című Python objektumban tároltunk le, ami egy $100\times3$-as data frame:
+
+```{python}
+BalcsiMinta.info()
+```
+
+Vizsgáljuk meg ezen a mintán az alábbi $H_0$ és $H_1$ párost:
+
+- $H_0^T:\mu=150$
+- $H_1 > 150$
+
+Mivel $H_1$-ben $>$ relációs jel lakik, így **jobboldali** lesz a hipotézisvizsgálat.<br>
+Tudjuk, hogy itt **a $H_1$ lesz igaz, hiszen láttuk korábban, hogy a teljes sokaságban az átlagos átúszási idő $167.5$ perc**. Tehát, valami **jó alacsony p-értéket várunk**!
+
+Ez szépen ki is jön manuálisan is! Először kiszámoljuk a $\frac{\bar{y}-\mu_0}{\frac{s}{\sqrt{n}}}$ **próbafüggvényt** $\mu_0=150$ mellett, hiszen a hipotézisekben azt nézzük, hogy a valós, sokasági átlag szignifikánsan nagyobb-e, mint ez a feltételezett (hipotetikus) $150$ perces átlag.
+
+```{python}
+elviátlag = 150
+mintaátlag = np.mean(BalcsiMinta.PERC)
+s = np.std(BalcsiMinta.PERC, ddof=1)
+n = len(BalcsiMinta)
+
+próbafv = (mintaátlag - elviátlag) / (s/np.sqrt(n))
+próbafv
+```
+
+Remek! Ebből gyorsan is meg is van a $t(n-1)$ eloszlásból (`stats.t.cdf` függvénnyel) a p-érték. Most ugye a **próbafüggvény felé esés valószínűségét számoljuk, hiszen jobboldali a próba**.
+
+```{python}
+p_ertek_t_elo = 1 - stats.t.cdf(próbafv, df = n-1)
+p_ertek_t_elo * 100 # százalékban írom ki
+```
+
+A **p-érték alapján elmonható, hogy a most vizsgált $100$ elemű minta alapján csak $0.017\%$ a valószínűsége a hibának, ha $H_0$-t elutasítjuk**. Ez **kisebb még a legkisebb szokásos szignifikancia-szintnél, az $\alpha=1\%$-nál is, így meghozzuk ezt a döntést és $H_0$-t elutasítjuk**.<br>
+Ez alapján pedig $H_1$ elfogadható, azaz a **sokaságban az átlagos átúszási idő szignifikánsan** (mintavételi hibát meghaladó mértékben) **nagyobb, mint $150$ perc**.<br>
+Most tudjuk, hogy **helyesen döntöttünk**, mivel láttuk, hogy a sokaságban az átlagos átúszási idő $167.5$ perc.
+
+Mindez szerencsére elintézhető a `scipy` csomag `stats.ttest_1samp` függvényével is. Ha a függvény
+
+- első paraméterében megadjuk az aktuális mintánk elemeit tartalmazó oszlopot egy data frame-ből,
+- második paraméterben az elvi átlagot, azaz $\mu_0$-t,
+- az `alternative` paraméterben pedig a próba oldalát $H_1$ relációs jele alapján
+  * lehetséges értékek: `‘two-sided’, ‘less’, ‘greater’`, rendre a $\neq$, $<$, $>$ relációs jeleket jelölik $H_1$-ben
+
+Akkor a **függvény megadja a t-próba p-értékét és a próbafüggvényt is**:
+
+```{python}
+stats.ttest_1samp(BalcsiMinta.PERC, 150, alternative='greater')
+```
+
+Szuper, ugyan úgy megvan a próbafüggvény ($3.7195$) és a $0.017\%$-os p-érték is! :)
+
+### 2.2. A 't-próba' előfeltételei
+
+TODO
+
+## 3. A sokasági átlagra vonatkozó 'z-próba'
+
+TODO
+
+## 4. A sokasági arányra vonatkozó 'z-próba'
+
+TODO

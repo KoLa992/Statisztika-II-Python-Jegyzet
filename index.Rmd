@@ -4,10 +4,10 @@ title: |
   ![](statistics-review.jpg){width=40%}<br> 
   <br>Statisztika II. Python Jegyzet<br>
   Budapesti Corvinus Egyetem<br>
-  Gazdaságinformatikus BSc
+  Gazdaságinformatikus BSc<br><br>
   </center> 
 output: html_document
-date: '2023.03.27.'
+date: '2023.04.05.'
 ---
 
 ```{r setup, include=FALSE}
@@ -26,11 +26,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## 6. hét: <a href="Gyak06.html" target="_blank">Becslések EV és R mintából</a>
 
-## 7. hét: Hipotézisvizsgálat alapjai
+## 7. hét: <a href="Gyak07.html" target="_blank">Hipotézisvizsgálat alapjai</a>
 
-## 8. hét: Egymintás próbák
-
-## 9. hét: Kétmintás próbák és a p-érték Bootstrap módszerrel
+## 8+9. hét: Egymintás és Kétmintás próbák
 
 ## 10. hét: Nemparaméteres próbák (kis- és nagymintás esetek)
 
