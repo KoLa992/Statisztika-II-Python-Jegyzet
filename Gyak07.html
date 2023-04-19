@@ -244,7 +244,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Hipotézisvizsgálat alapjai</h1>
 <h4 class="author">Kovács László</h4>
-<h4 class="date">2023. 04. 06.</h4>
+<h4 class="date">2023. 04. 19.</h4>
 
 </div>
 
@@ -412,8 +412,8 @@ MintaVetelek100Elem</code></pre>
 ## [10000 rows x 102 columns]</code></pre>
 <p>Ezek után pedig <strong>ki tudjuk számolni a próbafüggvényünket egy olyan <span class="math inline">\(H_0\)</span> és <span class="math inline">\(H_1\)</span> párosra, amiről tudjuk, hogy a sokaságban <span class="math inline">\(H_0\)</span> igaz, és egy olyanra, ahol tudjuk, hogy a sokaságban <span class="math inline">\(H_0\)</span> hamis</strong>:</p>
 <ul>
-<li><strong>IGAZ</strong> <span class="math inline">\(H_0\)</span> esete: <span class="math inline">\(H_0:\mu=167\)</span> és <span class="math inline">\(H_1 &lt; 167\)</span></li>
-<li><strong>HAMIS</strong> <span class="math inline">\(H_0\)</span> esete: <span class="math inline">\(H_0^T:\mu=150\)</span> és <span class="math inline">\(H_1 &gt; 150\)</span></li>
+<li><strong>IGAZ</strong> <span class="math inline">\(H_0\)</span> esete: <span class="math inline">\(H_0:\mu=167\)</span> és <span class="math inline">\(H_1: \mu &lt; 167\)</span></li>
+<li><strong>HAMIS</strong> <span class="math inline">\(H_0\)</span> esete: <span class="math inline">\(H_0^T:\mu=150\)</span> és <span class="math inline">\(H_1: \mu &gt; 150\)</span></li>
 </ul>
 <pre class="python"><code>mu_0_igaz = np.mean(Balcsi.PERC) # ez ekkor a valós sokasági átlag
 mu_0_hamis = 150 # tetszőleges érték
@@ -467,8 +467,8 @@ plt.show()</code></pre>
 <p><br>Látható, hogy <strong>mindhárom esetben a p-érték úgy lesz kiszámolva, hogy ha a konkrét <span class="math inline">\(t\)</span> próbafüggvényünk messzebb kerül a <span class="math inline">\(H_0\)</span> számára legjobb esettől, akkor a p-érték csökken <span class="math inline">\(\rightarrow\)</span> hiszen egyre kisebb és kisebb hibát vétünk, ha elutasítjuk a <span class="math inline">\(H_0\)</span>-t!!</strong></p>
 <p>Mindezek alapján akkor <strong>számoljuk ki</strong> a <code>scipy</code> csomag <code>stats.t.cdf</code> függvénye segítségével a <strong>p-értéket mind a <span class="math inline">\(10000\)</span> db mintában a korábban vizsgált két <span class="math inline">\(H_0\)</span> és <span class="math inline">\(H_1\)</span> párunkra, ahol egyszer igaz, egyszer pedig hamis volt a</strong> <span class="math inline">\(H_0\)</span>:</p>
 <ul>
-<li><strong>IGAZ</strong> <span class="math inline">\(H_0\)</span> esete: <span class="math inline">\(H_0:\mu=167\)</span> és <span class="math inline">\(H_1 &lt; 167\)</span></li>
-<li><strong>HAMIS</strong> <span class="math inline">\(H_0\)</span> esete: <span class="math inline">\(H_0:\mu=150\)</span> és <span class="math inline">\(H_1 &gt; 150\)</span></li>
+<li><strong>IGAZ</strong> <span class="math inline">\(H_0\)</span> esete: <span class="math inline">\(H_0:\mu=167\)</span> és <span class="math inline">\(H_1: \mu &lt; 167\)</span></li>
+<li><strong>HAMIS</strong> <span class="math inline">\(H_0\)</span> esete: <span class="math inline">\(H_0:\mu=150\)</span> és <span class="math inline">\(H_1: \mu &gt; 150\)</span></li>
 </ul>
 <p>Figyeljünk arra, hogy az <span class="math inline">\(1-\)</span> rész a <code>stats.t.cdf</code> függvényen a hamis <span class="math inline">\(H_0\)</span> esetben a <strong>jobboldali próba</strong> miatt van:</p>
 <pre class="python"><code>n = 100 # mintaméret
@@ -570,28 +570,43 @@ plt.show()</code></pre>
 <h2>3. A sokasági átlagra vonatkozó <em>z-próba</em></h2>
 <p>Ugyebár az átlagra vonatkozó konfidencia-intervallumok esetén megfigyeltük, hogy <strong>nagy szabadságfok (<span class="math inline">\(df&gt;30\)</span>) esetén a t-eloszlás lényegében megegyezik a standard normális eloszlással</strong>.</p>
 <p>Azaz, kicsit matekosabban fogalmazva: <strong>ha <span class="math inline">\(n &gt;30\)</span>, akkor igaz nullhipotézis (<span class="math inline">\(H_0\)</span>) esetén</strong> (tehát, amikor <span class="math inline">\(\mu_0\)</span> helyére épp a valós, sokasági átlagot, azaz <span class="math inline">\(\mu\)</span>-t helyettesítjük), a <strong>próbafüggvényünk standard normális (<span class="math inline">\(N(0,1)\)</span>) eloszlást követ</strong>: <span class="math display">\[\frac{\bar{y}-\mu}{\frac{s}{\sqrt{n}}} \sim N(0,1)\]</span></p>
-<p>TODO</p>
+<p>Ez alapján pontosan <strong>ugyan azon az elven számíthatunk a próbafüggvényből p-értéket, amit a 2. fejezetben a t-eloszlásnál is alkalmaztunk</strong>. Mivel a null-és alternatív hipotézis nem változott meg (<span class="math inline">\(H_0^T:\mu=150\)</span> és <span class="math inline">\(H_1 &gt; 150\)</span>), így marad a jobboldali próba, és mivel a mintaelemek sem változtak a 100 elemű mintánkban, így a <strong>próbafüggvény is megegyezik a 2.1. fejezetben használttal</strong>.<br> <strong>Mivel maradt a jobboldali próba</strong>, így a <strong>próbafüggvény fölé esés valószínűségét kell megadni a standard normális eloszlásban</strong> a <code>stats.norm.cdf</code> függvény <span class="math inline">\(1-\)</span> verziójával.</p>
 <pre class="python"><code>p_ertek_norm_elo = 1 - stats.norm.cdf(próbafv)
 p_ertek_norm_elo * 100 # százalékban írom ki</code></pre>
 <pre><code>## 0.009979194034781536</code></pre>
 <pre class="python"><code>p_ertek_t_elo * 100 # p-érték a t-eloszlából százalékban</code></pre>
 <pre><code>## 0.01655831079531156</code></pre>
-<p>Beépített függvénnyel.</p>
+<p>Mindkét p-érték nagyjából <span class="math inline">\(0.01\%\)</span> körüli, szóval a standard normális és t-eloszlás között tényleg nincs érdemi különbség a p-érték számolás tekintetében.</p>
+<p>Természetesen, mindez beépített függvénnyel is meg tudjuk oldani, csak ez most a <code>statsmodels</code> csomag <code>stats.weightstats</code> moduljában lakó <code>ztest</code> függvény lesz. A név (z test = z próba) onnan jön, hogy a standard ormális eloszlás jele a matekban <span class="math inline">\(z\)</span>, így ez a hipotézisvizsgálat <strong>z-próba</strong> néven fut, míg az előző <strong>t-próba</strong> néven, mivel ott a p-értéket t-eloszlásból számoltuk.<br> Paramétereiben a függvény ugyan úgy működik, mint a <code>scipy</code>-os <code>stats.ttest_1samp</code>:</p>
+<ul>
+<li>először megadjuk aktuális mintánk elemeit tartalmazó oszlopot egy data frame-ből</li>
+<li>utána jön a <code>value</code> paraméterben az elvi átlag (<span class="math inline">\(\mu_0\)</span>)</li>
+<li>végül pedig az alteranítv hipotézisben lévő relációs jelet adjuk meg szövegesen
+<ul>
+<li>lehetséges értékek: <code>‘two-sided’, ‘smaller’, ‘larger’</code>, rendre a <span class="math inline">\(\neq\)</span>, <span class="math inline">\(&lt;\)</span>, <span class="math inline">\(&gt;\)</span> relációs jeleket jelölik <span class="math inline">\(H_1\)</span>-ben</li>
+</ul></li>
+</ul>
+<p>Ezek alapján az alábbi módon néz ki a függvény használata Pythonban.</p>
 <pre class="python"><code># függvény importja
-from statsmodels.stats.weightstats import ztest as ztest
+from statsmodels.stats.weightstats import ztest
 
 # függvény használata
 ztest(BalcsiMinta.PERC, value = 150, alternative = &#39;larger&#39;)</code></pre>
 <pre><code>## (3.7195426048126436, 9.979194034785673e-05)</code></pre>
+<p>Meg is van a <span class="math inline">\(3.7\)</span>-es próbafüggvényünk és a <span class="math inline">\(0.0099\% \approx 0.01\%\)</span> körüli p-értékünk. Győzelem!</p>
 </div>
 <div id="a-sokasági-arányra-vonatkozó-z-próba" class="section level2">
 <h2>4. A sokasági arányra vonatkozó <em>z-próba</em></h2>
-<p>TODO</p>
+<p>Természetesen, nem csak sokasági átlagokra (<span class="math inline">\(\mu\)</span>), hanem sokasági arányokra (<span class="math inline">\(P\)</span>) is tudunk hipotéziseket tenni. Majd ehhez is tudunk p-értéket számolni és eldönteni, hogy az eredeti állításunkból felírt <span class="math inline">\(H_0\)</span> vagy <span class="math inline">\(H_1\)</span> tekinthető-e igaznak egy adott <span class="math inline">\(\alpha\)</span> szignifikancia-szinten.</p>
+<p>Nézzük meg, hogy <strong>vehető-e 1/3-nak a Balatont 3 óra felett átúszók aránya</strong>. Matematikailag az állításom azt mondja, hogy a 3 óra = 180 perc felett átúszók sokasági aránya egyenlő 1/3-dal: <span class="math inline">\(P = 1/3\)</span>. Mivel az <strong>állítás engedi az egyenlőséget, így az a <span class="math inline">\(H_0\)</span>-ba kerül</strong>. Ez alapján pedig <strong>a <span class="math inline">\(H_1\)</span>-ben az eredeti állítást tagadjuk, és a <span class="math inline">\(H_0\)</span>-nak szurkolunk</strong> a hipotézisvizsgálat során. Tehát, a <span class="math inline">\(H_0\)</span> és <span class="math inline">\(H_1\)</span> párunk az alábbi módra fog kinézni:</p>
 <ul>
 <li><span class="math inline">\(H_0:P=1/3\)</span></li>
 <li><span class="math inline">\(H_1:P\neq1/3\)</span></li>
+<li>Szurkolunk: <span class="math inline">\(H_0\)</span></li>
 </ul>
-<p>TODO <span class="math display">\[\frac{p-P_0}{\sqrt{\frac{P_0(1-P_0)}{n}}} \sim N(0,1)\]</span></p>
+<p>A <span class="math inline">\(H_0\)</span> és <span class="math inline">\(H_1\)</span> párunkból következik, hogy az <strong>elvi arány, azaz <span class="math inline">\(P_0\)</span>, amihez képest vizgsálódunk most az <span class="math inline">\(1/3\)</span> érték!!</strong></p>
+<p>Ezek után itt most azt mondanánk az <a href="Gyak05.html" target="_blank">5. heti tananyag 2. fejezete</a> alapján, hogy készítünk a megfigyelt mintánkba egy olyan <span class="math inline">\(0-1\)</span> értékekből álló oszlopot, ahol <span class="math inline">\(1\)</span> jelenti a 3 óránál hosszabb idő alatt átúszókat a mintában (arány szempontjából kedvező esetek a mintában), míg <span class="math inline">\(0\)</span> a többieket (arány szempontjából kevdezőtlen esetek a mintában), és ennek az oszlopnak az átlagára vonatkozó hipotézivizsgálatot végzünk (mivel <span class="math inline">\(n=100 &gt; 30\)</span> ez simán lehet z-próba).</p>
+<p>Ezzel a fenti elvvel viszont van egy kis gond!. Ugyanis <strong>arányra vonatkozó hipotézivizsgálat esetén a próbafüggvényünk az alábbi módon néz ki</strong>: <span class="math display">\[\frac{p-P_0}{\sqrt{\frac{P_0(1-P_0)}{n}}} \sim N(0,1)\]</span></p>
 <p>TODO</p>
 <pre class="python"><code># függvény importja
 from statsmodels.stats.proportion import proportions_ztest

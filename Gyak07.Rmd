@@ -1,7 +1,7 @@
 ---
 title: "Hipotézisvizsgálat alapjai"
 author: "Kovács László"
-date: "2023. 04. 06."
+date: "2023. 04. 19."
 output:
   html_document:
     toc: true
@@ -182,8 +182,8 @@ MintaVetelek100Elem
 
 Ezek után pedig **ki tudjuk számolni a próbafüggvényünket egy olyan $H_0$ és $H_1$ párosra, amiről tudjuk, hogy a sokaságban $H_0$ igaz, és egy olyanra, ahol tudjuk, hogy a sokaságban $H_0$ hamis**:
 
-- **IGAZ** $H_0$ esete: $H_0:\mu=167$ és $H_1 < 167$
-- **HAMIS** $H_0$ esete: $H_0^T:\mu=150$ és $H_1 > 150$
+- **IGAZ** $H_0$ esete: $H_0:\mu=167$ és $H_1: \mu < 167$
+- **HAMIS** $H_0$ esete: $H_0^T:\mu=150$ és $H_1: \mu > 150$
 
 ```{python}
 mu_0_igaz = np.mean(Balcsi.PERC) # ez ekkor a valós sokasági átlag
@@ -234,8 +234,8 @@ Ez alapján,ha **van egy ismert próbafüggvény értékem, amit $t$-vel jelöl�
 
 Mindezek alapján akkor **számoljuk ki** a `scipy` csomag `stats.t.cdf` függvénye segítségével a **p-értéket mind a $10000$ db mintában a korábban vizsgált két $H_0$ és $H_1$ párunkra, ahol egyszer igaz, egyszer pedig hamis volt a** $H_0$:
 
-- **IGAZ** $H_0$ esete: $H_0:\mu=167$ és $H_1 < 167$
-- **HAMIS** $H_0$ esete: $H_0:\mu=150$ és $H_1 > 150$
+- **IGAZ** $H_0$ esete: $H_0:\mu=167$ és $H_1: \mu < 167$
+- **HAMIS** $H_0$ esete: $H_0:\mu=150$ és $H_1: \mu > 150$
 
 Figyeljünk arra, hogy az $1-$ rész a `stats.t.cdf` függvényen a hamis $H_0$ esetben a **jobboldali próba** miatt van:
 
@@ -344,7 +344,8 @@ Ugyebár az átlagra vonatkozó konfidencia-intervallumok esetén megfigyeltük,
 
 Azaz, kicsit matekosabban fogalmazva: **ha $n >30$, akkor igaz nullhipotézis ($H_0$) esetén** (tehát, amikor $\mu_0$ helyére épp a valós, sokasági átlagot, azaz $\mu$-t helyettesítjük), a **próbafüggvényünk standard normális ($N(0,1)$) eloszlást követ**: $$\frac{\bar{y}-\mu}{\frac{s}{\sqrt{n}}} \sim N(0,1)$$
 
-TODO
+Ez alapján pontosan **ugyan azon az elven számíthatunk a próbafüggvényből p-értéket, amit a 2. fejezetben a t-eloszlásnál is alkalmaztunk**. Mivel a null-és alternatív hipotézis nem változott meg ($H_0^T:\mu=150$ és $H_1 > 150$), így marad a jobboldali próba, és mivel a mintaelemek sem változtak a 100 elemű mintánkban, így a **próbafüggvény is megegyezik a 2.1. fejezetben használttal**.<br>
+**Mivel maradt a jobboldali próba**, így a **próbafüggvény fölé esés valószínűségét kell megadni a standard normális eloszlásban** a `stats.norm.cdf` függvény $1-$ verziójával.
 
 ```{python}
 p_ertek_norm_elo = 1 - stats.norm.cdf(próbafv)
@@ -353,24 +354,43 @@ p_ertek_norm_elo * 100 # százalékban írom ki
 p_ertek_t_elo * 100 # p-érték a t-eloszlából százalékban
 ```
 
-Beépített függvénnyel.
+Mindkét p-érték nagyjából $0.01\%$ körüli, szóval a standard normális és t-eloszlás között tényleg nincs érdemi különbség a p-érték számolás tekintetében.
+
+Természetesen, mindez beépített függvénnyel is meg tudjuk oldani, csak ez most a `statsmodels` csomag `stats.weightstats` moduljában lakó `ztest` függvény lesz. A név (z test = z próba) onnan jön, hogy a standard ormális eloszlás jele a matekban $z$, így ez a hipotézisvizsgálat **z-próba** néven fut, míg az előző **t-próba** néven, mivel ott a p-értéket t-eloszlásból számoltuk.<br>
+Paramétereiben a függvény ugyan úgy működik, mint a `scipy`-os `stats.ttest_1samp`:
+
+- először megadjuk aktuális mintánk elemeit tartalmazó oszlopot egy data frame-ből
+- utána jön a `value` paraméterben az elvi átlag ($\mu_0$)
+- végül pedig az alteranítv hipotézisben lévő relációs jelet adjuk meg szövegesen
+  * lehetséges értékek: `‘two-sided’, ‘smaller’, ‘larger’`, rendre a $\neq$, $<$, $>$ relációs jeleket jelölik $H_1$-ben
+
+Ezek alapján az alábbi módon néz ki a függvény használata Pythonban.
 
 ```{python}
 # függvény importja
-from statsmodels.stats.weightstats import ztest as ztest
+from statsmodels.stats.weightstats import ztest
 
 # függvény használata
 ztest(BalcsiMinta.PERC, value = 150, alternative = 'larger')
 ```
 
+Meg is van a $3.7$-es próbafüggvényünk és a $0.0099\% \approx 0.01\%$ körüli p-értékünk. Győzelem!
+
 ## 4. A sokasági arányra vonatkozó *z-próba*
 
-TODO
+Természetesen, nem csak sokasági átlagokra ($\mu$), hanem sokasági arányokra ($P$) is tudunk hipotéziseket tenni. Majd ehhez is tudunk p-értéket számolni és eldönteni, hogy az eredeti állításunkból felírt $H_0$ vagy $H_1$ tekinthető-e igaznak egy adott $\alpha$ szignifikancia-szinten.
+
+Nézzük meg, hogy **vehető-e 1/3-nak a Balatont 3 óra felett átúszók aránya**. Matematikailag az állításom azt mondja, hogy a 3 óra = 180 perc felett átúszók sokasági aránya egyenlő 1/3-dal: $P = 1/3$. Mivel az **állítás engedi az egyenlőséget, így az a $H_0$-ba kerül**. Ez alapján pedig **a $H_1$-ben az eredeti állítást tagadjuk, és a $H_0$-nak szurkolunk** a hipotézisvizsgálat során. Tehát, a $H_0$ és $H_1$ párunk az alábbi módra fog kinézni:
 
 - $H_0:P=1/3$
 - $H_1:P\neq1/3$
+- Szurkolunk: $H_0$
 
-TODO $$\frac{p-P_0}{\sqrt{\frac{P_0(1-P_0)}{n}}} \sim N(0,1)$$
+A $H_0$ és $H_1$ párunkból következik, hogy az **elvi arány, azaz $P_0$, amihez képest vizgsálódunk most az $1/3$ érték!!**
+
+Ezek után itt most azt mondanánk az <a href="Gyak05.html" target="_blank">5. heti tananyag 2. fejezete</a> alapján, hogy készítünk a megfigyelt mintánkba egy olyan $0-1$ értékekből álló oszlopot, ahol $1$ jelenti a 3 óránál hosszabb idő alatt átúszókat a mintában (arány szempontjából kedvező esetek a mintában), míg $0$ a többieket (arány szempontjából kevdezőtlen esetek a mintában), és ennek az oszlopnak az átlagára vonatkozó hipotézivizsgálatot végzünk (mivel $n=100 > 30$ ez simán lehet z-próba).
+
+Ezzel a fenti elvvel viszont van egy kis gond!. Ugyanis **arányra vonatkozó hipotézivizsgálat esetén a próbafüggvényünk az alábbi módon néz ki**:  $$\frac{p-P_0}{\sqrt{\frac{P_0(1-P_0)}{n}}} \sim N(0,1)$$
 
 TODO
 
