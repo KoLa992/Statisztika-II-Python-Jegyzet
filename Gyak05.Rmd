@@ -50,7 +50,7 @@ ESS = pd.read_excel("ESS2020.xlsx")
 ESS.info()
 ```
 
-Láthatjuk, hogy megvan mind a 14+1 változónk a megfelelő adattípusokkal. Hurrá! :)
+Láthatjuk, hogy megvan mind a 14+1 oszlopunk a megfelelő adattípusokkal. Hurrá! :)
 
 **Feladatunk** ezúttal az lenne, hogy **99%-os megbízhatóságú konfidencia-intervallum**ot építsünk a **Fideszt támogatók arányára!**
 

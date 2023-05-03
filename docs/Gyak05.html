@@ -300,7 +300,7 @@ ESS.info()</code></pre>
 ##  14  SomeContactCOVID19              1849 non-null   object 
 ## dtypes: float64(4), int64(1), object(10)
 ## memory usage: 216.8+ KB</code></pre>
-<p>Láthatjuk, hogy megvan mind a 14+1 változónk a megfelelő adattípusokkal. Hurrá! :)</p>
+<p>Láthatjuk, hogy megvan mind a 14+1 oszlopunk a megfelelő adattípusokkal. Hurrá! :)</p>
 <p><strong>Feladatunk</strong> ezúttal az lenne, hogy <strong>99%-os megbízhatóságú konfidencia-intervallum</strong>ot építsünk a <strong>Fideszt támogatók arányára!</strong></p>
 <p>Szerencsére ezt aránylag könnyű megtenni, hiszen <strong>egy adott tulajdonsággal bíró egyedek aránya lényegében egy átlag</strong>! Konkrétan <strong>egy olyan változó átlaga, ahol a tulajdonsággal bíró egyedek <span class="math inline">\(1\)</span> értéket, míg a tulajdonsággal NEM rendelkező egyedek <span class="math inline">\(0\)</span> értéket kapnak</strong>.</p>
 <p>Ezt könnyű is szemléltetni Python-ban. Vegyük a feladat szempontjából releváns a <code>PoliticalPartyPref</code> ismérv <strong>relatív gyakoriságait</strong> a <code>value_counts</code> metódus segítségével:</p>

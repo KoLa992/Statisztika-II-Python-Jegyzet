@@ -1,0 +1,215 @@
+---
+title: "Egymintás és Kétmintás próbák"
+author: "Kovács László"
+date: "2023. 05. 03."
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. A szórásra vonatkozó $\chi^2$-próba
+
+Vegyük elő újra a <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/blob/main/ESS2020.xlsx" target="_blank">ESS2020.xlsx</a> fájlban található adatbázist! Emlékeztetőül álljon itt, hogy ez az adatbázis a 2020-ban végzett európai szociális felmérés (European Social Survey 2020 = ESS2020) 1849 magyar kitöltöjének válaszait tartalmazza 14 kérdésre (plusz van egy *id* oszlop).
+
+Ugyebár az <a href="Gyak04.html" target="_blank">előző tananyag 4. fejezet 2. feladatában</a> azt mondtuk, hogy ha az adatbázis valamelyik oszlopában üres értéket találunk, akkor az azt jelenti, hogy az adott sorban lévő kitöltő nem válaszolt a kérdésre. Az adatbázisban szereplő kitöltők a teljes 18 év feletti magyar népességből vett véletlen mintaként kezelhetők.
+
+Először is töltsök be az adatbázist ismét az Excelből egy `pandas` data frame-be és nézzük meg az `info` metódussal milyen oszlopaink (azaz ismérveink) vannak!
+
+```{python}
+# Elemzéshez és ábrázoláshoz szükséges csomagok betöltése
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import scipy.stats as stats
+
+# Adatbeolvasás data frame-be
+ess = pd.read_excel("ESS2020.xlsx")
+ess.info()
+```
+
+Láthatjuk, hogy megvan mind a 14+1 oszlopunk a megfelelő adattípusokkal. Hurrá! :)
+
+A teljes népességben a heti munkaidő szórása legalább 15 óra
+
+- $H_0: \sigma \geq 15$
+- $H_1: \sigma < 15$
+- Szurkolunk: $H_0$
+
+Ebből $\sigma_0=15$
+
+Próbafüggvény: $$\frac{(n-1)s^2}{\sigma_0^2} \sim \chi^2(n-1)$$
+
+Manuálisan, nincs itt sajnos beépített függvény.
+
+```{python}
+elvi_szórás = 15
+s = np.std(ess.WeeklyWork_Hours, ddof=1)
+n = ess.WeeklyWork_Hours.count()
+
+próbafv = (n-1)*s**2/elvi_szórás**2
+próbafv
+```
+
+A p-érték számítás balodali módon megy ($H_1$-ben $<$ jel van.)
+
+```{python}
+stats.chi2.cdf(próbafv, df=n-1)
+```
+
+p-érték = $82.6\%$ > $10\%$ --> $H_0$ nem utasítjuk el --> $H_1$ hamis. Azaz, szórás a teljes népességben is legalább 15-nek kinéz
+
+Előfeltétel: p-érték az akkor valid, ha az adatsor, aminek a szórását vizsgáljuk normális eloszlást követ
+
+```{python}
+ess.WeeklyWork_Hours.hist()
+```
+
+Csúcsos, mint a fene --> nem normális az eloszlás :(
+
+## 2. A kétmintás hipotézisvizsgálatok elve
+
+EDDIG: Egymintás hipotézisvizsgálatok.
+
+Egy db stat mutató viszonya elvi értékhez képest --> hipotézis
+
+MOST: Kétmintás hipotézisvizsgálatok.
+
+Két db stat mutató viszonya egymáshoz képest --> hipotézis
+
+Példa alapállításra: **Átlagfizu(Férfi) > Átlagfizu(Nő)**
+
+1 db minta a férfi átlahgoz + 1 db minta a női átlaghoz = 2 minta
+
+Trükk: átrendezni az állítást --> statisztikai mutatók KÜLÖNBSÉGÉNEK a viszonyát vizsgáljuk egy elvi értékhez. Ez az elvi érték lesz az elvi eltérés, általában $\delta_0$-nak jelöljük. Arányok esetében néha szokás $\epsilon_0$-t is használni.
+
+Példában, ha a sokasági átlagokat továbbra is $\mu$-vel jelölöm: $$\mu_F - \mu_N > 0$$
+
+És akkor itt $\delta_0=0$. Ebből az **eddigi elvek mentén lehet a különbségre felírni $H_0$-t és $H_1$-et**:
+
+- $H_0:\mu_F - \mu_N \leq 0$
+- $H_1:\mu_F - \mu_N > 0$
+- Szurkolunk: $H_1$
+
+## 3. Az átlagokra vonatkozó kétmintás *z-próba*
+
+Átlagban jobban iskolázottak, akik nem hiszen abban, hogy egy titkos társaság irányítja a világpolitikát.
+
+- $H_0:\mu_{NemHisz} - \mu_{Hisz} \leq 0$
+- $H_1:\mu_{NemHisz} - \mu_{Hisz} > 0$
+- Szurkolunk: $H_1$
+
+Mintában az átlagos oktatási évek eltérése a két csoport között (*Hisz* és *NemHisz*).
+
+```{python}
+elvi_eltérés_átlagban = 0
+
+# két mintaátlag
+ess.groupby('SecretGroupInfluenceWorldPol').Education_Years.mean()
+```
+
+Próbafüggvény és nevezetes eloszlás p-értékhez: $$\frac{(\bar{y_1}-\bar{y_2})-\delta_0}{\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}} \sim N(0,1)$$
+
+Mivel az eloszlás standard normális ($N(0,1)$), így mindkét mintának (*Hisz* és *Nem Hisz* is) nagynak ($n>30$) kell lennie!
+
+```{python}
+ess.SecretGroupInfluenceWorldPol.value_counts()
+```
+
+Beépített függvény a `statsmodels` csomagból.
+
+```{python}
+# függvény importja
+from statsmodels.stats.weightstats import ztest
+
+ztest(x1= ess.Education_Years[ess.SecretGroupInfluenceWorldPol=='No'].dropna(),
+      x2= ess.Education_Years[ess.SecretGroupInfluenceWorldPol=='Yes'].dropna(),
+      value=elvi_eltérés_átlagban,
+      alternative='larger')
+```
+
+A p-érték = 3.3% --> szok. szignif. szint tartományban (1%-10%) --> Nincs döntés! NAGYOBB Minta
+
+## 4. Az arányokra vonatkozó kétmintás *z-próba*
+
+Több, mint 2%-ponttal alacsonyabb a parlamentben bízók aránya azok körében, akik hisznek a titkos társaságokban.
+
+- 2 minta: hisz / nem hisz a titkos társ-ban
+- vizsgált arány: parlamentben bízók aránya
+
+Ezek alapján az állítás matematikailag: $$P(Hisz) < P(NemHisz) - 0.02$$
+
+Átrendezve: $$P(Hisz) - P(NemHisz) < -0.02$$
+
+Ebből pedig a $H_0$ és $H_1$ felírás:
+
+- $H_0:P(Hisz) - P(NemHisz) \geq -0.02$
+- $H_1:P(Hisz) - P(NemHisz) < -0.02$
+- Szurkolunk: $H_1$
+
+Próbafüggvény és nevezetes eloszlás p-értékhez: $$\frac{(p_1-p_2)-\epsilon_0}{\sqrt{\frac{p_1(1-p_1)}{n_1}+\frac{p_2(1-p_2)}{n_2}}} \sim N(0,1)$$
+
+Mindkét mintában a teljes elemszámok ($n_1$ és $n_2$), az arány szempontjából kedvező esetek ($k_1$, $k_2$) és maguk a mintaarányok ($p_1$ és $p_2$) számítása.
+
+```{python}
+k_1 = np.sum((ess.TrustInParlament=='Yes') &
+             (ess.SecretGroupInfluenceWorldPol=='Yes'))
+n_1 = np.sum(ess.SecretGroupInfluenceWorldPol=='Yes')
+
+k_2 = np.sum((ess.TrustInParlament=='Yes') &
+             (ess.SecretGroupInfluenceWorldPol=='No'))
+n_2 = np.sum(ess.SecretGroupInfluenceWorldPol=='No')
+
+# mintaarányok
+
+k_1/n_1 # Hívők mintája
+
+k_2/n_2 # Nem hívők mintája
+```
+
+Beépített függvény a `statsmodels` csomagból.
+
+```{python}
+# függvény importja
+from statsmodels.stats.proportion import test_proportions_2indep
+
+test_proportions_2indep(count1 = k_1, nobs1=n_1,
+                        count2=k_2, nobs2=n_2,
+                        value = -0.02, alternative='smaller')
+```
+
+A p-érték = 19% > 10% --> $H_0$-t nem utasítom el. A két arány közti különbség a népességben kisebb, mint 2%-pont.<br>
+A mintaarányok közötti eltérés nem szignifikáns!
+
+Előfeltétel: Nagy elemszám kell mindkét mintára, mert z-próba (p-érték standard normális eloszlásból jön).
+
+Mindkét mintában legyen legalább $10$ arány szempontjából kedvező és kedvezőtlen eset is.
+
+Arány szempontjából kedvező esetek.
+
+```{python}
+k_1 > 10
+k_2 > 10
+```
+
+Mindkét mintára igaz a feltétel, rendben vagyunk.
+
+Arány szempontjából kedvezőtlen esetek.
+
+```{python}
+n_1 - k_1 > 10
+n_2 - k_2 > 10
+```
+
+Mindkét mintára igaz a feltétel, rendben vagyunk.

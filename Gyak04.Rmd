@@ -1,7 +1,7 @@
 ---
 title: "A sokasági átlag intervallumbecslése"
 author: "Kovács László"
-date: "2022. 08. 22."
+date: "2023. 05. 03."
 output:
   html_document:
     toc: true
@@ -666,7 +666,7 @@ ESS.NetUsePerDay_Minutes.hist()
 plt.show()
 ```
 
-Ha valaki szeretné végigszámolni és ábrázolni a konfidencia-intervallumokat t-eloszlással, megteheti. Ezt viszont "manuálisan" kell megcsinálni a `groupby`-al létrehozott data frame oszlopok bővítésén keresztül.
+Ha valaki szeretné végigszámolni és ábrázolni a konfidencia-intervallumokat t-eloszlással, megteheti. Ezt viszont “manuálisan” kell megcsinálni a `groupby`-al létrehozott data frame oszlopok bővítésén keresztül.
 
 ```{python}
 alfa = 1-0.99

@@ -1,7 +1,7 @@
 ---
 title: "Hipotézisvizsgálat alapjai"
 author: "Kovács László"
-date: "2023. 04. 19."
+date: "2023. 05. 03."
 output:
   html_document:
     toc: true
@@ -390,21 +390,33 @@ A $H_0$ és $H_1$ párunkból következik, hogy az **elvi arány, azaz $P_0$, am
 
 Ezek után itt most azt mondanánk az <a href="Gyak05.html" target="_blank">5. heti tananyag 2. fejezete</a> alapján, hogy készítünk a megfigyelt mintánkba egy olyan $0-1$ értékekből álló oszlopot, ahol $1$ jelenti a 3 óránál hosszabb idő alatt átúszókat a mintában (arány szempontjából kedvező esetek a mintában), míg $0$ a többieket (arány szempontjából kevdezőtlen esetek a mintában), és ennek az oszlopnak az átlagára vonatkozó hipotézivizsgálatot végzünk (mivel $n=100 > 30$ ez simán lehet z-próba).
 
-Ezzel a fenti elvvel viszont van egy kis gond!. Ugyanis **arányra vonatkozó hipotézivizsgálat esetén a próbafüggvényünk az alábbi módon néz ki**:  $$\frac{p-P_0}{\sqrt{\frac{P_0(1-P_0)}{n}}} \sim N(0,1)$$
+Ezzel a fenti elvvel viszont van egy kis gond! Ugyanis **arányra vonatkozó hipotézivizsgálat esetén a próbafüggvényünk az alábbi módon néz ki**:  $$\frac{p-P_0}{\sqrt{\frac{P_0(1-P_0)}{n}}} \sim N(0,1)$$
 
-TODO
+A **"kis gond"** a képlet nevezőjével, azaz a **standard hibával van**. A képlet madártávlatból nézve azt mondja, hogy vegyük minta és hipotetikus arány különbségét ($p-P_0$) osztva az arány standard hibájával. Ami tényleg az átlagra vonatkozó hipotézisvizsgálat próbafüggvényének működési elve, amit láttunk is a 2. fejezetben. DE! A **standard hibában a képlet az elvi arányt ($P_0$)** használja a mintából számolt arány ($p$) helyett. Viszont, ha egy $0-1$ értékekből álló oszlop átlagára vonatkozó hipotézisvizsgálatként számolnánk végig ezt a próbafüggvényt, akkor bizony a nevezőben $\sqrt{\frac{p(1-p)}{n}}$-gyel számolnánk $\sqrt{\frac{P_0(1-P_0)}{n}}$ helyett. Szóval mindenképpen egy külön függvényt kell itt használni a próbafüggvény számítására. A p-érték számolása standard normális ($N(0,1)$) eloszlásból történik már úgy, mint az átlag esetében láttuk a 2. és 3. fejezetekben. Ezért is *z-próba*ként emlegetjük ezt a hipotézisvizsgálatot is. De ezt a p-érték számítást is elintézi majd nekünk a `statsmodels` csomag `proportions_ztest` függvénye.
+
+A függvényhez először ki kell számolni a minta teljes elemszámát ($n$) és az arány szempontjából kedvező esetek számát ($k$), ami most esetünkbena $180$ percnél tovább úszók száma. Ezekből már akár a mintabeli arányt ($p$) is kiszámíthatjuk.
+
+```{python}
+# mintaelemszám
+n = len(BalcsiMinta)
+
+# arány szempontjából kedvező esetek száma
+kedvezo = np.sum(BalcsiMinta.PERC > 180)
+
+# mintaarány
+kedvezo/n
+```
+
+Ezzel látjuk, hogy a mintában a $180$ percnél tovább úszók aránya kereken $30\%$, ami nem egyenlő az $1/3 \approx 0.333 = 33.3\%$-al, így **a $H_1$ néz ki igaz állításnak**. Viszont, **ez simán lehet a mintavételi hiba műve is**, hiszen csak egy $n=100$ elemű mintából dolgozom, **nem látom az összes átúszó sokaságát**. Épp **ezért kell a p-érték**, ami megadja, hogy mennyire valószínű, hogy az a tény, hogy a megfigyelt mintában $0.3 \neq 0.333$ szignifikáns eltérés mintaarány és elvi arány között.
+
+Importáljuk is a függvényt a `statsmodels` csomagból, és használjuk is az előbb kiszámolt kedvező esetszámmal és teljes elemszámmal. Amit még meg kell adni neki az a `value` paraméteren az elvi arány, és az `alternative` paraméterben a $H_1$ relaciós jelét ugyan azokkal a kulcszsavakkal, mint amiket a 3. fejezetben is használtuk a sima, átlagra vonatkozó `ztest` függvényben.
 
 ```{python}
 # függvény importja
 from statsmodels.stats.proportion import proportions_ztest
 
-# mintaelemszám
-n = len(BalcsiMinta)
-# arány szempontjából kedvező esetek száma
-kedvezo = np.sum(BalcsiMinta.PERC > 180)
-
 # elvi arány megadása
-P_0 = 1/3
+P_0 = 0.25
 
 # függvény használata
 proportions_ztest(
@@ -414,7 +426,11 @@ proportions_ztest(
   alternative = 'two-sided')
 ```
 
-Előfeltételek ellenőrzése.
+A p-értékünk magas, $46.6\%$, szóval ennyi esélyünk van a hibára, ha a mintavétel alapjánelutasítanánk $H_0$-t. Ez jó magas hibavalsózínűség, magasabb, mint a legmagasabb szokásos szignifikancia-szint ($10\%$), így **azt mondjuk, hogy a $H_0$-t nem tudjuk elutasítani**. **Valós, sokasági aránya a $180$ percnél lassabban úszóknak simán vehető $1/3$-nak a mintaarány és az $1/3$ közötti eltérés NEM szignifikáns**.
+
+A hipotézisvizsgálatnak, mivel z-próba és standard normális eloszlásból számol p-értéket, előfeltétele, hogy nagy mintánk van. Ez most azt jelenti, hogy a $n \times P_0$ és $n \times (1-P_0)$ szorzat is legyen nagyobb mint $10$. Tehát, **az arány szempontjából kedvező és kedvezőtlen esetek száma is legyen legalább $10$ igaz nullhipotézis esetén**.
+
+Lássuk, hogy teljesülnek-e akkor a feltételek:
 
 ```{python}
 # mintaelemszám
@@ -427,4 +443,15 @@ n*P_0
 n*(1-P_0)
 ```
 
-TODO
+A $33$ és a $66$ is $10$-nél nagyobb szám, szóval rendben vagyunk! :)
+
+## 5. A hipotézisvizsgálat menete madártávlatból
+
+Az eddigiek alapján akkor azt mondhatjuk el, hogy igazából **bármilyen statisztikai mutatóra/paraméterre** (átlag, arány, stb.) **vonatkozik a hipotézisvizsgálatunk, annak mindig $4$ fő lépése van**.
+
+1. Az alapállításból **null- és alternatív hipotézisek** ($H_0$ és $H_1$) felírása
+2. Megfigyelt $n$ elemű mintaadatokból **próbafüggvény** számítása
+3. A próbafüggvény és egy nevezetes eloszlás alapján **p-érték** számítása
+4. A p-érték alapján annak el**döntés**e, hogy $H_0$ vagy $H_1$ vehető-e igaz állításnak a teljes sokaságban
+
+Ez a $4$ lépés tényleg **minden hipotézisvizsgálat során ugyan ez lesz**, és **az $1.$ és $4.$ pontoknak is mindig ugyan az az elve, amiket eddig láttunk**, ezek nem változnak. Bármi is történik, a $H_0$ és $H_1$ felírás és közöttük a döntés *p-érték* alapján fix szabályok szerint működik. Ami az **egyes esetekben eltérő lehet, az a $2.$ és $3.$ pont**, ahol a próbafüggvényeket és a p-értékeket számoljuk. De **ezekre a pontokra szinte mindig lesz beépített Python függvény, csak azoknak a paraméterezését és a használatok előfeltételét kell** igazából **jól tudni**.
