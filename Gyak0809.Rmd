@@ -1,7 +1,7 @@
 ---
 title: "Egymintás és Kétmintás próbák"
 author: "Kovács László"
-date: "2023. 05. 04."
+date: "2023. 05. 05."
 output:
   html_document:
     toc: true
@@ -136,7 +136,7 @@ Nézzünk egy olyan példát, amikor a $\delta_0 \neq 0$! Legyen az az állítá
 
 Innentől kezdve megvan az állításom, amit már könnyű **átrendezni** úgy, hogy **azt vizsgálja az egyenlőtlenség, hogy az átlagok különbsége hogyan viszonyul valami elvi, $\delta_0$ eltéréshez**, ami most nekem a 100-as érték:  $$\mu_{Férfi} -  \mu_{Női} \geq 100$$
 
-Tehát, ebben az állításban akkor $\delta_0=100$. És ezt az állítást a szokásos két alapelv mellett már gyorsan tudom $H_0$-ra és $H_1$-re szétszedni. Mivel az állítás engedi az egyenlőséget most, így az állítsáunkból egy nullhipotézis lesz, és az alternatív hipotézisben ezt az állítást meg tagadjuk, és vélgül a $H_0$-nak szurkolunk, mert abban lakik az eredeti állításunk:
+Tehát, ebben az állításban akkor $\delta_0=100$. És ezt az állítást a szokásos két alapelv mellett már gyorsan tudom $H_0$-ra és $H_1$-re szétszedni. Mivel az állítás engedi az egyenlőséget most, így az állításunkból egy nullhipotézis lesz, és az alternatív hipotézisben ezt az állítást meg tagadjuk, és vélgül a $H_0$-nak szurkolunk, mert abban lakik az eredeti állításunk:
 
 - $H_0:\mu_{Férfi} - \mu_{Női} \geq 100$
 - $H_1:\mu_{Férfi} - \mu_{Női} < 100$
@@ -146,13 +146,16 @@ Akkor, lássuk hogy működik a kétmintás $H_0$ és $H_1$ párokhoz a p-érté
 
 ## 3. Az átlagokra vonatkozó kétmintás *z-próba*
 
-Átlagban jobban iskolázottak, akik nem hiszen abban, hogy egy titkos társaság irányítja a világpolitikát.
+Az ESS adatbázis `SecretGroupInfluenceWorldPol` és `Education_Years` című oszlopait felhasználva ellenőrizhetünk egy olyan állítást a teljes magyar népességre (azaz sokaságra), ami szerint **"átlagban jobban iskolázottak** (több évet töltöttek tanulással), **akik nem hisznek abban, hogy egy titkos társaság irányítja a világpolitikát"**.
+
+Ezt az alááítást úgy írhatjuk fel matematika egyenlőtlenségként mint $\mu_{NemHisz} > \mu_{Hisz}$. Ha ezt az állítást az átlagok különbségére rendezzük át, akkor a $H_1:\mu_{NemHisz} - \mu_{Hisz} > 0$ egyenlőtlenséget kapjuk. Ez alapján pedig már látjuk is, hogy az átlagok elvi eltérése a sokaságban $\delta_0=0$.<br>
+Ezt az állítást a szokásos két alapelv mellett már gyorsan tudom $H_0$-ra és $H_1$-re szétszedni. Mivel az állítás *nem* engedi az egyenlőséget most, így az állításunkból egy $H_1$ lesz, és a $H_0$-ban ezt az állítást meg tagadjuk, és vélgül a $H_1$-nek szurkolunk, mert abban lakik az eredeti állításunk:
 
 - $H_0:\mu_{NemHisz} - \mu_{Hisz} \leq 0$
 - $H_1:\mu_{NemHisz} - \mu_{Hisz} > 0$
 - Szurkolunk: $H_1$
 
-Mintában az átlagos oktatási évek eltérése a két csoport között (*Hisz* és *NemHisz*).
+A hipotézisvizsgálatok 2. pontja alapján most kezdjük el megvizsgálni a megfigyelt mintánk adatait. Esetünkben az átlagos oktatási évek eltérését a két csoport (*Hisz* és *NemHisz* a titkos társaságok uralmában a világpolitika felett) között könnyen ki tudjuk számolni egy data frame `groupby` metódussal. Közben az elvi eltérés ($\delta_0$) $0$-ás értékét is elrakom egy külön objektumba.
 
 ```{python}
 elvi_eltérés_átlagban = 0
@@ -161,15 +164,35 @@ elvi_eltérés_átlagban = 0
 ess.groupby('SecretGroupInfluenceWorldPol').Education_Years.mean()
 ```
 
-Próbafüggvény és nevezetes eloszlás p-értékhez: $$\frac{(\bar{y_1}-\bar{y_2})-\delta_0}{\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}} \sim N(0,1)$$
+Láthatjuk, hogy a mintában a *NemHisz* csoport átlagos oktatásban töltött éveinek száma némileg magasabb, mint a *Hisz* csoport esetén ez az átlag. De **nem vehetjük automatikusan igaznak $H_1$-et, hiszen ez a jelenség lehet csak a mintavételi hiba műve!** Épp **azért kell p-értéket számolni, hogy megtudjuk, mekkora valószínűséggel lehet ez a jelenség** (hogy a *NemHisz* csoport esetén magasabb az átlag) **csak a mintavételi hiba műve**.
 
-Mivel az eloszlás standard normális ($N(0,1)$), így mindkét mintának (*Hisz* és *Nem Hisz* is) nagynak ($n>30$) kell lennie!
+Szóval, számoljuk csak ki ezt a próbafüggvényt! :)
+
+A próbafüggvényünk formulája alább látható, és azt is megfigyelhetjük az következő képletből, hogy a nevezetes eloszlásunk a p-érték számításához standard normális ($N(0,1)$): $$\frac{(\bar{y_1}-\bar{y_2})-\delta_0}{\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}} \sim N(0,1)$$
+
+Láthatjuk, hogy a próbafüggvény képlete nem egy bonyolult konstrukció. Fogjuk a két mintaátlag különbségét ($\bar{y_1}-\bar{y_2}$) és megnézzük, hogy ez mennyire tér el az elvi különbségtől ($\delta_0$) és ezt arányítjuk a kétféle átlaghoz tartozó standard hiba négyzetek összegéhez a gyök alatt. Viszont, van erre az úgynevezett **kétmintás z-próbára beépített függvény** a `statsmodels` csomagban, ami a próbafüggvényt és a p-értéket kiszámolja, így **nem kell ezzel manuálisan szórakoznunk** majd. :)<br>
+Ugye ismét azért lesz *z-próba* a hipotézisvizsgálatunk neve, mert a pórbafüggvényből standard normális, azaz $z$ eloszláson keresztül lesz p-értékünk.
+
+Viszont, azt **mindenképpen látnunk kell, hogy mivel a p-érték számításhoz vett eloszlás standard normális** ($N(0,1)$), így **mindkét mintának** (*Hisz* és *Nem Hisz* is) **nagynak** ($n>30$) **kell lennie**!<br>
+Ezt a `SecretGroupInfluenceWorldPol` oszlop `value_counts()` metódusával tudjuk talán a legkönnyebben ellenőrizni.
 
 ```{python}
 ess.SecretGroupInfluenceWorldPol.value_counts()
 ```
 
-Beépített függvény a `statsmodels` csomagból.
+Mivel $1301>30$ és $548>30$, így a **nagy minta előfeltételünk teljesült**.
+
+Lássuk hát a **p-érték számolás**át a `ztest` beépített függvénnyel a `statsmodels` csomagból.<br>
+A **függvényben a következő paraméterek**et kell megadni:
+
+- `x1` és `x2`: A két minta elemeit tartalmazó tömbök *hiányzó értékek nélkül*.
+  * Tehát, a biztonság kedvéért, miután leszűrjük az `Education_Years` oszlop értékeit a *Hisz* és *NemHisz* csoportokra a `SecretGroupInfluenceWorldPol` oszlop alapján, még a biztonság kedvéért megkínáljuk a dolgot egy `dropna()` metódussal is.
+  * Arra kell figyelni, hogy a függvényben a kivonás iránya `x1 - x2`. Tehát, a két csoport átadásának sorrendje következetes kell legyen a $H_0$ és $H_1$-ben alkalmazott kivonások irányával. Nekünk ez most azt jelenti, hogy elsőnek a *NemHisz* csoport `Education_Years` értékeit adjuk át (az `x1` paraméteren), mert a hipotéziseinkben $\mu_{NemHisz} - \mu_{Hisz}$ kivonás szerepel.
+- `value`: Az átlagok közti elvi eltérés értéke a hipotéziseinkben. Ez most nekünk $\delta_0=0$.
+- `alternative`: Az alteranítv hipotézisben lévő relációs jelet adjuk meg szövegesen.
+  * lehetséges értékek: `‘two-sided’, ‘smaller’, ‘larger’`, rendre a $\neq$, $<$, $>$ relációs jeleket jelölik $H_1$-ben
+
+Ezzel a működés a következőképpen néz ki.
 
 ```{python}
 # függvény importja
@@ -181,28 +204,32 @@ ztest(x1= ess.Education_Years[ess.SecretGroupInfluenceWorldPol=='No'].dropna(),
       alternative='larger')
 ```
 
-A p-érték = 3.3% --> szok. szignif. szint tartományban (1%-10%) --> Nincs döntés! NAGYOBB Minta
+Az eredményül kapott lista első eleme a próbafüggvény, és a második elem a p-érték. Tehát, a **p-értékünk most $3.3\%$ lett**. Tehát, a $H_0$ elutasításával $3.3\%$ a hibavalószínűségem. Ha a megengedett hibavalószínűségem ($\alpha$ szignifikansia-szintem) $1\%$ akkor így nem tudom elutasítani a $H_0$-t, mert többet hibáznék vele, mint a megengedett, de ha a szignifikancia-szintem $\alpha = 5\%$, akkor már $H_0$ elutasítható, hiszen kevesebb hibával jár, mint a megengedett.<br>
+Azaz, itt most a p-értékkel **bekerültem a szokásos szignifikancia szintek tartományába** (1% és 10% közé), így a **felelős "mondás" most az, hogy nem döntök és inkább kérek egy NAGYOBB mintát, mert a döntés túl érzékeny lenne a konkrét szignifikancia-szint megválasztására**.<br>
+Végső soron tehát **NEM tudom egyértelműen kijelenteni, hogy a megfigyelt mintában mért eltérés az átlagos iskolaévekben** a *Hisz* és *NemHisz* csoportok között **szignifikáns volna** (azaz, hogy az eltérés nem csak a mintavételi hiba műve). A kérdés **eldöntésére még nagyobb mintát kellene vizsgálni**.
 
 ## 4. Az arányokra vonatkozó kétmintás *z-próba*
 
-Több, mint 2%-ponttal alacsonyabb a parlamentben bízók aránya azok körében, akik hisznek a titkos társaságokban.
+Az ESS adatbázis `SecretGroupInfluenceWorldPol` és `TrustInParlament` című oszlopait felhasználva ellenőrizhetünk egy olyan állítást a teljes magyar népességre (azaz sokaságra), ami szerint **"több, mint 2 %-ponttal alacsonyabb a parlamentben bízók aránya azok körében, akik hisznek a titkos társaságokban"**.
 
-- 2 minta: hisz / nem hisz a titkos társ-ban
-- vizsgált arány: parlamentben bízók aránya
+A fentri bekezdésben félkövérrel szedett állítás elég agymegsüllyesztő lehet első olvasatra, de talán az élből **látszik, hogy valamiknek a sokasági arányairól**, azaz $P$-ről szól az állítás. Ha **ilyen arányokra vonatkozó állítást látunk, akkor két dolgot érdemes kihámozni** a szövegből:
 
-Ezek alapján az állítás matematikailag: $$P(Hisz) < P(NemHisz) - 0.02$$
+1. **Mi a vizsgált arányunk?** $\rightarrow$ Ez most nekünk a **parlamentben bízók aránya**.
+2. **Mi a 2 minta?** $\rightarrow$ Ez most nekünk az, hogy valaki **hisz / nem hisz a titkos társaságok uralmában** a világpolitika felett.
 
-Átrendezve: $$P(Hisz) - P(NemHisz) < -0.02$$
+Ezek alapján az **állítás matematikailag megadva** a parlamentben bízók arányára vonatkozóan: $$P_{Hisz} < P_{NemHisz} - 0.02$$
 
-Ebből pedig a $H_0$ és $H_1$ felírás:
+Ugye itt **az volt az elv, amit a 2. fejezetben is láttunk**. Ha simán az állítás szövegének *"alacsonyabb"* kifejezésére koncentrálunk, akkor az egyenlőtlenség $P_{Hisz} < P_{NemHisz}$ lenne. De a *"több, mint 2 %-ponttal"* rész miatt azt mondjuk, hogy ha a $P_{NemHisz}$-ből levonok még 2 %-pontot ($0.02$-t), még akkor is alacsonyabb (azaz kisebb) marad a $P_{Hisz}$. És így lett a végső egyenlőtlenségünk, ami leírja matenatikailag az alapállításunk $P_{Hisz} < P_{NemHisz} - 0.02$.
 
-- $H_0:P(Hisz) - P(NemHisz) \geq -0.02$
-- $H_1:P(Hisz) - P(NemHisz) < -0.02$
+Ezt a kiinduló egeynlőtlenséget, ha **átrendezünk az arányok különbségére**, akkor a $P_{Hisz} - P_{NemHisz} < -0.02$ egyenlőtlenséget kapjuk.
+
+Ezt az állítást a szokásos két alapelv mellett már gyorsan tudom $H_0$-ra és $H_1$-re szétszedni. Mivel az állítás *nem* engedi az egyenlőséget most, így az állításunkból egy $H_1$ lesz, és a $H_0$-ban ezt az állítást meg tagadjuk, és vélgül a $H_1$-nek szurkolunk, mert abban lakik az eredeti állításunk:
+
+- $H_0:P_{Hisz} - P_{NemHisz} \geq -0.02$
+- $H_1:P_{Hisz} - P_{NemHisz} < -0.02$
 - Szurkolunk: $H_1$
 
-Próbafüggvény és nevezetes eloszlás p-értékhez: $$\frac{(p_1-p_2)-\epsilon_0}{\sqrt{\frac{p_1(1-p_1)}{n_1}+\frac{p_2(1-p_2)}{n_2}}} \sim N(0,1)$$
-
-Mindkét mintában a teljes elemszámok ($n_1$ és $n_2$), az arány szempontjából kedvező esetek ($k_1$, $k_2$) és maguk a mintaarányok ($p_1$ és $p_2$) számítása.
+Jöhet is a hipotézisvizsgálatok 2. pontja, ami szerint elkezdjük megvizsgálni a megfigyelt mintánk adatait. **Számoljuk mindkét mintában ($1=Hisz$ és $2=NemHisz$) a parlamentben bízók arányát ($p_1$ és $p_2$)!** Ehhez **mindkét mintában meg kell nézni a teljes elemszámokat** ($n_1$ és $n_2$), és **az arány szempontjából kedvező esetek** ($k_1$, $k_2$) **számát** is.
 
 ```{python}
 k_1 = np.sum((ess.TrustInParlament=='Yes') &
@@ -220,7 +247,45 @@ k_1/n_1 # Hívők mintája
 k_2/n_2 # Nem hívők mintája
 ```
 
-Beépített függvény a `statsmodels` csomagból.
+Láthatjuk, hogy a mintában a *Hisz* csoportban a parlamentben bízók aránya tényleg több, mint 2 %-ponttal alacsonyabb, mint a *NemHisz* csoport esetén ez az arány ($11.1-14.68=-3.58$). De **nem vehetjük automatikusan igaznak $H_1$-et, hiszen ez a jelenség lehet csak a mintavételi hiba műve!** Épp **azért kell p-értéket számolni, hogy megtudjuk, mekkora valószínűséggel lehet ez a jelenség** (hogy a *Hisz* csoport esetén ennyivel alacsonyabb a parlamentben bízók aránya) **csak a mintavételi hiba műve**.
+
+A próbafüggvényünk formulája alább látható, és azt is megfigyelhetjük az következő képletből, hogy a nevezetes eloszlásunk a p-érték számításához standard normális ($N(0,1)$): $$\frac{(p_1-p_2)-\epsilon_0}{\sqrt{\frac{p_1(1-p_1)}{n_1}+\frac{p_2(1-p_2)}{n_2}}} \sim N(0,1)$$
+
+Láthatjuk, hogy a próbafüggvény képlete itt sem egy bonyolult konstrukció. Fogjuk a két mintaarány különbségét ($p_1-p_2$) és megnézzük, hogy ez mennyire tér el az elvi különbségtől ($\epsilon_0$) és ezt arányítjuk a kétféle átlaghoz tartozó standard hiba négyzetek összegéhez a gyök alatt. Viszont, van erre az **arányos kétmintás z-próbára is beépített függvény** a `statsmodels` csomagban, ami a próbafüggvényt és a p-értéket kiszámolja, így **nem kell ezzel manuálisan szórakoznunk** majd. :)<br>
+Ugye ismét azért lesz *z-próba* a hipotézisvizsgálatunk neve, mert a pórbafüggvényből standard normális, azaz $z$ eloszláson keresztül lesz p-értékünk.
+
+Viszont, azt **mindenképpen látnunk kell, hogy mivel a p-érték számításhoz vett eloszlás standard normális** ($N(0,1)$), így **mindkét mintának nagynak kell lennie**! Ez itt **kétmintás arányra vonatkozó hipotézisvizsgálat esetén** azt jelenti, hogy **mindkét mintában legyen legalább $10$ db arány szempontjából kedvező és kedvezőtlen eset is**.
+
+Ezt a korábban kiszámolt $k_1$, $k_2$ és $n_1$, $n_2$ értékekből már könnyen tudjuk ellenőrizni.
+
+Nézzük az arány szempontjából kedvező eseteket.
+
+```{python}
+k_1 > 10
+k_2 > 10
+```
+
+Mindkét mintára igaz a feltétel, rendben vagyunk.
+
+S most az arány szempontjából kedvezőtlen esetek jönnek. Nyilván itt az az alapelv, hogy ami a mintában *nem* arány szempontjából kedvező eset, az mind kedvezőtlennek minősül.
+
+```{python}
+n_1 - k_1 > 10
+n_2 - k_2 > 10
+```
+
+Itt is mindkét mintára igaz a feltétel, rendben vagyunk. Juhé! :)
+
+Lássuk hát a **p-érték számolás**át a `test_proportions_2indep` beépített függvénnyel a `statsmodels` csomagból.<br>
+A **függvényben a következő paraméterek**et kell megadni:
+
+- `count1`, `count2` + `nobs1`, `nobs2`: A két minta arány szempontjából kedvező eseteinek száma (`count1`, `count2`) és a két minta teljes elemszámai (`nobs1`, `nobs2`).
+  * Arra kell figyelni, hogy a függvényben a kivonás iránya `1 - 2`. Tehát, a két csoport átadásának sorrendje következetes kell legyen a $H_0$ és $H_1$-ben alkalmazott kivonások irányával. Nekünk ez most azt jelenti, hogy elsőnek a *Hisz* csoport esetszámait adjuk át (a `count1` és `nobs1` paramétereken), mert a hipotéziseinkben $P_{Hisz} - P_{NemHisz}$ kivonás szerepel.
+- `value`: Az arányok közti elvi eltérés értéke a hipotéziseinkben. Ez most nekünk $\epsilon_0=-0.02$.
+- `alternative`: Az alteranítv hipotézisben lévő relációs jelet adjuk meg szövegesen.
+  * lehetséges értékek: `‘two-sided’, ‘smaller’, ‘larger’`, rendre a $\neq$, $<$, $>$ relációs jeleket jelölik $H_1$-ben
+
+Ezzel a működés a következőképpen néz ki.
 
 ```{python}
 # függvény importja
@@ -231,27 +296,5 @@ test_proportions_2indep(count1 = k_1, nobs1=n_1,
                         value = -0.02, alternative='smaller')
 ```
 
-A p-érték = 19% > 10% --> $H_0$-t nem utasítom el. A két arány közti különbség a népességben kisebb, mint 2%-pont.<br>
-A mintaarányok közötti eltérés nem szignifikáns!
-
-Előfeltétel: Nagy elemszám kell mindkét mintára, mert z-próba (p-érték standard normális eloszlásból jön).
-
-Mindkét mintában legyen legalább $10$ arány szempontjából kedvező és kedvezőtlen eset is.
-
-Arány szempontjából kedvező esetek.
-
-```{python}
-k_1 > 10
-k_2 > 10
-```
-
-Mindkét mintára igaz a feltétel, rendben vagyunk.
-
-Arány szempontjából kedvezőtlen esetek.
-
-```{python}
-n_1 - k_1 > 10
-n_2 - k_2 > 10
-```
-
-Mindkét mintára igaz a feltétel, rendben vagyunk.
+Szépen látszik, hogy a próbafüggvény (az outoutban `statistics`) $-0.8767$, de ami fontosabb, hogy a p-értékünk $19\%$-ra jön ki. Tehát **a $H_0$-t elutastíani $19\%$-os valószínűséggel eredményez hibát**. Ez **magasabb, mint a legnagyobb megengedett szokásos szignifikancia-szint**, az $\alpha=10\%$, így a $H_0$-t nem utasítom el. Mivel nagyobb hibával járna a $H_0$ eluatsítása, mínt a mengedett hiba. Tehát, **végső soron a két arány közti különbség a népességben kisebbnek vehető, mint 2%-pont**.<br>
+Azaz, **a mintaarányok között tapasztalt, 2 %-pontnál nagyobb eltérés NEM szignifikáns** a megfigyelt mintánk alapján!
