@@ -1,7 +1,7 @@
 ---
 title: "Egymintás és Kétmintás próbák"
 author: "Kovács László"
-date: "2023. 05. 03."
+date: "2023. 05. 04."
 output:
   html_document:
     toc: true
@@ -41,66 +41,108 @@ ess.info()
 
 Láthatjuk, hogy megvan mind a 14+1 oszlopunk a megfelelő adattípusokkal. Hurrá! :)
 
-A teljes népességben a heti munkaidő szórása legalább 15 óra
+Nézzünk most egy olyan **hipotézisvizsgálat**ot, ami **szórásra vonatkozik**.<br>
+Lehet egy olyan állításunk, ami szerint a teljes népességben a **heti munkaidő szórása legalább 15 óra**. Ezt a szokásos elvek alapján át tudjuk alakítani null- és alternatív hipotézissé. Ez az álítás a **'legalább' kulcsszó miatt engedi az egyenlőséget ($\geq$), így az állítás maga egy $H_0$ lesz**. Míg **a $H_1$ ennek a tagadása lesz $<$, hiszen a $H_0$ és $H_1$ egymást kizáró állításként kell megfogalmazni**.<br>
+Tehát, ezek alapján az állítás a heti munkaidő sokasági szórásáról, a $\sigma$-ról az alábbi módon néz ki $H_0$-al és $H_1$-el:
 
 - $H_0: \sigma \geq 15$
 - $H_1: \sigma < 15$
 - Szurkolunk: $H_0$
 
-Ebből $\sigma_0=15$
+Ebben a felírásban az **elvi szórásunk a $15$ óra**, hiszen a valós sokasági szórásnak a viszonyát ehhez képest vizsgáljuk majd a mintánk alapján. Ezt az elvi szórást $\sigma_0=15$-nek jelöljük.
 
-Próbafüggvény: $$\frac{(n-1)s^2}{\sigma_0^2} \sim \chi^2(n-1)$$
+Ezzel megvolnánk a hipotézisvizsgálatunk 1. pontjával, a $H_0$ és $H_1$ felírásával. Most ugrunk a 2. és igazából a 3. pontra is, a próbafüggvény meghatározásához, majd a p-érték számolásához. **Szórás esetében a próbafüggvény** a következő alakot ölti: $$\frac{(n-1)s^2}{\sigma_0^2} \sim \chi^2(n-1)$$
 
-Manuálisan, nincs itt sajnos beépített függvény.
+A $\sim \chi^2(n-1)$ jelölés azt mondja, hogy a **p-értéket egy $n-1$ szabadságfokú $\chi^2$ eloszlásból** kell majd kiszámolnunk.
+
+Sajnos, **erre a próbafüggvényre és p-értékre nincs Python beépített függvény, így muszáj kiszámolnunk a dolgokat manuálisan!**
+
+Viszont, a próbafüggvényben minden betűt ismerünk. Ugye az előbb letisztéztuk, hogy a $\sigma_0$ az elvi szórás, az $n$ szokásos müódon a mintánk elemszáma és az $s$ a korrigált (tehát torzítatlan becslést adó) mintaszórás. Ezeket az értékeket gyorsan ki tudjuk számolni. Az ESS adatbázisban a heti munkaórára vonatkozó adatai a kitöltőknek a `WeeklyWork_Hours` oszlopban laknak. Arra kell a számolásnél figyelni, hogy az ESS adatbázis `info()` metódusának eredményéből láthattuk, hogy **ebben a `WeeklyWork_Hours` oszlopban van egy rakat hiányzó érték**, így $n$-ünk az nem $1849$ (data frame sorainak a száma), hanem csak $685$. Ezt úgy tudjuk legkönnyebben figyelembe venni, hogy az $n$-t a `WeeklyWork_Hours` oszlop `count()` metódusával számítjuk ki, ami megadja az oszlopban a nem üres értékek számát.
 
 ```{python}
 elvi_szórás = 15
-s = np.std(ess.WeeklyWork_Hours, ddof=1)
 n = ess.WeeklyWork_Hours.count()
+s = np.std(ess.WeeklyWork_Hours, ddof=1)
+s
+```
 
+Láthatjuk, hogy a mintában a szórás $s=15.37$, ami nagyobb mint a $15$-ös elvi szórás. De **nem vehetjük automatikusan igaznak $H_0$-t, hiszen ez a jelenség lehet csak a mintavételi hiba műve!** Épp **azért kell p-értéket számolni, hogy megtudjuk, mekkora valószínűséggel lehet ez a jelenség** (hogy a mintaszórás nagyobb, mint a 15-ös elvi érték) **csak a mintavételi hiba műve**.
+
+Szóval, számoljuk csak ki ezt a próbafüggvényt! :)
+
+```{python}
 próbafv = (n-1)*s**2/elvi_szórás**2
 próbafv
 ```
 
-A p-érték számítás balodali módon megy ($H_1$-ben $<$ jel van.)
+Szép és jó ez az érték, de önmagában nem sokat mond. :) Ugorjunk is a 3. pontra, a p-érték számítására. Ugye azt megállapítottuk már az előbb, hogy a p-értéket most $n-1$ szabadságfokú $\chi^2$ eloszlásból számoljuk. Plusz, **mivel a $H_1$-ben $<$ jel van, így a számítás balodali módon történik**, azaz **a $\chi^2(n-1)$ eloszlásban a próbafüggvény alá esés valószínűsége érdekel**. Az **elv itt ugyan az, amit láttunk a <a href="Gyak07.html" target="_blank">7. heti tananyag 2. fejezetében</a>.**
+
+Ezek alapján meg is van a p-értékünk a `stats.chi2.cdf` függvénnyel.
 
 ```{python}
 stats.chi2.cdf(próbafv, df=n-1)
 ```
 
-p-érték = $82.6\%$ > $10\%$ --> $H_0$ nem utasítjuk el --> $H_1$ hamis. Azaz, szórás a teljes népességben is legalább 15-nek kinéz
+A p-érték = $82.6\%$ lett, ami szerint a megfigyelt minta alapján a $H_0$-t elutasítani $82.6\%$ hibavalószínűséggel jár. Ez jó magas hibavalószínűség így "szabad szemmel" is, de technikailag ha nézem, akkor **ez a p-érték magasabb még a legmagasabb szokásos szignifikancia-szintnél**, a $10\%$-nál **is**, így **a $H_0$-t nem utasítjuk el**, mert ez a döntés túl nagy hibával járna. Ez alapján pedig azt mondhatjuk, hogy **a heti munkaidők szórása a teljes népességben (sokaságban) is legalább 15 órának kinéz**.
 
-Előfeltétel: p-érték az akkor valid, ha az adatsor, aminek a szórását vizsgáljuk normális eloszlást követ
+Sajnos ennek a $\chi^2$ próbának ugyan az a baja, mint a $\chi^2$ eloszlásos intervallumbecslésnek volt az <a href="Gyak05.html" target="_blank">5. heti tananyag 5. fejezetében</a>: A próba elvégézésének **előfeltétele, hogy az adataink normális eloszlásúak legyenek**. tehát, a számított p-értékünk, a $82.6\%$, az akkor valid, ha az adatsor, aminek a szórását vizsgáljuk normális eloszlást követ.<br>
+Ezt egy hisztogrammal gyorsan ellenőrizni is tudjuk.
 
 ```{python}
 ess.WeeklyWork_Hours.hist()
 ```
 
-Csúcsos, mint a fene --> nem normális az eloszlás :(
+Ajjaj, a munkaórák eloszlása csúcsosnak tűnik, mint a fene. Ez így nem egy normális eloszlás, az előfeltételünk nem teljesül, a számított p-értékünk nem megbízható ... *BigRIP* :(<br>
+Esetleg próbálkozhatunk az estrém outlier $160$ óra kiszűrésével, hátha csak az okozza a csúcsosságot, de sajnos nem járunk sikerrel, ez a hisztogram az outlier szűrés után is elég csúcsos.
+
+```{python}
+ess.WeeklyWork_Hours[ess.WeeklyWork_Hours < 160].hist()
+```
+
+De amúgy ez nem meglepő: a legtöbb kitöltő valószínűleg a "standard" heti 40 órát (vagy ahhoz közeli értéket) adott meg válaszként, és ez okozza a csúcsosságot.
+
+Amúgy, ez az **előfeltétel az oka, hogy nincs erre a hipotézisvizsgálatra beépített függvény Pythonban: nagyon ritka, hogy egy adatsor szép normális eloszlású legyen**, így a legtöbb esetben a próba nem megbízható, mivel a $\chi^2(n-1)$ eloszlásból számított p-érték mögötti feltételek nem teljesülnek a legtöbb esetben.<br>
+Emiatt ritka, hogy a próba valid eredményeket produkál, így egy programozó sem kódolta le Pythonban, mert ritkán kell ez a hipotézisvizsgálat gyakorlatban. Mi is inkább "történelmi okokból" tanítjuk. Meg hogy minél több dolgot lehessen számonkérni. :)
 
 ## 2. A kétmintás hipotézisvizsgálatok elve
 
-EDDIG: Egymintás hipotézisvizsgálatok.
+Az **eddig** tanult hipotézisvizsgálatok az átlagra, arányra és szórásra úgynevezett **egymintás hipotézisvizsgálatok** voltak. Ez azt jelentette, hogy egy db statisztikai mutató (egy db átlag, egy db arány vagy éppen egy db szórás) viszonyát vizsgáltuk valami elvi értékhez képest. Ez alapján fogalmaztuk meg az előfeltevéseinket, azaz hipotéziseinket.
 
-Egy db stat mutató viszonya elvi értékhez képest --> hipotézis
+**Mostantól** viszont úgynevezett **kétmintás hipotézisvizsgálatok**kal vagy más néven **kétmintás próbák**kal foglalkoznunk. Ez pedig azt fogja jelenti, hogy a **hipotéziseinkben** (előfeltevéseinkben) mindig **két db statisztikai mutató** (két db átlag, két db arány, stb.) **viszonyát vizsgáljuk majd egymáshoz képest**.
 
-MOST: Kétmintás hipotézisvizsgálatok.
+Tehát, ha **példának az átlagot veszem**, mint statisztikai mutatót, akkor **egy** olyan **kétmintás állítás**t mondhatok, hogy **"a férfi átlagfizetés magasabb, mint a női átlagfizetés Magyarországon"**.<br>
+Kicsit matekosabban felírva: **Átlagfizu(Férfi) > Átlagfizu(Nő)**
 
-Két db stat mutató viszonya egymáshoz képest --> hipotézis
+**Azért lesznek az ilyen két statisztikai mutatós állításokhoz tartozó hipotézisvizsgálatok kétmintás próbák, mert az a logika, hogy 1 db mintánka van a férfi átlaghoz és 1 db mintánk van a női átlaghoz**. Tehát, összességében 2 db mintával dolgozunk. :)
 
-Példa alapállításra: **Átlagfizu(Férfi) > Átlagfizu(Nő)**
+A kérdés, hogyan lesznek ezekből a kétmintás állításokból null- és alternatív hipotézisek. A **trükk**ünk az, hogy **átrendezzük az állítást** leíró egyenlőtlenséget **úgy, hogy a két statisztikai mutató KÜLÖNBSÉGÉNEK a viszonyát vizsgáljuk egy elvi értékhez** képest. Ez az elvi érték lesz az elvi eltérés, általában $\delta_0$-nak jelöljük. Arányok esetében néha szokás $\epsilon_0$-t is használni az elvi eltérés jelölésére.
 
-1 db minta a férfi átlahgoz + 1 db minta a női átlaghoz = 2 minta
+Az előbbi átlagfizetéses példában, ha a sokasági átlagokat továbbra is $\mu$-vel jelölöm, mint a korábbi hetek tananyagaiban, akkor az **átrendezett állítás** a következő lesz: $$\mu_{Férfi} - \mu_{Női} > 0$$
 
-Trükk: átrendezni az állítást --> statisztikai mutatók KÜLÖNBSÉGÉNEK a viszonyát vizsgáljuk egy elvi értékhez. Ez az elvi érték lesz az elvi eltérés, általában $\delta_0$-nak jelöljük. Arányok esetében néha szokás $\epsilon_0$-t is használni.
+És akkor itt $\delta_0=0$ esetünk van. Ebből az **eddigi elvek mentén lehet a különbségre felírni $H_0$-t és $H_1$-et**:
 
-Példában, ha a sokasági átlagokat továbbra is $\mu$-vel jelölöm: $$\mu_F - \mu_N > 0$$
+1. Ha az **állítás megengedi az egyenlőséget, akkor az $H_0$, egyébként $H_1$-be** megy.
+2. **A $H_0$ és $H_1$ egymást kizáró, ellentétes állítások**.
 
-És akkor itt $\delta_0=0$. Ebből az **eddigi elvek mentén lehet a különbségre felírni $H_0$-t és $H_1$-et**:
+Szóval, a férfi-női átlagkeresetes példánkon a $H_0$ és $H_1$ állítások a következők:
 
-- $H_0:\mu_F - \mu_N \leq 0$
-- $H_1:\mu_F - \mu_N > 0$
+- $H_0:\mu_{Férfi} - \mu_{Női} \leq 0$
+- $H_1:\mu_{Férfi} - \mu_{Női} > 0$
 - Szurkolunk: $H_1$
+
+Nézzünk egy olyan példát, amikor a $\delta_0 \neq 0$! Legyen az az állításunk, hogy **"a férfi átlagkereset legalább 100 ezer Ft-tal magasabb, mint a női"**. Ekkor azt csináljuk, hogy első körben írjuk fel úgy az állítást, mintha csak annyi lenne, hogy *"a férfi átlagkereset legalább annyi, mint a női"*. Tehát, mintha a különbségre adott számértékünk (a 100 ezer Ft) ott sem lenne. A *"legalább"* kifejezés miatt ez egy $\geq$-s állítás lesz: $$\mu_{Férfi} \geq  \mu_{Női}$$
+
+És ezt a fenti egyenlőtlenséget egészítsük úgy ki, hogy belevesszük a 100 ezer Ft-os különbséget. A *"férfi átlagkereset legalább 100 ezer Ft-tal magasabb, mint a női"* azt jelenti másképpen, hogy ha a **női átlagkeresethez még 100 ezret hozzáadok, akkor is nagyobb vagy egyenlő ennél a férfi átlagkereset**. Ez a megfogalmazás pedig alábbi módon néz ki az egyenlőtlenségünkben: $$\mu_{Férfi} \geq  \mu_{Női} + 100$$
+
+Innentől kezdve megvan az állításom, amit már könnyű **átrendezni** úgy, hogy **azt vizsgálja az egyenlőtlenség, hogy az átlagok különbsége hogyan viszonyul valami elvi, $\delta_0$ eltéréshez**, ami most nekem a 100-as érték:  $$\mu_{Férfi} -  \mu_{Női} \geq 100$$
+
+Tehát, ebben az állításban akkor $\delta_0=100$. És ezt az állítást a szokásos két alapelv mellett már gyorsan tudom $H_0$-ra és $H_1$-re szétszedni. Mivel az állítás engedi az egyenlőséget most, így az állítsáunkból egy nullhipotézis lesz, és az alternatív hipotézisben ezt az állítást meg tagadjuk, és vélgül a $H_0$-nak szurkolunk, mert abban lakik az eredeti állításunk:
+
+- $H_0:\mu_{Férfi} - \mu_{Női} \geq 100$
+- $H_1:\mu_{Férfi} - \mu_{Női} < 100$
+- Szurkolunk: $H_0$
+
+Akkor, lássuk hogy működik a kétmintás $H_0$ és $H_1$ párokhoz a p-érték számolás pár gyakorlati példán! :)
 
 ## 3. Az átlagokra vonatkozó kétmintás *z-próba*
 
