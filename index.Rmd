@@ -7,7 +7,7 @@ title: |
   Gazdaságinformatikus BSc<br><br>
   </center> 
 output: html_document
-date: '2023.05.14.'
+date: '2024.02.04.'
 ---
 
 ```{r setup, include=FALSE}

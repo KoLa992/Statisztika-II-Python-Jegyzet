@@ -1,7 +1,7 @@
 ---
 title: "Statisztika I. ismétlés és Valószínűségszámítási alapok"
 author: "Kovács László"
-date: "2022.08.08."
+date: "2024.02.04."
 output:
   html_document:
     toc: true
@@ -209,7 +209,7 @@ Mielőtt szörnyet halunk az Analízis emlékek által kiváltott PTSD-ben, megn
 ### 2.1. A sűrűségfüggvény használata
 
 No, de "*Mit adtak nekünk a rómaiak?*" Azaz jogosan kérdezhetjük, hogy mire tudjuk használni ezt a sűrűségfüggvényt? Első és legfontosabb funkciója, hogy ha a függvény $f(x)$ formulájába behelyettesítek egy $x$ értéket, akkor megkapom, hogy **mi a valószínűsége, hogy az $Y$ adatsoromból egy véletlenszerűen kihúzott $Y_i$ érték az $x$-et vesz fel**. Magyarul $f(x)=P(Y_i=x)$.<br>
-Most itt egy picit **pontatlan voltam**. Ugyanis nem egész pontosan a $Y_i=x$ esemény valószínűségét kapjuk meg, mert nagy értékkészlet esetén az gyakorlatilag $0$ lenne. Gondoljunk bele: annak a valószínűsége, hogy a Tesla napi árváltozása éppen pont $2.760009\$$ az tényleg gyakorlatilag $0$, de a valóságban pont ennyi volt a cucc 2019. május 23-án. Szóval, abszolút nem lehetetlen...emiatt, amit ez az $f(x)$ sűrűségfüggvény-érték mutat az a $P(Y_i \in x\pm \epsilon)$ valószínűség. tehát, annak a valószínűsége, hogy a random módon kihúzott $Y_i$ értékünk az $x$-nek egy **nagyon kicsi*, $\pm \epsilon$-nyi környezetébe esik.<br>
+Most itt egy picit **pontatlan voltam**. Ugyanis nem egész pontosan a $Y_i=x$ esemény valószínűségét kapjuk meg, mert nagy értékkészlet esetén az gyakorlatilag $0$ lenne. Gondoljunk bele: annak a valószínűsége, hogy a Tesla napi árváltozása éppen pont $2.760009\$$ az tényleg gyakorlatilag $0$, de a valóságban pont ennyi volt a cucc 2019. május 23-án. Szóval, abszolút nem lehetetlen... Azaz, egész pontosan az $f(x)$ sűrűségfüggvény érték *arányos* a $P(x<Y_i<x+ \epsilon)$ esemény valószínűségével, ahol az $\epsilon$ egy *nagyon kicsi* szám. Konkrétan, azt mondhatjuk, hogy $P(x<Y_i<x+ \epsilon)=f(x) \times \epsilon$. Tehát, annak a valószínűsége, hogy a random módon kihúzott $Y_i$ értékünk az $x$-nek egy *nagyon kicsi*, $\epsilon$-nyi környezetébe esik, arányos az $f(x)$ sűrűségfüggvény értékével. Ha nagyobb ez a valószínűség, akkor nagyobb a sűrűségfüggvény érték is, és fordítva. Szóval, annyi biztosan elmondható, hogy amelyik $x$ pontnak nagyobb az $f(x)$ sűrűségfüggvény értéke, annak nagyobb is a bekövetkezési valószínűsége, ha véletlenszerűen kiválasztok egy tetszőleges $Y_i$ értéket. Csak a két dolog (sűrűségfüggvény és valószínűség) nem ugyan az, az eltérésük egy $\epsilon$ szorzó.<br>
 Emiatt van az is, hogy a Pythonban a `hist` metódus `density = True` beállítással a relatív gyakoriságokat a legnagyobb gyakoriságú $Y_i$ osztályközép $\pm 2$ környezet relatív gyakorisága alapján mutatja meg a hisztogram $y$ tengelyén.<br>
 De most nekünk **szemléletes szempontból teljesen jó lesz, ha úgy gondolunk a helyettesítési értékre $x$ helyen, mint az $x$ érték bekövetkezési valószínűsége**. Azaz, mi a $f(x)=P(Y_i=x)$ értelmezéssel megyünk tovább.
 
