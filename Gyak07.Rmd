@@ -1,7 +1,7 @@
 ---
 title: "Hipotézisvizsgálat alapjai"
 author: "Kovács László"
-date: "2023. 05. 03."
+date: "2024. 04. 04."
 output:
   html_document:
     toc: true
@@ -73,7 +73,7 @@ Igazából, ha belegondolunk, akkor mind a $6$ állítás visszavezethető ahhoz
 Most itt éppen ki tudjuk számolni a teljes sokaság ismeretében, hogy $\mu=167$ perc, ami **tényleg magasabb, mint** $150$.
 
 ```{python}
-Balcsi.mean()
+Balcsi.PERC.mean()
 ```
 
 A **gyakorlatban viszont mindezt NEM tudjatjuk, hiszen csak az $n=100$ elemű minta áll rendelkezésünkre!!** Szóval **marad az, hogy hipotézisvizsgálattal ellenőrizzük, hogy a $\bar{y}=164$ megfigyelt mintaátlag szignifikánsan eltér-e a $150$-től**.
@@ -128,7 +128,7 @@ Emiatt alkalmazzuk a **szokásos szignifikancia-szintek tartományát, ami $1\%-
 Továbbá, majd **szimulációkból látni fogjuk, hogy $1\%$ és $10\%$ közti p-értéket simán produkál a valóságban igaz és hamis $H_0$ állítás is**!
 
 Szóval, az előbbi családregényünk alapján az tűnik egy normálisabb megoldásnak, ha **azt mondjuk, hogy $1\%$ és $10\%$ közti p-érték esetén nem választunk $H_0$ és $H_1$ között, mert ekkor a döntésünk nagyon érzékeny lenne a konkrét $\alpha$ megválasztására**<br>
-Ha egy $1\%$ és $10\%$ közti p-értéket produkálnak a mintaadataink, akkor a legjobb, amit tehetünk, hogy **addig növeljük a mintaméretet ($n$-t) amíg a p-érték egyértelműen $1\%$ alá vagy $10\%$ fölé nem kerül**. Ezt a módszert hívja a statisztika <a href="https://en.wikipedia.org/wiki/Sequential_analysis" target="_blank">szekvenciális analízisnek</a>, és a klinikai gyógyszerkísérletekben és az ipari minőségbiztosításban rendszeresen alkalmazzák. A módszer alapjait pedig egy <a href="https://hu.wikipedia.org/wiki/Wald_%C3%81brah%C3%A1m" target="_blank">Wald Ábrahám</a> nevű magar statisztikus dolgozta ki az Amerikai Légierőnek a II. világháború alatt (zsidó származása miatt itthon "nem kellett"). Szóval, mint minden fontos területet a világon, ezt is magyarok találták ki. :) #Jézusmagyarvót
+Ha egy $1\%$ és $10\%$ közti p-értéket produkálnak a mintaadataink, akkor a legjobb, amit tehetünk, hogy **addig növeljük a mintaméretet ($n$-t) amíg a p-érték egyértelműen $1\%$ alá vagy $10\%$ fölé nem kerül**. Ezt a módszert hívja a statisztika <a href="https://en.wikipedia.org/wiki/Sequential_analysis" target="_blank">szekvenciális analízisnek</a>, és a klinikai gyógyszerkísérletekben és az ipari minőségbiztosításban rendszeresen alkalmazzák. A módszer alapjait pedig egy <a href="https://hu.wikipedia.org/wiki/Wald_%C3%81brah%C3%A1m" target="_blank">Wald Ábrahám</a> nevű magar statisztikus dolgozta ki az Amerikai Légierőnek a II. világháború alatt (zsidó származása miatt itthon "nem kellett"). Szóval, mint minden fontos területet a világon, ezt is magyarok találták ki. :)
 
 Tehát, az egy fokkal **korrektebb döntés szabályok hipotézisvizsgálat esetén**:
 

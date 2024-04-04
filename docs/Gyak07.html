@@ -244,7 +244,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Hipotézisvizsgálat alapjai</h1>
 <h4 class="author">Kovács László</h4>
-<h4 class="date">2023. 05. 03.</h4>
+<h4 class="date">2024. 04. 04.</h4>
 
 </div>
 
@@ -283,7 +283,7 @@ Balcsi.info()</code></pre>
 
 BalcsiMinta.info()</code></pre>
 <pre><code>## &lt;class &#39;pandas.core.frame.DataFrame&#39;&gt;
-## Int64Index: 100 entries, 7991 to 5727
+## Index: 100 entries, 7991 to 5727
 ## Data columns (total 3 columns):
 ##  #   Column  Non-Null Count  Dtype  
 ## ---  ------  --------------  -----  
@@ -307,11 +307,8 @@ BalcsiMinta.info()</code></pre>
 <p>No, a megfigyelt <span class="math inline">\(100\)</span> átúszó alapján a mintaátlag kb. <span class="math inline">\(164\)</span> perc. Ez alapján a 2. állítás, a pesszimista ürge mondása tűnik igaznak, az <strong>átlag nagyobb, mint</strong> <span class="math inline">\(150\)</span> perc. NODE! <strong>Amit itt látunk az csak <span class="math inline">\(100\)</span> ember átlagos ideje, a teljes sokaságban az átlagos átúszási idő ettől eltérhet!</strong><br> Szebben fogalmazva, <strong>a <span class="math inline">\(164\)</span> és <span class="math inline">\(150\)</span> közti különbség simán betudható a mintavételi hibának is!!</strong><br> <strong>Ezért végzünk hipotézisvizsgálatot</strong>, hogy eldöntsük, hogy a <span class="math inline">\(\mu &gt; 150\)</span> hipotézis (állítás) igaznak vehető-e még a mintavételi hibával együtt is.</p>
 <p>Igazából, ha belegondolunk, akkor mind a <span class="math inline">\(6\)</span> állítás visszavezethető ahhoz a kérdéshez, hogy a valós, sokasági átlag, <span class="math inline">\(\mu\)</span> <strong>eltér-e</strong> annyira a <span class="math inline">\(150\)</span>-től, hogy az <strong>eltérés már meghaladja a mintavételi hibát</strong>. Ezt úgy mondjuk szépen, hogy <strong>azt vizsgáljuk, SZIGNIFIKÁNS-e az eltérés a valós <span class="math inline">\(\mu\)</span> és <span class="math inline">\(150\)</span> között!</strong></p>
 <p>Most itt éppen ki tudjuk számolni a teljes sokaság ismeretében, hogy <span class="math inline">\(\mu=167\)</span> perc, ami <strong>tényleg magasabb, mint</strong> <span class="math inline">\(150\)</span>.</p>
-<pre class="python"><code>Balcsi.mean()</code></pre>
-<pre><code>## PERC    167.529141
-## dtype: float64
-## 
-## &lt;string&gt;:1: FutureWarning: Dropping of nuisance columns in DataFrame reductions (with &#39;numeric_only=None&#39;) is deprecated; in a future version this will raise TypeError.  Select only valid columns before calling the reduction.</code></pre>
+<pre class="python"><code>Balcsi.PERC.mean()</code></pre>
+<pre><code>## 167.52914060096398</code></pre>
 <p>A <strong>gyakorlatban viszont mindezt NEM tudjatjuk, hiszen csak az <span class="math inline">\(n=100\)</span> elemű minta áll rendelkezésünkre!!</strong> Szóval <strong>marad az, hogy hipotézisvizsgálattal ellenőrizzük, hogy a <span class="math inline">\(\bar{y}=164\)</span> megfigyelt mintaátlag szignifikánsan eltér-e a <span class="math inline">\(150\)</span>-től</strong>.</p>
 <p>Az eddigi logikánk alapján létre tudunk hozni egy úgynevezett <strong>nullhipotézist</strong> (<span class="math inline">\(H_0\)</span>) és <strong>alternatyv hipotézist</strong> (<span class="math inline">\(H_1\)</span>) az <strong>eredeti állításunkból</strong>.</p>
 <p>A pontos logika itt a következő. A <span class="math inline">\(H_0\)</span>-ban mindig olyan állítást fogalmazunk meg, ami <strong>a vizsgált statisztikai paraméter tekintetében megengedi az egyenlőséget</strong>.<br> A <span class="math inline">\(H_1\)</span> pedig az <strong>eredeti állítástól függ</strong>:</p>
@@ -351,7 +348,7 @@ BalcsiMinta.info()</code></pre>
 <li><strong>p-érték</strong> <span class="math inline">\(\leq\alpha \rightarrow H_1\)</span></li>
 </ul>
 <p>De természetesen <strong>AZ ÉLET SOSEM ILYEN EGYSZERŰ!!</strong> a fő probléma itt abból jön, hogy <strong>simán lehetnek olyan mintaadataink, hogy a meghozott döntés marhára függ attól mit mondok pontosan <span class="math inline">\(\alpha\)</span>-nak!</strong> Pl. oké, maximum megenegedett hibavalószínűségem <span class="math inline">\(\alpha=5\%\)</span>. A p-értékre meg kapok egy <span class="math inline">\(4.8\%\)</span>-ot. Na akkor <span class="math inline">\(\alpha=5\%\)</span> esetén elutasítanánk <span class="math inline">\(H_0\)</span>-t, de egy <span class="math inline">\(\alpha=3\%\)</span>-nál már épp elutasítanánk <span class="math inline">\(H_0\)</span>-t.<br> Emiatt alkalmazzuk a <strong>szokásos szignifikancia-szintek tartományát, ami <span class="math inline">\(1\%-10\%\)</span> között mozog</strong>. Nem akarunk <span class="math inline">\(10\%\)</span>-nál nagyobb megenegedett <span class="math inline">\(\alpha\)</span> hibát, mert az már tényleg magas hibavalószínűség. Másrészről meg <span class="math inline">\(0\%\)</span> <strong>hibavalószínűségünk meg csak úgy lehet, ha megfigyeljük az egész sokaságot, és tudjuk mennyi a vizsgált statisztikai paraméter valós, sokasági értéke</strong>. Ekkor meg pont a mintavétel lényegét veszítjük el, hogy nem kell megfigyelni minden múltbeli és jövőbeli adatpontot ahhoz, hogy dönteni tudjunk a vizsgált mutatószámunk valós, sokasági értékéről. Ez utóbbi <span class="math inline">\(\alpha=0\%\)</span> eset hasonló ahhoz, amikor azt mondtuk, hogy a <span class="math inline">\(100\%\)</span> megbízhatóságú konfidencia-intervallumnak sincs semmi értéelme, mert akkor azt mondanánk, hogy a mintavételünk alapján a vizsgált statisztikai mutatószámunk (paraméterünk) bárho lehet <span class="math inline">\(\pm\infty\)</span> között… :)<br> Továbbá, majd <strong>szimulációkból látni fogjuk, hogy <span class="math inline">\(1\%\)</span> és <span class="math inline">\(10\%\)</span> közti p-értéket simán produkál a valóságban igaz és hamis <span class="math inline">\(H_0\)</span> állítás is</strong>!</p>
-<p>Szóval, az előbbi családregényünk alapján az tűnik egy normálisabb megoldásnak, ha <strong>azt mondjuk, hogy <span class="math inline">\(1\%\)</span> és <span class="math inline">\(10\%\)</span> közti p-érték esetén nem választunk <span class="math inline">\(H_0\)</span> és <span class="math inline">\(H_1\)</span> között, mert ekkor a döntésünk nagyon érzékeny lenne a konkrét <span class="math inline">\(\alpha\)</span> megválasztására</strong><br> Ha egy <span class="math inline">\(1\%\)</span> és <span class="math inline">\(10\%\)</span> közti p-értéket produkálnak a mintaadataink, akkor a legjobb, amit tehetünk, hogy <strong>addig növeljük a mintaméretet (<span class="math inline">\(n\)</span>-t) amíg a p-érték egyértelműen <span class="math inline">\(1\%\)</span> alá vagy <span class="math inline">\(10\%\)</span> fölé nem kerül</strong>. Ezt a módszert hívja a statisztika <a href="https://en.wikipedia.org/wiki/Sequential_analysis" target="_blank">szekvenciális analízisnek</a>, és a klinikai gyógyszerkísérletekben és az ipari minőségbiztosításban rendszeresen alkalmazzák. A módszer alapjait pedig egy <a href="https://hu.wikipedia.org/wiki/Wald_%C3%81brah%C3%A1m" target="_blank">Wald Ábrahám</a> nevű magar statisztikus dolgozta ki az Amerikai Légierőnek a II. világháború alatt (zsidó származása miatt itthon “nem kellett”). Szóval, mint minden fontos területet a világon, ezt is magyarok találták ki. :) #Jézusmagyarvót</p>
+<p>Szóval, az előbbi családregényünk alapján az tűnik egy normálisabb megoldásnak, ha <strong>azt mondjuk, hogy <span class="math inline">\(1\%\)</span> és <span class="math inline">\(10\%\)</span> közti p-érték esetén nem választunk <span class="math inline">\(H_0\)</span> és <span class="math inline">\(H_1\)</span> között, mert ekkor a döntésünk nagyon érzékeny lenne a konkrét <span class="math inline">\(\alpha\)</span> megválasztására</strong><br> Ha egy <span class="math inline">\(1\%\)</span> és <span class="math inline">\(10\%\)</span> közti p-értéket produkálnak a mintaadataink, akkor a legjobb, amit tehetünk, hogy <strong>addig növeljük a mintaméretet (<span class="math inline">\(n\)</span>-t) amíg a p-érték egyértelműen <span class="math inline">\(1\%\)</span> alá vagy <span class="math inline">\(10\%\)</span> fölé nem kerül</strong>. Ezt a módszert hívja a statisztika <a href="https://en.wikipedia.org/wiki/Sequential_analysis" target="_blank">szekvenciális analízisnek</a>, és a klinikai gyógyszerkísérletekben és az ipari minőségbiztosításban rendszeresen alkalmazzák. A módszer alapjait pedig egy <a href="https://hu.wikipedia.org/wiki/Wald_%C3%81brah%C3%A1m" target="_blank">Wald Ábrahám</a> nevű magar statisztikus dolgozta ki az Amerikai Légierőnek a II. világháború alatt (zsidó származása miatt itthon “nem kellett”). Szóval, mint minden fontos területet a világon, ezt is magyarok találták ki. :)</p>
 <p>Tehát, az egy fokkal <strong>korrektebb döntés szabályok hipotézisvizsgálat esetén</strong>:</p>
 <ul>
 <li><strong>p-érték</strong> <span class="math inline">\(&gt;10\% \rightarrow H_0\)</span></li>
@@ -508,7 +505,7 @@ plt.show()</code></pre>
 <p>Vegyük például az 1. fejezet elején kivett <span class="math inline">\(n=100\)</span> elemű mintát, amit a <code>BalcsiMinta</code> című Python objektumban tároltunk le, ami egy <span class="math inline">\(100\times3\)</span>-as data frame:</p>
 <pre class="python"><code>BalcsiMinta.info()</code></pre>
 <pre><code>## &lt;class &#39;pandas.core.frame.DataFrame&#39;&gt;
-## Int64Index: 100 entries, 7991 to 5727
+## Index: 100 entries, 7991 to 5727
 ## Data columns (total 3 columns):
 ##  #   Column  Non-Null Count  Dtype  
 ## ---  ------  --------------  -----  
@@ -548,7 +545,7 @@ p_ertek_t_elo * 100 # százalékban írom ki</code></pre>
 </ul>
 <p>Akkor a <strong>függvény megadja a t-próba p-értékét és a próbafüggvényt is</strong>:</p>
 <pre class="python"><code>stats.ttest_1samp(BalcsiMinta.PERC, 150, alternative=&#39;greater&#39;)</code></pre>
-<pre><code>## Ttest_1sampResult(statistic=3.7195426048126436, pvalue=0.00016558310795314698)</code></pre>
+<pre><code>## TtestResult(statistic=3.7195426048126436, pvalue=0.00016558310795314698, df=99)</code></pre>
 <p>Szuper, ugyan úgy megvan a próbafüggvény (<span class="math inline">\(3.7195\)</span>) és a <span class="math inline">\(0.017\%\)</span>-os p-érték is! :)</p>
 </div>
 <div id="a-t-próba-előfeltételei" class="section level3">
