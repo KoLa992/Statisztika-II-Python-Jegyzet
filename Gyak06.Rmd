@@ -1,7 +1,7 @@
 ---
 title: "Becslések EV és R mintából"
 author: "Kovács László"
-date: "2023. 03. 27."
+date: "2024. 04. 12."
 output:
   html_document:
     toc: true
@@ -201,7 +201,7 @@ Segéd['SokasagiElemszam'] = round(Segéd.Elemszam/np.sum(Segéd.Elemszam) * N, 
 Segéd
 ```
 
-Ezzel is megvagyunk. Akkor minden adott, hogy kiszámoljuk a belső szórást a következő képlettel, ami szintén ismerős az <a href="Gyak01.html" target="_blank">1. heti tananyag 4. fejezetéből</a>. $$s_b\sqrt{\frac{\sum_j{n_j \times s_j^2}}{n}}$$
+Ezzel is megvagyunk. Akkor minden adott, hogy kiszámoljuk a belső szórást a következő képlettel, ami szintén ismerős az <a href="Gyak01.html" target="_blank">1. heti tananyag 4. fejezetéből</a>. $$s_b=\sqrt{\frac{\sum_j{n_j \times s_j^2}}{n}}$$
 
 Ezt gyorsan ki is tudjuk számolni Pythonban `numpy` függvények segítségével.
 
@@ -210,9 +210,28 @@ belső_szórás = np.sqrt(np.sum(Segéd.Elemszam * Segéd.KorrigaltSzorasok**2)/
 belső_szórás
 ```
 
-Tehát, egy konkrét **háztartás éves jövdeleme a megfigyelt mintában várhatóan kb. $s_b=\pm 53$ ezer Ft-tal tér el saját településtípusának átlagos jövedelmétől**.
+Tehát, egy konkrét **háztartás éves jövdeleme a megfigyelt mintában várhatóan kb. $s_b=\pm 2.849$ milió Ft-tal **(2849 ezer Ft-tal)** tér el saját településtípusának átlagos jövedelmétől**.
 
-Ezzel pedig gyorsan meg is van az **arányosan rétegzett standard hiba**, ami kb. $0.28$ ezer Ft-tal ($280$ Ft-tal) **kisebb, mint a sima EV módra számolt standard hiba**:
+Ha a <a href="Gyak03.html" target="_blank">3. heti tananyag 3. fejezetében bemutatott</a> számolási módját veszem figyelembe a korrigált mintaszórásnak, ami szerint $s^2=\sqrt{\sum_{i=1}^{n}{(y_i-\bar{y})^2}/(n-1)}$, akkor úgy lenne korrekt, hogy ha a belső szórást számoló formulában is mindenhol az $n$-t és $n_j$-ket $n-1$-nek és $n_j-1$-eknek venni, mint a "sima" $s^2$ nevezőjében. Tehát, a korrigált szórás sajátosságait figyelembe vevő belső szórás képlet a következő: $$s_b=\sqrt{\frac{\sum_j{(n_j-1) \times s_j^2}}{n-1}}$$
+
+
+Ezt is gyorsan ki is tudjuk számolni Pythonban `numpy` függvények segítségével.
+
+```{python}
+belső_szórás_korrekcióval = np.sqrt(np.sum((Segéd.Elemszam-1) * Segéd.KorrigaltSzorasok**2)/(len(HKF)-1))
+belső_szórás_korrekcióval
+```
+
+Látjuk, hogy az eredmények érdemben különböznek egymmástól, mert a rétegek mintaelemszámai nagyok (ezres nagyságrendűek), így $\pm1$ ide-oda nem számít. :) 
+
+```{python}
+[belső_szórás, belső_szórás_korrekcióval]
+```
+
+Kisebb elemszámoknál (olyan $n_j\approx30$ körül) viszont már jelentős lehet a különbség, és érdemesebb az $n_j-1$-eket használó formulát alkalmazni, mert az konzisztens a korrigált szórás formulájával.<br>
+Mi most a rétegek nagy elemszámai, tehát az ezres nagyságrendű $n_j$-k miatt az először kiszámolt `belső_szórás` értékkel megyünk tovább.
+
+Ha van első szórásunk, akkor pedig gyorsan meg is van az **arányosan rétegzett standard hiba**, ami kb. $0.28$ ezer Ft-tal ($280$ Ft-tal) **kisebb, mint a sima EV módra számolt standard hiba**:
 
 ```{python}
 N = 4111240

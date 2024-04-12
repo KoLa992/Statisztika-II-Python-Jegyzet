@@ -244,7 +244,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Becslések EV és R mintából</h1>
 <h4 class="author">Kovács László</h4>
-<h4 class="date">2023. 03. 27.</h4>
+<h4 class="date">2024. 04. 12.</h4>
 
 </div>
 
@@ -321,7 +321,7 @@ stats.norm.interval(
   scale=stats.sem(HKF.EvesJovEFt)*np.sqrt(1-n/N))</code></pre>
 <pre><code>## (4567.729318773609, 4730.116789870932)
 ## 
-## &lt;string&gt;:1: DeprecationWarning: Use of keyword argument `alpha` for method `interval` is deprecated. Use first positional argument or keyword argument `confidence` instead.</code></pre>
+## &lt;string&gt;:1: DeprecationWarning: Use of keyword argument &#39;alpha&#39; for method &#39;interval&#39; is deprecated and wil be removed in SciPy 1.11.0. Use first positional argument or keyword argument &#39;confidence&#39; instead.</code></pre>
 <p>Tehát, viszzatevés nélküli véletlen mintavételként kezelve a HKF adatokat,azt kapjuk, hogy <strong>egy átlagos magyar háztartás éves jövedeleme</strong> <span class="math inline">\(4568\)</span> és <span class="math inline">\(4730\)</span> ezer Ft, azaz <strong><span class="math inline">\(4.5\)</span> és <span class="math inline">\(4.7\)</span> millió Ft között mozog <span class="math inline">\(99\%\)</span>-os valószínűséggel</strong>.</p>
 <p>A kiválasztási arányunk ugyebármost nagyon kicsi: <span class="math inline">\(\frac{n}{N}=\frac{8306}{4111240}=0.002\)</span>, szóval az eredmény lényegében nem különbözik attól, mintha az egészet az EV korrekciós szorzó nélkül csináltuk volna végig a műveletet:</p>
 <pre class="python"><code>stats.norm.interval(
@@ -349,7 +349,7 @@ stats.norm.interval(
   scale=stats.sem(HKF.BP_e)*np.sqrt(1-n/N))</code></pre>
 <pre><code>## (0.1745523489357643, 0.19650471824458723)
 ## 
-## &lt;string&gt;:1: DeprecationWarning: Use of keyword argument `alpha` for method `interval` is deprecated. Use first positional argument or keyword argument `confidence` instead.</code></pre>
+## &lt;string&gt;:1: DeprecationWarning: Use of keyword argument &#39;alpha&#39; for method &#39;interval&#39; is deprecated and wil be removed in SciPy 1.11.0. Use first positional argument or keyword argument &#39;confidence&#39; instead.</code></pre>
 <p>Szóval az <strong>összes magyar háztartásból kb. <span class="math inline">\(17.5\% - 19.6\%\)</span> lehet budapesti</strong>, <span class="math inline">\(99\%\)</span> valószínűséggel.</p>
 </div>
 </div>
@@ -414,13 +414,22 @@ Segéd</code></pre>
 ## Többi város         2214  4395.863000  ...        2517.232500         1095869.0
 ## 
 ## [4 rows x 5 columns]</code></pre>
-<p>Ezzel is megvagyunk. Akkor minden adott, hogy kiszámoljuk a belső szórást a következő képlettel, ami szintén ismerős az <a href="Gyak01.html" target="_blank">1. heti tananyag 4. fejezetéből</a>. <span class="math display">\[s_b\sqrt{\frac{\sum_j{n_j \times s_j^2}}{n}}\]</span></p>
+<p>Ezzel is megvagyunk. Akkor minden adott, hogy kiszámoljuk a belső szórást a következő képlettel, ami szintén ismerős az <a href="Gyak01.html" target="_blank">1. heti tananyag 4. fejezetéből</a>. <span class="math display">\[s_b=\sqrt{\frac{\sum_j{n_j \times s_j^2}}{n}}\]</span></p>
 <p>Ezt gyorsan ki is tudjuk számolni Pythonban <code>numpy</code> függvények segítségével.</p>
 <pre class="python"><code>belső_szórás = np.sqrt(np.sum(Segéd.Elemszam * Segéd.KorrigaltSzorasok**2)/np.sum(Segéd.Elemszam))
 belső_szórás</code></pre>
 <pre><code>## 2849.7867055139272</code></pre>
-<p>Tehát, egy konkrét <strong>háztartás éves jövdeleme a megfigyelt mintában várhatóan kb. <span class="math inline">\(s_b=\pm 53\)</span> ezer Ft-tal tér el saját településtípusának átlagos jövedelmétől</strong>.</p>
-<p>Ezzel pedig gyorsan meg is van az <strong>arányosan rétegzett standard hiba</strong>, ami kb. <span class="math inline">\(0.28\)</span> ezer Ft-tal (<span class="math inline">\(280\)</span> Ft-tal) <strong>kisebb, mint a sima EV módra számolt standard hiba</strong>:</p>
+<p>Tehát, egy konkrét <strong>háztartás éves jövdeleme a megfigyelt mintában várhatóan kb. <span class="math inline">\(s_b=\pm 2.849\)</span> milió Ft-tal </strong>(2849 ezer Ft-tal)** tér el saját településtípusának átlagos jövedelmétől**.</p>
+<p>Ha a <a href="Gyak03.html" target="_blank">3. heti tananyag 3. fejezetében bemutatott</a> számolási módját veszem figyelembe a korrigált mintaszórásnak, ami szerint <span class="math inline">\(s^2=\sqrt{\sum_{i=1}^{n}{(y_i-\bar{y})^2}/(n-1)}\)</span>, akkor úgy lenne korrekt, hogy ha a belső szórást számoló formulában is mindenhol az <span class="math inline">\(n\)</span>-t és <span class="math inline">\(n_j\)</span>-ket <span class="math inline">\(n-1\)</span>-nek és <span class="math inline">\(n_j-1\)</span>-eknek venni, mint a “sima” <span class="math inline">\(s^2\)</span> nevezőjében. Tehát, a korrigált szórás sajátosságait figyelembe vevő belső szórás képlet a következő: <span class="math display">\[s_b=\sqrt{\frac{\sum_j{(n_j-1) \times s_j^2}}{n-1}}\]</span></p>
+<p>Ezt is gyorsan ki is tudjuk számolni Pythonban <code>numpy</code> függvények segítségével.</p>
+<pre class="python"><code>belső_szórás_korrekcióval = np.sqrt(np.sum((Segéd.Elemszam-1) * Segéd.KorrigaltSzorasok**2)/(len(HKF)-1))
+belső_szórás_korrekcióval</code></pre>
+<pre><code>## 2849.2301124754485</code></pre>
+<p>Látjuk, hogy az eredmények érdemben különböznek egymmástól, mert a rétegek mintaelemszámai nagyok (ezres nagyságrendűek), így <span class="math inline">\(\pm1\)</span> ide-oda nem számít. :)</p>
+<pre class="python"><code>[belső_szórás, belső_szórás_korrekcióval]</code></pre>
+<pre><code>## [2849.7867055139272, 2849.2301124754485]</code></pre>
+<p>Kisebb elemszámoknál (olyan <span class="math inline">\(n_j\approx30\)</span> körül) viszont már jelentős lehet a különbség, és érdemesebb az <span class="math inline">\(n_j-1\)</span>-eket használó formulát alkalmazni, mert az konzisztens a korrigált szórás formulájával.<br> Mi most a rétegek nagy elemszámai, tehát az ezres nagyságrendű <span class="math inline">\(n_j\)</span>-k miatt az először kiszámolt <code>belső_szórás</code> értékkel megyünk tovább.</p>
+<p>Ha van első szórásunk, akkor pedig gyorsan meg is van az <strong>arányosan rétegzett standard hiba</strong>, ami kb. <span class="math inline">\(0.28\)</span> ezer Ft-tal (<span class="math inline">\(280\)</span> Ft-tal) <strong>kisebb, mint a sima EV módra számolt standard hiba</strong>:</p>
 <pre class="python"><code>N = 4111240
 n = len(HKF)
 
@@ -436,7 +445,7 @@ sh_ar</code></pre>
   scale=sh_ar)</code></pre>
 <pre><code>## (4568.460405997593, 4729.385702646948)
 ## 
-## &lt;string&gt;:1: DeprecationWarning: Use of keyword argument `alpha` for method `interval` is deprecated. Use first positional argument or keyword argument `confidence` instead.</code></pre>
+## &lt;string&gt;:1: DeprecationWarning: Use of keyword argument &#39;alpha&#39; for method &#39;interval&#39; is deprecated and wil be removed in SciPy 1.11.0. Use first positional argument or keyword argument &#39;confidence&#39; instead.</code></pre>
 <p>Arányos rétegzéssel a <strong>változatlan megbízhatóságú konfidencia-intervallum</strong> <span class="math inline">\(4567 - 4730\)</span> ezer Ft-ról <span class="math inline">\(4568 - 4729\)</span> ezer Ft-ra <strong>szűkül</strong>.</p>
 <p>Na jó, ne áltassunk magunkat: <strong>ez szinte nulla csökkenés mind a standard hibában, mind a <span class="math inline">\(\triangle\)</span>-ben</strong>! Tehát kb az <span class="math inline">\(AR\)</span> mintavétel nem ért semmit. <strong>Miért van ez? Lássuk a magyarázatot!</strong></p>
 <div id="az-ar-mintavételek-hatékonysága" class="section level3">
