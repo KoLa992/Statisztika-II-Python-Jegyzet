@@ -244,7 +244,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Nemparaméteres próbák</h1>
 <h4 class="author">Kovács László</h4>
-<h4 class="date">2023. 05. 14.</h4>
+<h4 class="date">2024. 05. 05.</h4>
 
 </div>
 
@@ -334,16 +334,17 @@ sfH.info()</code></pre>
 <p>Számítsuk ki a szükséges <span class="math inline">\(f_j\)</span> gyakoriságokat.</p>
 <pre class="python"><code>tény_gyak = sfH.Employment.value_counts()
 tény_gyak</code></pre>
-<pre><code>## Employed full-time                                      167
+<pre><code>## Employment
+## Employed full-time                                      167
 ## Independent contractor, freelancer, or self-employed     33
 ## Employed part-time                                       10
-## Name: Employment, dtype: int64</code></pre>
+## Name: count, dtype: int64</code></pre>
 <p>Jöjjenek az elvi <span class="math inline">\(f^*_j\)</span> gyakoriságok! Mi lenne ha az <span class="math inline">\(n=210\)</span> elemű minta teljesen reprezentatív lenne?</p>
 <pre class="python"><code>elvi_gyak = 210 * np.array([0.85, 0.11, 0.04])
 elvi_gyak</code></pre>
 <pre><code>## array([178.5,  23.1,   8.4])</code></pre>
 <p>Az eltérés elvi és tény gyakoriságok között betudható-e a mintavételi hibának? <span class="math inline">\(\rightarrow\)</span> Hipotézisvizsg :)</p>
-<p>Próbafüggvény és p-érték beépített <code>scipy</code> függvénnyel. Most a szabadságfok <span class="math inline">\(df=k-1=3-1=2\)</span></p>
+<p>Próbafüggvény és p-érték beépített <code>scipy</code> függvénnyel. Most a szabadságfok <span class="math inline">\(df=k-1=3-1=2\)</span>. Ez a szabadságfok értelmezés (tehát a <span class="math inline">\(szf=k-1\)</span>) a függvény alapértelmezése, így ezt nem kell külön paraméterben beállítanunk.</p>
 <pre class="python"><code>stats.chisquare(tény_gyak, elvi_gyak)</code></pre>
 <pre><code>## Power_divergenceResult(statistic=5.288515406162464, pvalue=0.07105808036191753)</code></pre>
 <p>A p-értékünk <span class="math inline">\(7.1\%\)</span> Ez beza benne van a szokásos szignifikancia- szintek tartományában (1%-10%). <strong>Nagyobb minta alapján kéne dönteni</strong>. De közelebb vagyunk a <span class="math inline">\(10\%\)</span>-oz, mint az <span class="math inline">\(1\%\)</span>-hez <span class="math inline">\(\rightarrow\)</span> <strong>inkább tűnik a minta reprezentatívnak, mint nem</strong>. :)</p>
@@ -379,10 +380,10 @@ gyak_tábla</code></pre>
 <pre><code>## (array([33, 60, 53, 38, 26], dtype=int64), array([       -inf,  9.60607718, 12.62407404, 15.22354501, 18.24154186,
 ##                inf]))</code></pre>
 <p>Elvi gyakoriság, ha <span class="math inline">\(H_0\)</span>,azaz a normális eloszlás igaz lenne <span class="math inline">\(f^*_j=\frac{n}{5}=\frac{210}{5}=42\)</span>. Ez a <code>stats.chisquare</code> alapbeállítása <span class="math inline">\(f^*_j\)</span>-re.</p>
-<p>Számoljuk ki a próbafüggvényt és p-értéket ezzel az alapfeltételezéssel <span class="math inline">\(f^*_j\)</span>-re. Van minden: <span class="math inline">\(f_j\)</span> és <span class="math inline">\(f^*_j\)</span> is. De most az eloszlás p-értékhez <span class="math inline">\(\chi^2(k-1-b)\)</span>, ahol <span class="math inline">\(b\)</span> a becsült paraméterek száma. Ez most a legjobban illeszkedő normális eloszlás átlaga és szórása volt, így <span class="math inline">\(b=2\)</span>. Ezzel az értékkel (<span class="math inline">\(k-1-b\)</span>) felül kell írni a <code>stats.chisquare</code> függvény alapbeálítását a szabadságfok (<code>ddof</code>) paraméterre.</p>
-<pre class="python"><code>stats.chisquare(gyak_tábla[0], ddof=5-1-2)</code></pre>
+<p>Számoljuk ki a próbafüggvényt és p-értéket ezzel az alapfeltételezéssel <span class="math inline">\(f^*_j\)</span>-re. Van minden: <span class="math inline">\(f_j\)</span> és <span class="math inline">\(f^*_j\)</span> is. De most az eloszlás p-értékhez <span class="math inline">\(\chi^2(k-1-b)\)</span>, ahol <span class="math inline">\(b\)</span> a becsült paraméterek száma. Ez most a legjobban illeszkedő normális eloszlás átlaga és szórása volt, így <span class="math inline">\(b=2\)</span>. Ezzel a <span class="math inline">\(b=2\)</span> értékkel felül kell írni a <code>stats.chisquare</code> függvény alapbeálítását a szabadságfok (<code>ddof</code>) paraméterre. Ezen a <code>ddof</code> paraméteren csak a <span class="math inline">\(b=2\)</span>-t kell átadni, így tudni fogja a függvény, hogy a szabadságfokot <span class="math inline">\(k-1-b\)</span> módon kell kiszámolnia.</p>
+<pre class="python"><code>stats.chisquare(gyak_tábla[0], ddof=2)</code></pre>
 <pre><code>## Power_divergenceResult(statistic=19.0, pvalue=7.485182988770057e-05)</code></pre>
-<p>A p-értékünk <span class="math inline">\(0.007\%\)</span>, ami kisebb még a legkisebb szokásos szignifikancia-szintnél, az <span class="math inline">\(1\%\)</span>-nál is. Azaz, a <span class="math inline">\(H_0\)</span> stabilan elvethető, így az eloszlás <strong>nem tekinthatő normálisnak</strong></p>
+<p>A p-értékünk <span class="math inline">\(0.0075\%\)</span>, ami kisebb még a legkisebb szokásos szignifikancia-szintnél, az <span class="math inline">\(1\%\)</span>-nál is. Azaz, a <span class="math inline">\(H_0\)</span> stabilan elvethető, így az eloszlás <strong>nem tekinthatő normálisnak</strong></p>
 <p>Tehát, a hisztogramon észrevehető enyhe jobbra nyúlás a normális eloszláshoz képest NEM mintavételi hiba műve, hanem egy szignifikáns (jelentős) eltérés, ami megmarad a mintán kívüli világban is!</p>
 </div>
 </div>
@@ -429,9 +430,9 @@ kereszt</code></pre>
 <p>Ezen <strong>arányok eltérése oprendszerek között csak a mintavételi hiba műve-e?</strong> <span class="math inline">\(\rightarrow\)</span> Hiptézisvizsgálat! :)</p>
 <p>Próbafüggvényünk a Stat. I-en megismert <span class="math inline">\(\chi^2\)</span> mutató, és igaz <span class="math inline">\(H_0\)</span> esetén a próbafüggvény eloszlása sok-sok mintavételből <span class="math inline">\(\chi^2((r-1)(c-1))\)</span>, ahol <span class="math inline">\(r\)</span> a kereszttábla sorainak (<em>rows</em>), míg <span class="math inline">\(c\)</span> a kereszttábla oszlopainak (<em>columns</em>) a darabszáma: <span class="math display">\[\sum_{i=1}^{r}\sum_{j=1}^{c}\frac{(f_{ij}-f^*_{ij})^2}{f^*_{ij}}\sim\chi^2((r-1)(c-1))\]</span></p>
 <p>A <strong>p-érték</strong> itt is <strong>jobboldali módon</strong> számolható, mint az illeszkedésvizsgáaltok esetében.</p>
-<p>Próbafüggvény és p-érték számolás a <code>stats.chi2_contingency</code> beépített függvénnyel. Bemenet csak a kereszttábla.</p>
+<p>Próbafüggvény és p-érték számolás a <code>stats.chi2_contingency</code> beépített függvénnyel. Bemenet csak a kereszttábla, a szabadságfokot is ebből ki tudja számoln a függvény.</p>
 <pre class="python"><code>stats.chi2_contingency(kereszt)</code></pre>
-<pre><code>## (4.217125886817357, 0.12141231749833191, 2, array([[21.26666667,  9.9       , 45.83333333],
+<pre><code>## Chi2ContingencyResult(statistic=4.217125886817357, pvalue=0.12141231749833191, dof=2, expected_freq=array([[21.26666667,  9.9       , 45.83333333],
 ##        [36.73333333, 17.1       , 79.16666667]]))</code></pre>
 <p>A p-értékünk itt <span class="math inline">\(12\%\)</span>, ami nagyobb még a legnagyobbszokásos szignifikancia-szintnél a <span class="math inline">\(10\%\)</span>-nál is. A mintán kívüli világban, azaz a <strong>sokaságban a két ismérv függetlennek tekníthtő</strong>.<br> Az a tény, hogy a megfigyelt mintában az elégedettségi arányok eltérnek oprendszerek között csak a mintavételi hiba műve, nem szignifikáns!</p>
 <p>A függvény eredményéül kapott listában a <span class="math inline">\(4.\)</span> elem az a kereszttábla, ami igaz <span class="math inline">\(H_0\)</span>, azaz a két ismérv függetlensége esetén lenne.</p>

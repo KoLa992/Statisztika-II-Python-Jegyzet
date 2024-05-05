@@ -1,7 +1,7 @@
 ---
 title: "Nemparaméteres próbák"
 author: "Kovács László"
-date: "2023. 05. 14."
+date: "2024. 05. 05."
 output:
   html_document:
     toc: true
@@ -111,7 +111,7 @@ elvi_gyak
 
 Az eltérés elvi és tény gyakoriságok között betudható-e a mintavételi hibának? $\rightarrow$ Hipotézisvizsg :)
 
-Próbafüggvény és p-érték beépített `scipy` függvénnyel. Most a szabadságfok $df=k-1=3-1=2$
+Próbafüggvény és p-érték beépített `scipy` függvénnyel. Most a szabadságfok $df=k-1=3-1=2$. Ez a szabadságfok értelmezés (tehát a $szf=k-1$) a függvény alapértelmezése, így ezt nem kell külön paraméterben beállítanunk.
 
 ```{python}
 stats.chisquare(tény_gyak, elvi_gyak)
@@ -170,13 +170,13 @@ gyak_tábla
 
 Elvi gyakoriság, ha $H_0$,azaz a normális eloszlás igaz lenne $f^*_j=\frac{n}{5}=\frac{210}{5}=42$. Ez a `stats.chisquare` alapbeállítása $f^*_j$-re.
 
-Számoljuk ki a próbafüggvényt és p-értéket ezzel az alapfeltételezéssel $f^*_j$-re. Van minden: $f_j$ és $f^*_j$ is. De most az eloszlás p-értékhez $\chi^2(k-1-b)$, ahol $b$ a becsült paraméterek száma. Ez most a legjobban illeszkedő normális eloszlás átlaga és szórása volt, így $b=2$. Ezzel az értékkel ($k-1-b$) felül kell írni a `stats.chisquare` függvény alapbeálítását a szabadságfok (`ddof`) paraméterre.
+Számoljuk ki a próbafüggvényt és p-értéket ezzel az alapfeltételezéssel $f^*_j$-re. Van minden: $f_j$ és $f^*_j$ is. De most az eloszlás p-értékhez $\chi^2(k-1-b)$, ahol $b$ a becsült paraméterek száma. Ez most a legjobban illeszkedő normális eloszlás átlaga és szórása volt, így $b=2$. Ezzel a $b=2$ értékkel felül kell írni a `stats.chisquare` függvény alapbeálítását a szabadságfok (`ddof`) paraméterre. Ezen a `ddof` paraméteren csak a $b=2$-t kell átadni, így tudni fogja a függvény, hogy a szabadságfokot $k-1-b$ módon kell kiszámolnia.
 
 ```{python}
-stats.chisquare(gyak_tábla[0], ddof=5-1-2)
+stats.chisquare(gyak_tábla[0], ddof=2)
 ```
 
-A p-értékünk $0.007\%$, ami kisebb még a legkisebb szokásos szignifikancia-szintnél, az $1\%$-nál is. Azaz, a $H_0$ stabilan elvethető, így az eloszlás **nem tekinthatő normálisnak**
+A p-értékünk $0.0075\%$, ami kisebb még a legkisebb szokásos szignifikancia-szintnél, az $1\%$-nál is. Azaz, a $H_0$ stabilan elvethető, így az eloszlás **nem tekinthatő normálisnak**
 
 Tehát, a hisztogramon észrevehető enyhe jobbra nyúlás a normális eloszláshoz képest NEM mintavételi hiba műve, hanem egy szignifikáns (jelentős) eltérés, ami megmarad a mintán kívüli világban is!
 
@@ -227,7 +227,7 @@ Próbafüggvényünk a Stat. I-en megismert $\chi^2$ mutató, és igaz $H_0$ ese
 
 A **p-érték** itt is **jobboldali módon** számolható, mint az illeszkedésvizsgáaltok esetében.
 
-Próbafüggvény és p-érték számolás a `stats.chi2_contingency` beépített függvénnyel. Bemenet csak a kereszttábla.
+Próbafüggvény és p-érték számolás a `stats.chi2_contingency` beépített függvénnyel. Bemenet csak a kereszttábla, a szabadságfokot is ebből ki tudja számoln a függvény.
 
 ```{python}
 stats.chi2_contingency(kereszt)
