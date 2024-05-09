@@ -1,0 +1,66 @@
+---
+title: "Kétváltozós lineáris regresszió"
+author: "Kovács László"
+date: "2024. 05. 09."
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Budapesti lakások vizsgálata
+
+A *BP_Lakas.csv* fájl egy olyan adattábla, ami 1406 budapesti lakásról 10 változó (oszlop) adatát tárolja:
+
+- KinArMFt: lakás ára millió Ft-ban (MFt)
+- Terulet: lakás területe négyzetméterben
+- Terasz: teraszok száma a lakásban
+- Szoba: szobák száma a lakásban
+- Felszoba: félszobák száma a lakásban
+- Furdoszoba: fürdőszobák száma a lakásban
+- Emelet: emeletek száma a lakásban
+- DeliTaj: lakás déli fekvésű-e? (1 = igen; 0 = nem)
+- Buda: lakás déli fekvésű-e? (1 = igen; 0 = nem)
+- Kerulet: lakás kerülete (1 - 22)
+
+Olvassuk be az adattáblát egy pandas `data frame`-be egy `readr_csv` függvény segítségével! A fájl olyan értelemben "jól vislekedő" *csv*, hogy az oszlopokat vesszők választják el egymástól, és a tizedes helyet tizedes pont jelöli, így nem kell a függvényben semmit sem külön paraméterezni. A beolvasás után egy `info` metódussal nézzük meg, hogy rendben van-e minden a betöltött `data frame`-el.
+
+```{python}
+# Elemzéshez és ábrázoláshoz szükséges csomagok betöltése
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import scipy.stats as stats
+
+# Budapesti lakások adatainak beolvasása
+BP_Lakas = pd.read_csv("BP_Lakas.csv")
+BP_Lakas.info()
+```
+
+Első ránézésre rendben vagyunk: 10 oszlopunk = változónk van a megfelelő oszlopnevekkel, mindenhol 1406 `non-null` megfigyeléssel.
+
+Vizsgáljuk meg a lakások kínálati árának és a területének a kapcsolatát! Mivel logikusan azt gondolhatjuk, hogy a terület fogja meghatározni az árak alakulását, és nem fordítva, így a terület lesz a magyarázóváltozónk (*x tengely*) és az ár az eredményváltozónk (*y tengely*). A pontdiagrmos ábrázoláshoz a `plt.scatter` című `matplotlib` függvényt tudjuk bevetni. A függvényben az első paraméter legyen az az oszlop, ami a diagram x tengelyét adja, míg a második az, amelyik az y tengelyét szolgáltatja az ábrának.
+
+```{python}
+plt.scatter(BP_Lakas.Terulet, BP_Lakas.KinArMFt)
+plt.show()
+```
+
+Láthatjuk, hogy a terület növekedésével nőnek az árak, és ez a kapcsolat szoros is lehet, mert a pontokra gondolatban is elég jó pontossággal rá tudunk illeszteni egy pozitív meredekségű egyenest.<br>
+Mindezt Stat. I-es ismereteink alapján egy korreláció kiszámításával tudjuk megerősíteni.
+
+```{python}
+stats.pearsonr(BP_Lakas.Terulet, BP_Lakas.KinArMFt)
+```
+

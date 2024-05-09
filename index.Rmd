@@ -7,7 +7,7 @@ title: |
   Gazdaságinformatikus BSc<br><br>
   </center> 
 output: html_document
-date: '2024.05.05.'
+date: '2024.05.09.'
 ---
 
 ```{r setup, include=FALSE}
@@ -32,9 +32,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## 10. hét: <a href="Gyak10.html" target="_blank">Nemparaméteres próbák</a>
 
-## 11. hét: Kétváltozós lineáris regresszió / Többváltozós lineáris regresszió 1.
+## 11. hét: <a href="Gyak11.html" target="_blank">Kétváltozós lineáris regresszió</a>
 
-## 12. hét: Többváltozós lineáris regresszió 2.
-
-## 13. hét: Modellépítés és nem-lineáris regresszió
+## 12. hét: Többváltozós lineáris regresszió
 
