@@ -21,7 +21,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## 1. Magyar járások COVID-19 halálozási arányai
 
-A *COVID_JarasData.xlsx* fájl egy olyan adattábla, ami 102 magyar járásról (azokról, ahol a kórházak 2019-ben átlagos vagy átlag alatti leterheltségűek voltak a [NEAK adatai](http://www.neak.gov.hu/data/cms1026624/Korhazi_agyszamkimutatas_2019.pdf) alapján) 5 változó (oszlop) adatát tárolja:
+A <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/raw/main/COVID_JarasData.xlsx" target="_blank">COVID_JarasData.xlsx</a> fájl egy olyan adattábla, ami 102 magyar járásról (azokról, ahol a kórházak 2019-ben átlagos vagy átlag alatti leterheltségűek voltak a [NEAK adatai](http://www.neak.gov.hu/data/cms1026624/Korhazi_agyszamkimutatas_2019.pdf) alapján) 5 változó (oszlop) adatát tárolja:
 
 - **Jaras**: A járás neve
 - **COVIDHalal**: COVID-19 halálozási arány: elhunytak / fertőzöttek hányadosa (%) 2021.03.04-én. Forrás: [atlatszo.hu](https://bit.ly/COVID-adatok)

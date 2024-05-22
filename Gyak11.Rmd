@@ -357,7 +357,7 @@ Kimondottan a $\beta_1$ értelmezésénél nagyon-nagyon figyeljünk oda, hogy *
 
 ## 6. Egy gyakorló példa COVID adatokon
 
-Töltsük be a *COVID_0326.xlsx* c. Excel fájlt egy **covid** nevű pandas `data frame`-be!
+Töltsük be a <a href="https://github.com/KoLa992/Statisztika-II-Python-Jegyzet/raw/main/COVID_0326.xlsx" target="_blank">COVID_0326.xlsx</a> c. Excel fájlt egy **covid** nevű pandas `data frame`-be!
 
 ```{python}
 covid = pd.read_excel("COVID_0326.xlsx")
