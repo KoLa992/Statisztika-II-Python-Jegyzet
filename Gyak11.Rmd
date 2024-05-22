@@ -1,7 +1,7 @@
 ---
 title: "Kétváltozós lineáris regresszió"
 author: "Kovács László"
-date: "2024. 05. 17."
+date: "2024. 05. 22."
 output:
   html_document:
     toc: true
@@ -357,4 +357,74 @@ Kimondottan a $\beta_1$ értelmezésénél nagyon-nagyon figyeljünk oda, hogy *
 
 ## 6. Egy gyakorló példa COVID adatokon
 
-Coming soon...
+Töltsük be a *COVID_0326.xlsx* c. Excel fájlt egy **covid** nevű pandas `data frame`-be!
+
+```{python}
+covid = pd.read_excel("COVID_0326.xlsx")
+covid.info()
+```
+
+A fájlból betöltött tábla a Föld 100 országára, mint megfigyelési egységekre nézve tartalmazza az alábbi 9 változó adatait:
+
+- Country: ország neve
+- Pop: ország népessége (fő)
+- PopDens: népsűrűség (fő/km2)
+- Prop_UrbanPop: Városi népesség aránya 2019-ben (%)
+- PressLiberty: Sajtószabadsági index 2019-ben (alacsonyabb = szabadabb sajtó)
+- PerCapita_HealthExp_2016: Egy főre jutó eüg-i kiadások, vásárlóerő-paritáson számolva (2016)
+- COVID19_CasesPerMillion: Egymillió főre jutó COVID-19 fertőzöttek száma 2020.03.26-án
+- ConstitutionalForm: államforma
+- HeadOfState: államfő jogkörei (hatalmat gyakorol vagy csak reprezentatív szerepkörű)
+
+Nézzünk egy kétváltozós regressziót az egymillió főre jutó COVID esetszám (**COVID19_CasesPerMillion**) és a sajtószabadsági index (**PressLiberty**) között. Egy logikus fektételezés, hogy az ország sajtószabadsági indexéből következik az, hogy a COVID járvány korai szakaszában (2020. március 26-án) hány COVID fertőzöttet regisztráltak az országban népességarányosan. Mondván egy sajtónyilvánosabb országban kevésbé tudja eltitkolni a központi egészségügy a fertőzöttek valódi számát. Ebből adódóan a magyarázóváltozó lesz a regresszióban az **x = PressLiberty** és az eredményváltozó pedig az **y = COVID19_CasesPerMillion**. És akkor a következő regressziós egyenlet $\beta_1,\beta_0$ együtthatóit kéne megbecsülni a data frame-ben található 100 ország adatai alapján $$Becsült COVID19=\beta_1 \times PressLiberty+ \beta_0$$
+
+Szerencsére, nem kell újra a `minimize` függvénnyel szenbednünk ahhoz, hogy megkapjuk a $\beta_1,\beta_0$ regressziós együtthatók legkisebb négyzete elvű (OLS) becslését. A `numpy` csomag `polyfit` függvénye legyártja ezeket nekünk. A függvény első paramétere a magyarázóváltozó ($x$), második az eredményváltozó ($y$) a regresszióban. Míg a harmadik paraméterben, egy `deg=1` beállítással azt jelezzük a gépállatnak, hogy  a megadott $x$ és $y$ koordinátákra egyenest illesszen, ne valami bonyolultabb alakzatot (pl. másodfokú polinomot).
+
+```{python}
+Beta1, Beta0 = np.polyfit(covid.PressLiberty, covid.COVID19_CasesPerMillion, deg = 1)
+print([Beta1, Beta0])
+```
+
+A 100 országra legjobban illeszkedő egyenes egyenlete tehát: $$Becsült COVID19=-4.28 \times PressLiberty+ 214.9$$
+
+Tehát, ha a sajtószabadsági index 1 egységgel nő (azaz a sajtó egy egységgel kevésbé lesz szabad) egy országban, akkor *várhatóan* 4.28 eset/millió fővel **csökken** az ország fertőzötteinek száma. Érdekes eredmény, de ez feltehetőleg azért van így, mert 2020.03.26-i állapotokat tükröz az adatbázis, és akkor még intenzív tesztelést inkább csak a gazdagabb, és szabadabb sajtóval bíró országok végeztek. Plusz, a sok kis észak-európai államban (Belgium, Hollandia, Dánia, stb.) nagy a sajtószabadság, de nagy a városi népesség aránya és a népesűrűség is, így ott nyilván jobban tud terjedni a vírus. De nyilván benne van ebben a negatív együtthatóban az is, hogy ekkor egy Pakisztán nagyon igyekezett még eltitkolni a fertőzöttek valós számát és a Pakisztánnál szabadabb sajtóval bíró Olaszországban nem igazán tudták eltitkolni, hogy mekkora a baj.<br>
+Érdekességképpen elmondhatjuk, hogy egy 0 szajtószabadsági indexszel (tehát a legszabadabb sajtóval) rendelkező országan a modell 214.9 fertőzöttet becsül 1 millió főre.
+
+Nézzük meg a modell %-os magyarázóerejét, azaz az $R^2$ mutatóját.
+
+```{python}
+(stats.pearsonr(covid.PressLiberty, covid.COVID19_CasesPerMillion)[0]**2)*100
+```
+
+Láthatjuk, hogy a modellnek csak egy közepes (de nem gyenge!) magyarázóereje van, hiszen a sajtószabadsági index csak $24.41\%$-ban magyarázza az egymillió főre jutó esetszámok alakulását, ami 10%-50% közötti érték.
+
+Nézzük meg, hogy ez az $R^2$ lehet-e $0\%$ nem megfigyelt országok esetén (a Föld országainak telejs sokaságában)? Azaz, nézzük meg a glogális F-próba p-értékét!
+
+Ehhez először kell egy próbafüggvény a 4. fejezetből megismert képlet alapján:
+
+```{python}
+probafuggveny_F = (0.2441/(2-1))/((1-0.2441)/(100-2))
+```
+
+Majd jobboldali módon jöhet a p-érték egy $F(2-1,100-2)$ eloszlásból.
+
+```{python}
+1-stats.f.cdf(probafuggveny_F,1,98)
+```
+
+Tehát, a modell F-próbájának p-értéke csupán $1.75 \times 10^{-7}$, ami kisebb még a legkisebb szokásosnak mondható $\alpha=1\%=0.01$ szignifikancia-szintnél is, így azt mondhatjuk, hogy a modell $24.41\%$-os magyarázóereje szignifikáns marad a 100 megfigyelt országon kívüli világban is.
+
+Mindezen eredmények vizualizálva pontdiagramon:
+
+```{python}
+# Kiszámoljuk az y kalapokat, azaz a becsült árakat ezekkel a Bétákkal
+covid['BecsultCOVID'] = Beta1*covid.PressLiberty + Beta0
+
+# Ábrázoljuk az új egyenest a pontdiagramon
+plt.scatter(covid.PressLiberty, covid.COVID19_CasesPerMillion)
+plt.plot(np.array(covid.PressLiberty),
+         np.array(covid.BecsultCOVID), 'red')
+plt.show()
+```
+
+Láthatjuk, hogy a pontokra legjobban illeszkedő egyenes negatív meredekségű, csökkenő trendet mutat, és aránylag jobban szóródnak az egyenes körül a pontok, és a 95%-os konfdiencia-intervalluma is viszonylag (de nem vészesen) tág, de az egymillió főre jutó esetszámok csökkenő trendje a **PressLiberty** függvényében még szépen kirajzolódik. Mindez az $R^2$ által is jelzett közepes erőséggű kapcsolatra utal.

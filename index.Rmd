@@ -7,7 +7,7 @@ title: |
   Gazdaságinformatikus BSc<br><br>
   </center> 
 output: html_document
-date: '2024.05.17.'
+date: '2024.05.22.'
 ---
 
 ```{r setup, include=FALSE}
@@ -34,5 +34,5 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## 11. hét: <a href="Gyak11.html" target="_blank">Kétváltozós lineáris regresszió</a>
 
-## 12. hét: Többváltozós lineáris regresszió
+## 12. hét: <a href="Gyak12.html" target="_blank">Többváltozós lineáris regresszió</a>
 

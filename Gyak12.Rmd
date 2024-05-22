@@ -1,0 +1,119 @@
+---
+title: "Többváltozós OLS Regresszió alapjai"
+author: "Kovács László"
+date: "2024. 05. 22."
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Magyar járások COVID-19 halálozási arányai
+
+A *COVID_JarasData.xlsx* fájl egy olyan adattábla, ami 102 magyar járásról (azokról, ahol a kórházak 2019-ben átlagos vagy átlag alatti leterheltségűek voltak a [NEAK adatai](http://www.neak.gov.hu/data/cms1026624/Korhazi_agyszamkimutatas_2019.pdf) alapján) 5 változó (oszlop) adatát tárolja:
+
+- **Jaras**: A járás neve
+- **COVIDHalal**: COVID-19 halálozási arány: elhunytak / fertőzöttek hányadosa (%) 2021.03.04-én. Forrás: [atlatszo.hu](https://bit.ly/COVID-adatok)
+- **Apolok**: Háziorvosi szakápolók/ápolók száma 10000 főre (2019) Forrás: KSH
+- **Munkanelkuliseg**: Nyilvántartott álláskeresők száma 10000 főre (2019) Forrás: KSH
+- **Nok65Felett**: Lakónépességből a 65 éves és idősebb nők aránya (%) (2019) Forrás: KSH
+
+Olvassuk be a fájlt egy pandas `data frame`-be a pandas sima `read_excel` függvényével: 
+
+```{python}
+# Elemzéshez és ábrázoláshoz szükséges csomagok betöltése
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import scipy.stats as stats
+
+# 102 járás adatainak beolvasása
+covid = pd.read_excel("COVID_JarasData.xlsx")
+covid.info()
+```
+
+Láthatjuk, hogy megvan minden oszlop, amit a leírásban megadtunk. Megvan mind a négy numerikus (azaz `float`, mert törtszámokról van szó) típusú oszlopunk, és a **Jaras** oszlop maradhat `object`, azaz "szöveges" adattípusban, hiszen ez a járások azonosítója, minden név csak egyszer fordul elő a táblában, statisztikai elemzéseknek értelemszerűen nem vetjük alá ezt a változót. :)
+
+Adja magát a dolog, hogy  megpróbáljuk **kétváltozós regressziókkal** elemezni azt, hogy miképpen függ a vizsgált járásokban a COVID halálozási arány a másik három változótól (ápolók, munkanélküliek száma 10 ezer főre, 65 éven felüli nők aránya).
+
+Első logikus gondolat azt diktálja, hogy hát minél több ápolója van népességarányosan egy járásnak, annál kevesebb lesz a COVID halálozási arány, hiszen a több ápoló jobba ellátást tud biztosítani. Teszteljük is le az elméletünket: csináljunk egy regressziót, ahol eredményváltozó ($Y$) a **COVIDHalal**, magyarázóváltozó ($X$) pedig az **Apolok**!
+
+Első körben nézzük meg egy $R^2$ segítségével milyen szoros a két változónk köztü kapcsolat:
+
+```{python}
+(stats.pearsonr(covid.Apolok, covid.COVIDHalal)[0]**2)*100
+```
+
+Alapvetően az $R^2$ szép, korrekt dolgokat mutat. Az ápolók száma kb. 18 %-ban megmagyarázza a COVID halálozás alakulását a vizsgált járások körében ($R^2=17.6\%$), ami egy közepes magyarázóerőnek minősíthető, hiszen $10\% < R^2 < 50\%$.
+
+Nézzük meg, hogy néz ki a regressziós egyenes egyenlete! Használjuk nyugodtan a <a href="Gyak11.html" target="_blank">11. heti tananyag 6. fejezetében</a> megismert `polyfit` függvényét a `numpy` csomagnak:
+
+```{python}
+Beta1, Beta0 = np.polyfit(covid.Apolok, covid.COVIDHalal, deg = 1)
+print([Beta1, Beta0])
+```
+
+A 102 járás adatából illesztett regressziós modell szerint tehát: $$Becsult COVIDHalal= 0.36 \times Apolok + 2.02$$
+
+**Ajjajjaj!** A modell **meredeksége pozitív**!! Konkrétan, ha a járásban az ápolók száma 10 ezer főre nő 1-gyel, akkor várhatóan a COVID halálozási arány is **növekedni** fog 0.36 százalékponttal! Ez alapján úgy tűnik, hogy mintha megérné kevesebb ápolót tartani, mert akkor fog csökkenni a COVID halálozás a járásban. Ezt az eredményt így nagyon nem eszi meg a gyomrunk!
+
+A fura eredmény háttérben egy úgynevezett **confunding** nevű jelenség áll!
+
+Lessük csak meg a minden **covid** `data frame`-ben lévő numerikus változó korrelációmátrixát! Ez egy oylan táblázat, amiben az egyes numerikus változók közti korrelációkat mutatja meg nekünk a gépállat. Simán egy `data frame` numerikus változóiból a `data frame`-n elsütött `cor` metódussal hívható elő.
+
+```{python}
+covid.corr()
+```
+
+A korrelációkból látszik, hogy a **COVIDHalal** változóval a másik három változó egyirányú, és közepes erősségű kapcsolatban állnak (mindegyik korreláció a COVIDHalal oszlopában, ami nem az önmagával vett korrelációt jelenti az +0.4 körüli érték). Ez a **Munkanelkuliseg** és **Nok65Felett** változók esetén logikus is, hiszen a COVID elsősorban a 65 év felettiek körében halálos, illetve azok körében ahol eleve több alapbetegség jelen volt. Ahol magas a munkanélküliség, ott pedig eleve rosszabb az egészségi állapot: alkoholizmus, szív- és érrendszeri problémák gyakoriak a magas munkanélküliségű járásokban (lásd pl. [ezt a tanulmányt](https://reader.elsevier.com/reader/sd/pii/S0927537120300609?token=E1AD2E1805FB5308BC40754433D867BE2D6F2FEC1EECA824AFAFC2F37BF35723550C07B43E62BE53CD9F6822494FF445&originRegion=eu-west-1&originCreation=20211005092903)).<br>
+NODE, az **Apolok** egyirányú módon és közepes erősségben összefügg a **Munkanelkuliseg** és **Nok65Felett** változókkal is! Tehát, valószínűleg a magas 10 ezer főre jutó ápolószámmal bíró járásokban *csak azért magas a COVID halálozás*, mert ezekben a járásokban magas a munkanélküliség és az idős népesség aránya is! Tehát a népesség egészségi állapota ezen járásokban **eleve rosszabb**!<br>
+Na, ez a jelenség a **confunding**: amikor egy változó csak azért korrelál egy másikkal, mert **valójában egy vagy több másik változó hatását közvetíti a saját hatásán túl**.
+
+Szóval, a feladat adott: fejtsük meg, hogy ha leválasztjuk az **Apolok** változóról a **Munkanelkuliseg** és **Nok65Felett** változók hatását (azaz kiszűrjük/megtisztítjuk a *confunding* hatást), akkor hogyan hat az **Apolok** változó **önállóan** a **COVIDHalal**-ra!<br>
+Erre a feladatra eszözünk a **többváltozós lineáris regresszió**! Ami egyszerűen a sima $\hat{Y}=\beta_1 X + \beta_0$ kétváltozós regresszió kiterjesztése úgy, hogy az egyenletbe tetszőleges, konkrétan $k$ db magyarázóváltozót rakunk be, és mindenkinek meglesz a maga $\beta$-ja:
+$$\hat{Y}=\beta_1 X_1 + \beta_2 X_2 + ... + \beta_k X_k + \beta_0$$
+
+Az előbbi egyenlet alapján a **többváltozós lineáris regresszió**t úgy is értelmezhetjük, mint egy olyan statisztikai modellt, ami a COVID halálozási arányokat akarja előrejelezni **egyszerre az ápolószám, munkanélküliség és 65 év feletti női népesség aránya** segítségével!
+
+## 2. A Többváltozós Lineáris Regresszió OLS elvű előállítása
+
+A nagy szerencsénk, hogy a többváltozós regresszióban is lényegében változtatás nélkül működik a $\beta_j$-k OLS elvű meghatározási módja.<br>
+Azaz, úgy választjuk meg a $\beta_j$-ket, hogy az COVID halálozási arányokra ($Y$) adott becsléseink hibája minimális legyen. A becslési hibát az ún. SSE mutatóval mérjük továbbra is: $Sum of Squared Errors (SSE) = \sum_{i=1}^n(y_i-\hat{y_i})^2$.<br>
+
+Az továbbra is igaz lesz, hogy négyzetesen mért hiba esetében a gép itt **sem vaktában keresi** a $\beta$-kat! Az OLS feladat megoldása (tehát a legkisebb $SSE$-t adó $\beta$-k) kifejezhetők egy fix képlettel itt is!
+
+Az $SSE=\sum_{i=1}^n(y_i-\hat{y_i})^2=\sum_{i}(y_i-\sum_{j}\beta_jx_j)^2$ képlet kifejezhető mátrixosan is, ha bevezetjük az $X$ mátrikot, aminek az első oszlopa csupa 1-et tartalmaz (a tengelymetszet miatt) és a többi oszlopaiba az $X_j$-ket rakjuk, akkor az $SSE$-t így is fel tudjuk írni: $SSE=||y-X\beta||^2$. Ha ezt a mátrixosan kifejezett függvényt deriváljuk a $\beta$-k szerint, és a deriváltakat egyenlővé tesszük 0-val, akkor kifejezhető az a fix formula, amivel az OLS elven számított $\beta$-k vektora megadható: $\beta=(X^TX)^{-1}X^Ty$.
+
+Azt, hogy konkrétan hogyan jön ki ez a csodaszép mátrixos formula, nekünk annyira nem fontos. A gyakorlati szempontból azt kell látni, hogy minimalizálási feladathoz többváltozós regresszió esetén sem kell a 3. gyakorlaton látott `optim` függvény, mert a megoldása egy fix mátrixos képlet. **Emiatt használják az OLS regressziót mai napig előszeretettel: fix képlettel megadhatók a $\beta$ együtthatók többváltozós esetben is!**
+
+Az a nagy szerencse, hogy a mi három magyarázóváltozót használó modellünk együtthatóit ilyen OLS elven meg lehet becsültetni Pythonban a `statsmodels` csomag `OLS` nevű függvényével. Ehhez először importáljuk a csomag függvényeit egy `sm` c. névtérbe.
+
+```{python}
+import statsmodels.api as sm
+```
+
+Különítsük el az eredményváltozó tömbjét ($Y$) és a magyarázóváltozók külön tábláját ($X$)
+
+```{python}
+Y = covid.COVIDHalal
+X = covid.loc[:,['Apolok','Munkanelkuliseg','Nok65Felett']]
+
+X = sm.add_constant(X)
+
+sokvalt_modell = sm.OLS(Y,X).fit()
+print(sokvalt_modell.summary())
+```
+
+Magyarázatok TODO
+
