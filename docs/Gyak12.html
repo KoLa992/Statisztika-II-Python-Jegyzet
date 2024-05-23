@@ -2775,7 +2775,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Többváltozós OLS Regresszió alapjai</h1>
 <h4 class="author">Kovács László</h4>
-<h4 class="date">2024. 05. 22.</h4>
+<h4 class="date">2024. 05. 23.</h4>
 
 </div>
 
@@ -2955,22 +2955,51 @@ modellünk együtthatóit ilyen OLS elven meg lehet becsültetni Pythonban a
 Ehhez először importáljuk a csomag függvényeit egy <code>sm</code>
 c. névtérbe.</p>
 <pre class="python"><code>import statsmodels.api as sm</code></pre>
-<p>Különítsük el az eredményváltozó tömbjét (<span class="math inline">\(Y\)</span>) és a magyarázóváltozók külön tábláját
-(<span class="math inline">\(X\)</span>)</p>
-<pre class="python"><code>Y = covid.COVIDHalal
-X = covid.loc[:,[&#39;Apolok&#39;,&#39;Munkanelkuliseg&#39;,&#39;Nok65Felett&#39;]]
-
+<p>A függvény használatához először el kell különíteni egy külön
+objektumba az eredményváltozó oszlopát a vizsgált
+<code>data frame</code>-ből. Hívjuk most ezt az objetktumot
+<code>Y</code>-nak.</p>
+<pre class="python"><code>Y = covid.COVIDHalal</code></pre>
+<p>Majd ezek után egy külön <code>data frame</code>-be összegyűjtöm csak
+a magyarázóváltozókat, hívjuk ezt az új <code>data frame</code>-t most
+szimplán <code>X</code>-nek. Utána a <code>statsmodels</code> csomag
+<code>add_constant</code> függvényével hozzáadunk egy csupa <span class="math inline">\(1\)</span>-ből álló oszlopot, ahogy a regresszió
+korábban látott mátrixos felírásában is vettük az <span class="math inline">\(X\)</span> mátrixot.</p>
+<pre class="python"><code>X = covid.loc[:,[&#39;Apolok&#39;,&#39;Munkanelkuliseg&#39;,&#39;Nok65Felett&#39;]]
 X = sm.add_constant(X)
-
-sokvalt_modell = sm.OLS(Y,X).fit()
-print(sokvalt_modell.summary())</code></pre>
+X</code></pre>
+<pre><code>##      const     Apolok  Munkanelkuliseg  Nok65Felett
+## 0      1.0   7.354416       369.057966    14.735575
+## 1      1.0  10.385919       227.396961    14.873729
+## 2      1.0   6.256924       227.403274    13.129282
+## 3      1.0   4.421334        65.454965    11.351294
+## 4      1.0   6.876948       676.691729    12.350999
+## ..     ...        ...              ...          ...
+## 97     1.0   7.377035       625.503954    14.313164
+## 98     1.0   7.567731       586.751425    14.237425
+## 99     1.0   5.884826       287.876058    13.452231
+## 100    1.0   8.136283       520.722095    16.730231
+## 101    1.0   8.535544       338.983051    15.522497
+## 
+## [102 rows x 4 columns]</code></pre>
+<p>És végül akkor az <code>sm</code> névtér <code>OLS</code> függvényébe
+berakjuk ezeket az újonnan létrehozott <code>Y</code> és <code>X</code>
+Python objektumokat (kötelezően ebben a sorrendben), és végül meghívunk
+az egészen egy <code>fit()</code> metódust. Az eredményt pedig egy külön
+Python objektumba kell elmenteni.</p>
+<pre class="python"><code>sokvalt_modell = sm.OLS(Y,X).fit()</code></pre>
+<p>A többváltozós regressziós modell legfontosabb statisztikai mutatóit
+egy nap összefoglaló táblázatban az az újonnan létrehozott
+<code>sokvalt_modell</code> objektum <code>summary()</code> metódusával
+lehet lekérdezni.</p>
+<pre class="python"><code>print(sokvalt_modell.summary())</code></pre>
 <pre><code>##                             OLS Regression Results                            
 ## ==============================================================================
 ## Dep. Variable:             COVIDHalal   R-squared:                       0.341
 ## Model:                            OLS   Adj. R-squared:                  0.321
 ## Method:                 Least Squares   F-statistic:                     16.89
-## Date:               Sze, 22 máj. 2024   Prob (F-statistic):           6.42e-09
-## Time:                        23:43:02   Log-Likelihood:                -152.39
+## Date:                Cs, 23 máj. 2024   Prob (F-statistic):           6.42e-09
+## Time:                        22:12:48   Log-Likelihood:                -152.39
 ## No. Observations:                 102   AIC:                             312.8
 ## Df Residuals:                      98   BIC:                             323.3
 ## Df Model:                           3                                         
@@ -2993,7 +3022,333 @@ print(sokvalt_modell.summary())</code></pre>
 ## [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
 ## [2] The condition number is large, 3.1e+03. This might indicate that there are
 ## strong multicollinearity or other numerical problems.</code></pre>
-<p>Magyarázatok TODO</p>
+<p>Nézzük meg mit látunk a <code>summary</code> eredményeként:</p>
+<ul>
+<li>Mivel az OLS elvű becslése, tehát a teljes modellhiba <span class="math inline">\(SSE\)</span> elvű mérése megmaradt, így <span class="math inline">\(R^2\)</span>-et továbbra is tudunk számolni <span class="math inline">\(R^2=1-\frac{SSE}{SST}\)</span> módon. Az
+értelmezése pedig annyiban módosul, hogy azt adja meg <strong>hány
+százalékban magyarázza az eredményváltozót a magyarázóváltozók
+összessége</strong>. Arra figyeljünk, az előbbi értelmezés miatt, hogy
+korreláció négyzeteként már <strong>NEM</strong> számolható a mutató,
+hiszen korreláció <em>egyszerre csak két változó kapcsolatát tudja
+leírni</em>, kettőnél több több változóét már nem. Ez alapján jelen
+szituációban azt mondhatjuk el, hogy az ápolók száma, 65 feletti női
+népesség aránya és munkanélküliség <strong>együtt</strong> <span class="math inline">\(34\%\)</span>-ban magyarázzák a COVID halálozási
+arányok ingadozását a járások között. Ez érezhető magyarázóerő növekedés
+a kétváltozós modellhez képest, ahol csak az <strong>Apolok</strong>
+hatását vizsgáltuk.</li>
+<li>A Globális F-próba p-értéke most is jó alacsony, mivel
+<code>Prob (F-statistic)</code> = <span class="math inline">\(6.42
+\times 10^{-9}\)</span>. Tehát, nem meglepő módon azt mondhatjuk, hogy
+minden szokásos <span class="math inline">\(\alpha\)</span>-n
+elutasíthatjuk, azt a <span class="math inline">\(H_0\)</span>-t, hogy
+az <span class="math inline">\(R^2\)</span> összeomlik 0-ba a mintán
+kívüli világban. Amit itt érdemes megfigyelni az a p-érték számoláshoz
+használt F-eloszlás szabadságfokai. Most nekünk ugye <span class="math inline">\(k=3\)</span> magyarázóváltozónk van, az azt
+jelenti, hogy a regresszióban <span class="math inline">\(p=4\)</span>
+paramétert, azaz <span class="math inline">\(\beta_j\)</span>-t kellett
+megbecsülnie az OLS-nek a tengelymetszet miatt. Ez alapján az F-eloszlás
+első szabadságfoka <span class="math inline">\(p-1=3=k\)</span>, míg a
+második szabadságfok <span class="math inline">\(n-p=102-4=98=n-k-1\)</span>.</li>
+<li>Ezen kívül az F-próba hipotéziseit úgy is fel lehet írni, mint:
+<span class="math inline">\(H_0: \beta_j=0 \forall j\)</span>, azaz
+minden <span class="math inline">\(\beta\)</span> a mintán kívüli
+világban 0-nak vehető, semminek nincs magyarázóereje <span class="math inline">\(Y\)</span>-ra. És <span class="math inline">\(H_1:
+\exists j:\beta_j \neq 0\)</span>, tehát van legalább egy darab <span class="math inline">\(\beta\)</span>, ami nem nulla a mintán kívüli
+világban, és a hozzá tartozó <span class="math inline">\(X_j\)</span>-nek van hatása <span class="math inline">\(Y\)</span>-ra a mintán kívüli világban is.</li>
+</ul>
+<p>A <code>Coefficients</code> táblából ismét felírható a megbecsült
+modell egyenlete: <span class="math display">\[BecsultCOVIDHalal=0.04
+\times Apolok + 0.003 \times Munkanelkuliseg + 0.27 \times Nok65Felett -
+0.15\]</span></p>
+<p>Az egyenlet olyan szempontból furának tűnik, hogy az
+<strong>Apolok</strong> együtthatója még mindig pozitív, bár tény, hogy
+már csak <span class="math inline">\(0.04\)</span> az értéke a
+kétváltozós modell <span class="math inline">\(0.36\)</span>-os
+meredeksége helyett.<br> Ahhoz, hogy pontosan megértsük mit is takar ez
+a <span class="math inline">\(0.04\)</span> és megadjuk hogyan lehet
+megmérni egy magyarázóváltozó (<span class="math inline">\(X_j\)</span>)
+fontosságát a regressziós modellünk előrejelzéseiben, egy kicsit
+alaposabban meg kell érteni mit is takarnak ezek a <span class="math inline">\(\beta_j\)</span> értékek a többváltozós
+regresszióban.</p>
+</div>
+<div id="a-magyarázóváltozók-marginális-hatása" class="section level2">
+<h2>3. A magyarázóváltozók marginális hatása</h2>
+<p>Ahogyan a 2. fejezetben írtam, a az OLS regressziót azért használják
+a mai napig előszeretettel, mert fix képlettel megadhatók a <span class="math inline">\(\beta_j\)</span> együtthatók. De ez csak az egyik
+oka a modell népszerűségének. A másik az, hogy a <span class="math inline">\(\beta_j\)</span> együtthatók megfeleltethetők a
+hozzájuk tartozó <span class="math inline">\(X_j\)</span>
+magyarázóváltozók <strong>marginális hatásának</strong>.</p>
+<p>Az <span class="math inline">\(X_j\)</span> magyarázóváltozó
+marginális hatása az a hatás, amit ő <strong>egyedül és
+közvetlenül</strong> fejt ki az <span class="math inline">\(Y\)</span>
+eredményváltozó alakulására. OLS regresszióban ez a marginális hatás
+<span class="math inline">\(X_j\)</span> magyarázóváltozó esetében épp a
+<span class="math inline">\(\beta_j\)</span> együttható lesz.</p>
+<p>Most ez alapján egy <span class="math inline">\(\beta_j\)</span>
+általános értelmezése a következő: <strong>Ha az adott bétához tartozó
+magyarázóváltozó értéke egy egységgel nő a többi magyarázóváltozó
+értékének változatlansága mellett, akkor az eredményváltozó értéke
+várhatóan bétányit változik.</strong></p>
+<p>Ennek az értelmezésnek <strong>3 kötelező eposzi kelléke</strong>
+van:</p>
+<ol style="list-style-type: decimal">
+<li>Minden változás az eredményváltozó és az éppen vizsgált
+magyarázóváltozó <strong>saját mértékegységében</strong> értendő</li>
+<li>Az éppen nem vizsgált magyarázóváltozók értékéről feltesszük, hogy
+nem változnak. Ezzel az éppen vizsgált <span class="math inline">\(X_j\)</span> közvetlen hatását mérjük meg <span class="math inline">\(Y\)</span>-ra. Ez a <strong>ceteris paribus
+elv</strong>.</li>
+<li>A <span class="math inline">\(\beta_j\)</span> az <span class="math inline">\(Y\)</span>-ban okozott <strong>várható</strong>
+változást mutatja csak! Ez a változás akkor lenne egész biztosan épp
+<span class="math inline">\(\beta_j\)</span>-nyi, ha <span class="math inline">\(R^2=100\%\)</span> lenne.</li>
+</ol>
+<p>Ha ez az értelemzés így általánosságban igaz, akkor az
+<strong>Apolok</strong> <span class="math inline">\(+0.04\)</span>-es
+<span class="math inline">\(\beta\)</span>-ja a többváltozós
+regressziónkban már megtisztult a munkanélküliség és a 65 év feletti
+népesség <strong>confunding</strong> hatásától, hiszen a <span class="math inline">\(0.04\)</span> egy ezek megváltozása
+<em>nélküli</em> +1 egység <strong>Apolok</strong> növekedés esetén
+mutatja be a COVID halálozás várható változását.</p>
+<p>Ezek alapján nézzük meg a jelenlegi modellünkben vett <span class="math inline">\(\beta_j\)</span>-k értelmezése! Ha csak a modell
+<span class="math inline">\(\beta_j\)</span>-it akarom lekérdezni és
+semmi egyebet, akkor azt a modellt tartalmazó Python objektum
+<code>params</code> tulajdonságának lekérdezésével tudom megtenni.</p>
+<pre class="python"><code>sokvalt_modell.params</code></pre>
+<pre><code>## const             -0.154215
+## Apolok             0.044522
+## Munkanelkuliseg    0.002819
+## Nok65Felett        0.265567
+## dtype: float64</code></pre>
+<ul>
+<li><span class="math inline">\(\beta_1=0.04\)</span>: Ha egy járásban a
+10 ezer főre jutó ápolók száma nő 1 fővel változatlan munkanélküliség és
+65 év feletti női népesség mellett, akkor a járás COVID halálozási
+aránya várhatóan 0.04 százalékponttal emelkedik. Ez még mindig nem tűnik
+szimpatikusnak, de majd mindjárt a végére járunk.</li>
+<li><span class="math inline">\(\beta_2=0.003\)</span>: Ha egy járásban
+az álláskeresők száma 10 ezer fővel (azaz a 10 ezer főre jutó
+álláskeresők száma 1 fővel) nő változatlan ápolószám és 65 év feletti
+női népesség mellett, akkor a járás COVID halálozási aránya várhatóan
+0.003 százalékponttal emelkedik. Egy fokkal magyarosabban: Ha két azonos
+ápolószámú és azonos 65 év feletti női népességgel bíró járás közül az
+egyiknek 10 ezer fővel több munkanélkülije van, akkor ott várhatóan
+0.003 százalékponttal nagyobb esélye van egy COVID fertőzöttnek
+meghalni.</li>
+<li><span class="math inline">\(\beta_3=0.27\)</span>: Ha egy járásban a
+65 év feletti női népesség aránya 1 százalékponttal nő változatlan
+ápolószám és munkanélküliség mellett, akkor a járás COVID halálozási
+aránya várhatóan 0.27 százalékponttal emelkedik. Egy fokkal
+magyarosabban: Ha két azonos ápolószámú és munkanélüliségű járás közül
+az egyik népességében 1 százalékponttal több lesz a 65 év feletti nők
+aránya, akkor ott várhatóan 0.27 százalékponttal nagyobb esélye van egy
+COVID fertőzöttnek meghalni.</li>
+</ul>
+<p>Persze van még <strong>egy <span class="math inline">\(\beta_0\)</span> tengelymetszetünk, ami
+hivatalosan azt mutatja meg, hogy mennyi lenne az <span class="math inline">\(\hat{Y}\)</span>, ha a modellben minden
+magyarázóváltozó (<span class="math inline">\(X_j\)</span>) 0 értéket
+venne fel</strong>.<br> Ez esetünkben azt jelenti, hogy egy 0 ápolójú,
+65 év feletti nők nélküli és teljes foglalkoztatottságú járás COVID
+halálozási aránya a modellünk alapján <span class="math inline">\(-0.15\%\)</span>. Nyilván ezzel az értelmezéssel
+most nem kell foglalkozni, mivel a <span class="math inline">\(\forall
+X_j=0\)</span> hely jelen tématerületen nem létezik. Ha valaki talál egy
+ilyen <em>csupa 0</em> járást, akkor viszont meneküljön onnan, mert
+jönnek a zombik :) (negatív halálozási arány :))</p>
+<div id="útelemzés" class="section level3">
+<h3>3.2. Útelemzés</h3>
+<p>Az a tény, hogy többváltozós regresszióban a <span class="math inline">\(\beta_j\)</span> együtthatók megfeleltethetők a
+hozzájuk tartozó <span class="math inline">\(X_j\)</span>
+magyarázóváltozók <strong>marginális hatásának</strong>, elvezet minket
+az egyes <span class="math inline">\(X_j\)</span> magyarázóváltozók
+közvetlen és közvetett hatásának fogalmához. Egy tetszőleges <span class="math inline">\(X_j\)</span> magyarázóváltozó közvetlen és
+közvetett hatásait konkrétan, számszerűen is ki lehet fejezni a
+regressziós <span class="math inline">\(\beta\)</span>-k
+segítségével.</p>
+<p>Vegyük az eddig is vizsgált <strong>Apolok</strong> változó közvetlen
+és közvetett hatásait az alábbi ábrán szemléltetve az 1. fejezet
+korrelációmátrixából alapján kiindulva. Ugye a korrelációk alapján az
+volt az elképzelésünk, hogy <strong>az ápolók száma csak azért lehet
+magas pozitív korrelációban a COVID halálozással, mert a nagyobb
+munkanélküliség jellemzően nagyobb ápolószámmal jár együtt, és a magas
+munkanélküliség megnövelte a COVID halálozást, az ápolószámnak meg
+lehet, hogy önállóan semmi hatása nincs</strong>. Lássuk, hogy a
+<strong>regressziós együtthatók igazolják-e ezt az
+elképzelést</strong>!</p>
+<center>
+<img src="data:image/png;base64,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" style="width:50.0%" />
+</center>
+<p>Itt a <em>piros</em> nyíl jelöli az <strong>Apolok</strong> közvetlen
+hatását a <strong>COVIDHalal</strong>-ra, míg a <em>kék</em> nyíl a
+<strong>Munkanelkuliseg</strong> közvetlen hatását a
+<strong>COVIDHalal</strong>-ra. A <em>zöld</em> nyíl pedig az
+<strong>Apolok</strong> hatása a
+<strong>Munkanelkuliseg</strong>-re.</p>
+<p>A piros és kék nyilakon lévő közvetlen hatások nagyságát megadja a
+<span class="math inline">\(BecsultCOVIDHalal=\beta_1 \times Apolok +
+\beta_2 \times Munkanelkuliseg + \beta_0\)</span> regresszió <span class="math inline">\(\beta_1\)</span> és <span class="math inline">\(\beta_2\)</span> együtthatója. Szóval nyejük is ki
+ezeket a <span class="math inline">\(\beta\)</span>-kat külön R
+objektumokba:</p>
+<pre class="python"><code># először legyártjuk a két magyarázóváltozós regressziót
+X_ketvalt = covid.loc[:,[&#39;Apolok&#39;, &#39;Munkanelkuliseg&#39;]]
+X_ketvalt = sm.add_constant(X_ketvalt)
+ketmagyvalt_modell = sm.OLS(Y, X_ketvalt).fit()
+
+# megnézzük az együtthatókat tartalmazó tömböt
+ketmagyvalt_modell.params</code></pre>
+<pre><code>## const              2.326507
+## Apolok             0.185685
+## Munkanelkuliseg    0.002669
+## dtype: float64</code></pre>
+<pre class="python"><code>
+# a tömb 2. és 3. elemét a neveik alapján elmentjük: figyeljünk, hogy a 0. indexű elem a Béta_0!
+Beta_Apolok_COVID = ketmagyvalt_modell.params[&#39;Apolok&#39;]
+Beta_Munkanelk_COVID = ketmagyvalt_modell.params[&#39;Munkanelkuliseg&#39;]</code></pre>
+<p>A zöld nyílon található hatás nagyságát pedig egyszerűen a <span class="math inline">\(BecsultMunkanelkuliseg = \beta_1 \times Apolok +
+\beta_0\)</span> kétváltozós regresszió <span class="math inline">\(\beta_1\)</span> együtthatója adja meg. Ezt is
+mentsük le külön Python objektumokba:</p>
+<pre class="python"><code># legyártjuk a két magyarázóváltozós regresszió együtthatóit, és a meredekség lesz a &quot;zöld nyíl&quot; értéke
+Beta1_Apolok_Munkanelk, Beta0_Apolok_Munkanelk = np.polyfit(covid.Apolok, covid.Munkanelkuliseg, deg=1)</code></pre>
+<p>Ezzel pedig megadható az <span class="math inline">\(Apolok
+\rightarrow COVIDHalal\)</span> kapcsolat <em>közvetlen és
+közvetett</em> hatásai:</p>
+<pre class="python"><code># közvetlen hatása az ápolók számának a COVID halálozásra (piros nyíl)
+Kozvetlen_Apolok_COVID = Beta_Apolok_COVID
+Kozvetlen_Apolok_COVID</code></pre>
+<pre><code>## 0.18568467374999498</code></pre>
+<pre class="python"><code># közvetett hatása az ápolók számának a COVID halálozásra (zöld*kék nyíl)
+Kozvetett_Apolok_COVID = Beta1_Apolok_Munkanelk * Beta_Munkanelk_COVID
+Kozvetett_Apolok_COVID</code></pre>
+<pre><code>## 0.1772475206930266</code></pre>
+<p>Hiszen a <strong>közvetett</strong> hatás csupán annyi, hogy
+annyiszor kell venni a <span class="math inline">\(Munkanelkuliseg
+\rightarrow COVIDHalal\)</span> közvetlen hatást (kék nyíl), ahányszor
+megváltozik a <strong>Munkanelkuliseg</strong> egy egység
+<strong>Apolok</strong> növekedésre (zöld nyíl). Ezt pedig éppen a
+<code>Beta_Apolok_Munkanelk</code> adja meg!</p>
+<p>Ezzel pedig megadható a <span class="math inline">\(Apolok
+\rightarrow COVIDHalal\)</span> kapcsolat <em>teljes</em> hatása:</p>
+<pre class="python"><code># teljes hatás = közvetlen + közvetett hatás
+Teljes_Apolok_COVID = Kozvetlen_Apolok_COVID + Kozvetett_Apolok_COVID
+Teljes_Apolok_COVID</code></pre>
+<pre><code>## 0.3629321944430216</code></pre>
+<p>És jé, ez az érték pont ugyan az, mint *az eredeti <span class="math inline">\(BecsultCOVIDHalal = \beta_1 \times Apolok +
+\beta_0\)</span> kétváltozós regresszió <span class="math inline">\(\beta_1\)</span> meredeksége! :)</p>
+<pre class="python"><code>Beta1 # Ezt ugye még az 1. fejezetben hoztuk létre!</code></pre>
+<pre><code>## 0.36293219444301944</code></pre>
+<p>Tehát, tényleg az eredeti kétváltozós regresszióban lévő
+<strong>confunding</strong> hatást tudtuk letisztítani a többváltozós
+regresszióval az <strong>Apolok</strong> változóra nézve!</p>
+<p>Nyilván hasonló módon lehetne megmérni, hogy mennyi az <span class="math inline">\(Apolok \rightarrow COVIDHalal\)</span>
+kapcsolatban a <strong>Nok65Felett</strong> változó <em>közvetett
+hatása</em> miatt fellépő <strong>confunding</strong> hatása a <span class="math inline">\(BecsultCOVIDHalal = \beta_1 \times Apolok +
+\beta_0\)</span> kétváltozós regresszió <span class="math inline">\(\beta_1\)</span> meredekségében.</p>
+</div>
+<div id="parciális-t-próba" class="section level3">
+<h3>3.3. Parciális t-próba</h3>
+<p>A magyarázóváltozók fontosságát hipotézisvizsgálattal is meg tudjuk
+mérni. Egy tetszőleges <span class="math inline">\(X_j\)</span>
+magyarázóváltozó fontosságát az alábbi null- alteranatív hipotézis páros
+tesztelésével tudjuk megállapítani:</p>
+<ul>
+<li><span class="math inline">\(H_0: \beta_j=0\)</span> ~ <span class="math inline">\(X_j\)</span> hatása <span class="math inline">\(Y\)</span>-ra a mintán kívül <strong>nem
+szignifikáns</strong></li>
+<li><span class="math inline">\(H_1: \beta_j\neq0\)</span> ~ <span class="math inline">\(X_j\)</span> hatása <span class="math inline">\(Y\)</span>-ra a mintán kívül
+<strong>szignifikáns</strong></li>
+</ul>
+<p>Tehát ebben a hipotézisvizsgálatban, amit <em>parciális
+t-próbának</em> fogunk hívni, <strong>azt mondja a <span class="math inline">\(H_0\)</span>, hogy <span class="math inline">\(X_j\)</span> hatása az eredményváltozóra csak egy
+mintavételi hiba, ha megfigyelnék új egyedeket (azaz új járásokat),
+akkor a mintában mért hatás megszűnne, azaz <span class="math inline">\(\beta_j\)</span> kinullázódna</strong>.</p>
+<p>Ehhez a hipotézisvizsgálathoz kell nekünk a Globális F-próbánál
+látottak alapján egy próbafüggvény és p-érték is.</p>
+<p>A próbafüggvényhez ad nekünk a Python egy <strong>standard
+mintavételi hibát, angolul standard errort</strong>. Ez van a
+<code>summary</code> metódus által kigenerált együtthatótábla 2.
+oszlopában:</p>
+<pre class="python"><code>print(sokvalt_modell.summary())</code></pre>
+<pre><code>##                             OLS Regression Results                            
+## ==============================================================================
+## Dep. Variable:             COVIDHalal   R-squared:                       0.341
+## Model:                            OLS   Adj. R-squared:                  0.321
+## Method:                 Least Squares   F-statistic:                     16.89
+## Date:                Cs, 23 máj. 2024   Prob (F-statistic):           6.42e-09
+## Time:                        22:12:52   Log-Likelihood:                -152.39
+## No. Observations:                 102   AIC:                             312.8
+## Df Residuals:                      98   BIC:                             323.3
+## Df Model:                           3                                         
+## Covariance Type:            nonrobust                                         
+## ===================================================================================
+##                       coef    std err          t      P&gt;|t|      [0.025      0.975]
+## -----------------------------------------------------------------------------------
+## const              -0.1542      0.937     -0.165      0.870      -2.015       1.706
+## Apolok              0.0445      0.096      0.463      0.644      -0.146       0.235
+## Munkanelkuliseg     0.0028      0.001      4.099      0.000       0.001       0.004
+## Nok65Felett         0.2656      0.087      3.053      0.003       0.093       0.438
+## ==============================================================================
+## Omnibus:                       25.226   Durbin-Watson:                   1.957
+## Prob(Omnibus):                  0.000   Jarque-Bera (JB):               36.179
+## Skew:                           1.173   Prob(JB):                     1.39e-08
+## Kurtosis:                       4.735   Cond. No.                     3.10e+03
+## ==============================================================================
+## 
+## Notes:
+## [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+## [2] The condition number is large, 3.1e+03. This might indicate that there are
+## strong multicollinearity or other numerical problems.</code></pre>
+<p>Itt pl. a <span class="math inline">\(0.096\)</span> érték azt
+jelenti, hogy az <strong>Apolok</strong> bétája a mintában 0.04, de ez
+az érték a megfigyelt mintán kívül, új járásokra is futtatva a
+regressziót, ingadozhat a 0.04 körül, <em>várhatóan</em> +- 0.096-tal. A
+<span class="math inline">\(\beta_j\)</span> és standard hibájának
+(<span class="math inline">\(SH_j\)</span>) hányadosa lesz az ún.
+<em>t-érték = t value</em>, ami a parciális t-próba
+c. hipotézisvizsgálat próbafüggvénye. Az <strong>Apolok</strong> változó
+esetében ez 0.463</p>
+<p>A próbafüggvény eloszlása sok-sok mintavételt vizsgálva igaz <span class="math inline">\(H_0\)</span> esetén t-eloszlású, aminek a pontos
+alakját egy darab szabadságfok szabályozza, ami most <span class="math inline">\(df=n-p=n-k-1\)</span>, ami a Globális F-próbában a
+2. szabadságfok volt.</p>
+<p>Itt <span class="math inline">\(H_0\)</span> szempontjából a legjobb
+eset, ha <span class="math inline">\(\beta_j=0\)</span> a mintában is,
+hiszen <span class="math inline">\(t=\frac{\beta_j}{SH_j}\)</span>. A
+t-eloszlás alakja miatt viszont így a p-értéket úgy kell számolni a 0
+ponttól lefelé és felfelé vett eltérések esetén is csökkenjen a <span class="math inline">\(H_0\)</span> elutasításának hibavalószínűsége:</p>
+<center>
+<img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAeAB4AAD/4RD4RXhpZgAATU0AKgAAAAgABAE7AAIAAAARAAAISodpAAQAAAABAAAIXJydAAEAAAAcAAAQ1OocAAcAAAgMAAAAPgAAAAAc6gAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEtvdsOhY3MgTMOhc3psw7MAAAAFkAMAAgAAABQAABCqkAQAAgAAABQAABC+kpEAAgAAAAMxMgAAkpIAAgAAAAMxMgAA6hwABwAACAwAAAieAAAAABzqAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAyMTowMjoyMiAxNjoyNzoxMQAyMDIxOjAyOjIyIDE2OjI3OjExAAAASwBvAHYA4QBjAHMAIABMAOEAcwB6AGwA8wAAAP/hCyNodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvADw/eHBhY2tldCBiZWdpbj0n77u/JyBpZD0nVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkJz8+DQo8eDp4bXBtZXRhIHhtbG5zOng9ImFkb2JlOm5zOm1ldGEvIj48cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPjxyZGY6RGVzY3JpcHRpb24gcmRmOmFib3V0PSJ1dWlkOmZhZjViZGQ1LWJhM2QtMTFkYS1hZDMxLWQzM2Q3NTE4MmYxYiIgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIi8+PHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9InV1aWQ6ZmFmNWJkZDUtYmEzZC0xMWRhLWFkMzEtZDMzZDc1MTgyZjFiIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iPjx4bXA6Q3JlYXRlRGF0ZT4yMDIxLTAyLTIyVDE2OjI3OjExLjExNTwveG1wOkNyZWF0ZURhdGU+PC9yZGY6RGVzY3JpcHRpb24+PHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9InV1aWQ6ZmFmNWJkZDUtYmEzZC0xMWRhLWFkMzEtZDMzZDc1MTgyZjFiIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iPjxkYzpjcmVhdG9yPjxyZGY6U2VxIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+PHJkZjpsaT5Lb3bDoWNzIEzDoXN6bMOzPC9yZGY6bGk+PC9yZGY6U2VxPg0KCQkJPC9kYzpjcmVhdG9yPjwvcmRmOkRlc2NyaXB0aW9uPjwvcmRmOlJERj48L3g6eG1wbWV0YT4NCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAg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KACiiigAooooAKKKKACiiigAooooAKKKKACiiigAqvdXEdrbyTzMFSNS7MT0AFTkiuW8Vu2p3tl4dhP/AB+t5l0R/DAmC3/fRKr+NJuyuaU4c8rdBfCdu91Fc69dqVuNUYPGGHMcI4jX8ufqa6imRqsaKqABVGAB2qQUR0Qpy55XCiiimQFFFFABRRRQAhpjruwKkptAHKQf8SDxm9sciy1gmWL0S4UfOP8AgSjP1VvWuqFY3inS31TRXW3O26gIntn7rIpyp/MVY0HVU1nRLa+RdpkT507ow4ZT9DmpWjsazXNFSRpg5paQdKWqMgooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKbTqaTQAyRwiljwByST2rmfCSHU7i98RTc/bmCW2f4YEyFP8AwIln/wCBD0qXxnPJLYQaPati41ST7OCOqx9ZG/75yPxFb1pbR2lrHBAgSONQiqOwHFTuzZe5Tv1l+SJh0p1IKWqMQooooAKKKKACiiigAooooAawzXKaX/xI/GN3pZ4tdQBvLb0D8CRR+OG/E11hrnPGFnK+lpqNmha702QXMQXq4UHen4qSPripfc1pNX5X1OiX7op1VbC9hv8AT4Lu3cPFOiyIw6EEZH86s5FVuZvR6i0UUUCCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACmN1z04p2ax/E+qHSdBuLiIbpyBHCn9+RjtUfiSKT0RUI88kkZukf8Tnxdf6sRm3sh9itc/3hzIw/HA/A11K/dFZnh/Sxo+h2tluLPGmZHPV3PLN+JJNagHFKOxVWSlLTZaC0UUVRmFFFFABRRRQAUUUUAFFFFAAajdQ6kHpT8c0YoDzOV8KsdMv9Q8Py8C1fz7X/AK4yEnA/3W3D2G2upHrXLeKVOm6pp2vR8LDJ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paKAsJijFLRQFhMUYpaKBiYoxS0UAJijaPSlooFYQrSbadRQFkJikxTqKBjdtG32p1FArCbfajbS0UBZCYox7UtFAWG7R6UbadRQFkN207FFFAwooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigClrOr2eg6LearqcoitbOJpZWJA4A6DOOT0A7kivj+91sfHH4vLJ4h1aLQtCjBKC6ukRbaFQOF3EAu5xnGTk+i8fUvxD8D2vxC8Iy6Fe3UtoryJKk0ShirKeMg9RyeOK+dviX+z5Z+AvAd54hg8QT3r2zxqIXtggbe4XqGPrmgD6h0CLTIPD9jDoDwSabHCqWz27K0bIBgEFeD9RWhXlH7Nv/JF7L/r6n/9DNeh+KJpLfwjrE0EjRSx2M7o6MQysIyQQR0IoA+cv2iNC0O012Pxd4T1vT4NYt51jv7K0uo1nSUE4n2ht24HCsAM9D6mvXPg38TYfiN4UzcAR6tYBYrxCwJkOOJQBzhsHt1yK+cPg98KIfirJrTXurzWDaeYTuSESGUyeZnOSP7n617/APDP4Faf8N/Ek2tQ6zcahO9uYER4RGqgkEk4Jz90enegD1WiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAry/9ov8A5Ihq/wD11t//AEcleoV5f+0X/wAkQ1f/AK62/wD6OSgCD9m3/ki9l/19T/8AoZr0Dxb/AMiVrf8A2D7j/wBFtXkHwD8d+FdB+E1pY614h02wu1uJmaC4uVRwC+QcE123ib4m+CLrwlq8Fv4s0iSWWxnREW8QlmMZAA56mgDy39kf73i76Wf/ALXr6Sr5t/ZH+94u+ln/AO16+kqACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiii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" style="width:50.0%" />
+</center>
+<p><br>Így R-ben a p-érték:
+<code>2*stats.t.cdf(-abs(0.0445/0.096), df = 102-4)</code><span class="math inline">\(= 0.644\)</span>. Ezt adja meg a
+<code>summary</code> metódus eredménytáblája a <code>P&gt;|t|</code>
+oszlopban.</p>
+<p>A <code>P&gt;|t|</code> oszlopot nézegetve arra a kijelentésre
+juthatunk, hogy a COVID halálozásra a munkanélküliség és a 65 év feletti
+női népesség aránya is szignifikáns hatással van a <em>megfigyelt
+lakásokon kívüli világban is</em>, hiszen a parciális t-próba p-értéke
+az <span class="math inline">\(\alpha=1\%\)</span>-os
+szignifikancia-szintnél is kisebb. Azaz a <span class="math inline">\(H_0\)</span> elvetésével mindkét magyarázóváltozó
+esetén elég alacsony valószínűséggel hibáznék. Ez a
+<strong>Nok65Felett</strong> változó esetében azt jelenti, hogy az a
+közepes-gyenge közvetlen hatása az árakra, amit a parciális korreláció
+(+0.29) kimutatott megmarad új járások vizsgálata esetén is. Ugyanakkor,
+azt is látni, hogy az <strong>Apolok</strong> változóhoz rendelt p-érték
+jóval nagyobb, mint a <strong>Munkanelkuliseg</strong> és
+<strong>Nok65Felett</strong> változóké. Konkrétan <span class="math inline">\(64.4\%\)</span> a p-érték, ami olyan magas, hogy a
+legmagasabb szokásos <span class="math inline">\(\alpha\)</span>-nál, a
+<span class="math inline">\(10\%\)</span>-nál is nagyobb, így stabilan
+elfogadhatom a próba <span class="math inline">\(H_0\)</span>-ját! Tehát
+a parciális t-próba is azt mondja, hogy az <strong>Apolok</strong>
+változók hatása a COVID halálozásra a mintén kívüli filágban <strong>nem
+szignifikáns</strong>.</p>
+<p>Végkonklúzióként, tehát azt vonhatjuk le a modellünk alapján, hogy az
+<strong>ápolók számának COVID halálozásra gyakorolt pozitív hatása a
+kétváltozós regresszióban látszólagos volt csupán, és a munkanélküliség
+valamint 65 feletti női népesség arányának COVID halálozást növelő
+hatásait közvetítette csak, és semmi önálló szignifikáns marginális
+hatása nem volt</strong>!</p>
+<p>Ezek a változónkénti t-próba p-értékek azért nagyon jók, mert ezek
+alapján nagyon könnyű egy fontossági sorrendet felállítani a
+regressziónk magyarázóváltozói között. Az eddigiek alapján
+röviden-tömören: minél kisebb a parciális t-próba p-értéke, annál
+fontosabb az adott magyraázóváltozó az eredményváltozó előrejelezésében
+(annál kevésbé vehető marginális hatása <span class="math inline">\(0\)</span>-nak a sokaságban)</p>
+</div>
 </div>
 
 

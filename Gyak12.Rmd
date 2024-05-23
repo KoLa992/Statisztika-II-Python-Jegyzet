@@ -1,7 +1,7 @@
 ---
 title: "Többváltozós OLS Regresszió alapjai"
 author: "Kovács László"
-date: "2024. 05. 22."
+date: "2024. 05. 23."
 output:
   html_document:
     toc: true
@@ -103,17 +103,170 @@ Az a nagy szerencse, hogy a mi három magyarázóváltozót használó modellün
 import statsmodels.api as sm
 ```
 
-Különítsük el az eredményváltozó tömbjét ($Y$) és a magyarázóváltozók külön tábláját ($X$)
+A függvény használatához először el kell különíteni egy külön objektumba az eredményváltozó oszlopát a vizsgált `data frame`-ből. Hívjuk most ezt az objetktumot `Y`-nak.
 
 ```{python}
 Y = covid.COVIDHalal
+```
+
+Majd ezek után egy külön `data frame`-be összegyűjtöm csak a magyarázóváltozókat, hívjuk ezt az új `data frame`-t most szimplán `X`-nek. Utána a `statsmodels` csomag `add_constant` függvényével hozzáadunk egy csupa $1$-ből álló oszlopot, ahogy a regresszió korábban látott mátrixos felírásában is vettük az $X$ mátrixot.
+
+```{python}
 X = covid.loc[:,['Apolok','Munkanelkuliseg','Nok65Felett']]
-
 X = sm.add_constant(X)
+X
+```
 
+És végül akkor az `sm` névtér `OLS` függvényébe berakjuk ezeket az újonnan létrehozott `Y` és `X` Python objektumokat (kötelezően ebben a sorrendben), és végül meghívunk az egészen egy `fit()` metódust. Az eredményt pedig egy külön Python objektumba kell elmenteni.
+
+```{python}
 sokvalt_modell = sm.OLS(Y,X).fit()
+```
+
+A többváltozós regressziós modell legfontosabb statisztikai mutatóit egy nap összefoglaló táblázatban az az újonnan létrehozott `sokvalt_modell` objektum `summary()` metódusával lehet lekérdezni.
+
+```{python}
 print(sokvalt_modell.summary())
 ```
 
-Magyarázatok TODO
+Nézzük meg mit látunk a `summary` eredményeként:
 
+- Mivel az OLS elvű becslése, tehát a teljes modellhiba $SSE$ elvű mérése megmaradt, így $R^2$-et továbbra is tudunk számolni $R^2=1-\frac{SSE}{SST}$ módon. Az értelmezése pedig annyiban módosul, hogy azt adja meg **hány százalékban magyarázza az eredményváltozót a magyarázóváltozók összessége**. Arra figyeljünk, az előbbi értelmezés miatt, hogy korreláció négyzeteként már **NEM** számolható a mutató, hiszen korreláció *egyszerre csak két változó kapcsolatát tudja leírni*, kettőnél több több változóét már nem. Ez alapján jelen szituációban azt mondhatjuk el, hogy az ápolók száma, 65 feletti női népesség aránya és munkanélküliség **együtt** $34\%$-ban magyarázzák a COVID halálozási arányok ingadozását a járások között. Ez érezhető magyarázóerő növekedés a kétváltozós modellhez képest, ahol csak az **Apolok** hatását vizsgáltuk.
+- A Globális F-próba p-értéke most is jó alacsony, mivel `Prob (F-statistic)` = $6.42 \times 10^{-9}$. Tehát, nem meglepő módon azt mondhatjuk, hogy minden szokásos $\alpha$-n elutasíthatjuk, azt a $H_0$-t, hogy az $R^2$ összeomlik 0-ba a mintán kívüli világban. Amit itt érdemes megfigyelni az a p-érték számoláshoz használt F-eloszlás szabadságfokai. Most nekünk ugye $k=3$ magyarázóváltozónk van, az azt jelenti, hogy a regresszióban $p=4$ paramétert, azaz $\beta_j$-t kellett megbecsülnie az OLS-nek a tengelymetszet miatt. Ez alapján az F-eloszlás első szabadságfoka $p-1=3=k$, míg a második szabadságfok $n-p=102-4=98=n-k-1$.
+- Ezen kívül az F-próba hipotéziseit úgy is fel lehet írni, mint: $H_0: \beta_j=0 \forall j$, azaz minden $\beta$ a mintán kívüli világban 0-nak vehető, semminek nincs magyarázóereje $Y$-ra. És $H_1: \exists j:\beta_j \neq 0$, tehát van legalább egy darab $\beta$, ami nem nulla a mintán kívüli világban, és a hozzá tartozó $X_j$-nek van hatása $Y$-ra a mintán kívüli világban is.
+
+A `Coefficients` táblából ismét felírható a megbecsült modell egyenlete: $$BecsultCOVIDHalal=0.04 \times Apolok + 0.003 \times Munkanelkuliseg + 0.27 \times Nok65Felett - 0.15$$
+
+Az egyenlet olyan szempontból furának tűnik, hogy az **Apolok** együtthatója még mindig pozitív, bár tény, hogy már csak $0.04$ az értéke a kétváltozós modell $0.36$-os meredeksége helyett.<br>
+Ahhoz, hogy pontosan megértsük mit is takar ez a $0.04$ és megadjuk hogyan lehet megmérni egy magyarázóváltozó ($X_j$) fontosságát a regressziós modellünk előrejelzéseiben, egy kicsit alaposabban meg kell érteni mit is takarnak ezek a $\beta_j$ értékek a többváltozós regresszióban.
+
+## 3. A magyarázóváltozók marginális hatása
+
+Ahogyan a 2. fejezetben írtam, a az OLS regressziót azért használják a mai napig előszeretettel, mert fix képlettel megadhatók a $\beta_j$ együtthatók. De ez csak az egyik oka a modell népszerűségének. A másik az, hogy a $\beta_j$ együtthatók megfeleltethetők a hozzájuk tartozó $X_j$ magyarázóváltozók **marginális hatásának**.
+
+Az $X_j$ magyarázóváltozó marginális hatása az a hatás, amit ő **egyedül és közvetlenül** fejt ki az $Y$ eredményváltozó alakulására. OLS regresszióban ez a marginális hatás $X_j$ magyarázóváltozó esetében épp a $\beta_j$ együttható lesz.
+
+Most ez alapján egy $\beta_j$ általános értelmezése a következő: **Ha az adott bétához tartozó magyarázóváltozó értéke egy egységgel nő a többi magyarázóváltozó értékének változatlansága mellett, akkor az eredményváltozó értéke várhatóan bétányit változik.**
+
+Ennek az értelmezésnek **3 kötelező eposzi kelléke** van:
+
+1. Minden változás az eredményváltozó és az éppen vizsgált magyarázóváltozó **saját mértékegységében** értendő
+2. Az éppen nem vizsgált magyarázóváltozók értékéről feltesszük, hogy nem változnak. Ezzel az éppen vizsgált $X_j$ közvetlen hatását mérjük meg $Y$-ra. Ez a **ceteris paribus elv**.
+3. A $\beta_j$ az $Y$-ban okozott **várható** változást mutatja csak! Ez a változás akkor lenne egész biztosan épp $\beta_j$-nyi, ha $R^2=100\%$ lenne.
+
+Ha ez az értelemzés így általánosságban igaz, akkor az **Apolok** $+0.04$-es $\beta$-ja a többváltozós regressziónkban már megtisztult a munkanélküliség és a 65 év feletti népesség **confunding** hatásától, hiszen a $0.04$ egy ezek megváltozása *nélküli* +1 egység **Apolok** növekedés esetén mutatja be a COVID halálozás várható változását.
+
+Ezek alapján nézzük meg a jelenlegi modellünkben vett $\beta_j$-k értelmezése! Ha csak a modell $\beta_j$-it akarom lekérdezni és semmi egyebet, akkor azt a modellt tartalmazó Python objektum `params` tulajdonságának lekérdezésével tudom megtenni.
+
+```{python}
+sokvalt_modell.params
+```
+
+- $\beta_1=0.04$: Ha egy járásban a 10 ezer főre jutó ápolók száma nő 1 fővel változatlan munkanélküliség és 65 év feletti női népesség mellett, akkor a járás COVID halálozási aránya várhatóan 0.04 százalékponttal emelkedik. Ez még mindig nem tűnik szimpatikusnak, de majd mindjárt a végére járunk.
+- $\beta_2=0.003$: Ha egy járásban az álláskeresők száma 10 ezer fővel (azaz a 10 ezer főre jutó álláskeresők száma 1 fővel) nő változatlan ápolószám és 65 év feletti női népesség mellett, akkor a járás COVID halálozási aránya várhatóan 0.003 százalékponttal emelkedik. Egy fokkal magyarosabban: Ha két azonos ápolószámú és azonos 65 év feletti női népességgel bíró járás közül az egyiknek 10 ezer fővel több munkanélkülije van, akkor ott várhatóan 0.003 százalékponttal nagyobb esélye van egy COVID fertőzöttnek meghalni.
+- $\beta_3=0.27$: Ha egy járásban a 65 év feletti női népesség aránya 1 százalékponttal nő változatlan ápolószám és munkanélküliség mellett, akkor a járás COVID halálozási aránya várhatóan 0.27 százalékponttal emelkedik. Egy fokkal magyarosabban: Ha két azonos ápolószámú és munkanélüliségű járás közül az egyik népességében 1 százalékponttal több lesz a 65 év feletti nők aránya, akkor ott várhatóan 0.27 százalékponttal nagyobb esélye van egy COVID fertőzöttnek meghalni.
+
+Persze van még **egy $\beta_0$ tengelymetszetünk, ami hivatalosan azt mutatja meg, hogy mennyi lenne az $\hat{Y}$, ha a modellben minden magyarázóváltozó ($X_j$) 0 értéket venne fel**.<br>
+Ez esetünkben azt jelenti, hogy egy 0 ápolójú, 65 év feletti nők nélküli és teljes foglalkoztatottságú járás COVID halálozási aránya a modellünk alapján $-0.15\%$. Nyilván ezzel az értelmezéssel most nem kell foglalkozni, mivel a $\forall X_j=0$ hely jelen tématerületen nem létezik. Ha valaki talál egy ilyen *csupa 0* járást, akkor viszont meneküljön onnan, mert jönnek a zombik :) (negatív halálozási arány :))
+
+### 3.2. Útelemzés
+
+Az a tény, hogy többváltozós regresszióban a $\beta_j$ együtthatók megfeleltethetők a hozzájuk tartozó $X_j$ magyarázóváltozók **marginális hatásának**, elvezet minket az egyes $X_j$ magyarázóváltozók közvetlen és közvetett hatásának fogalmához. Egy tetszőleges $X_j$ magyarázóváltozó közvetlen és közvetett hatásait konkrétan, számszerűen is ki lehet fejezni a regressziós $\beta$-k segítségével.
+
+Vegyük az eddig is vizsgált **Apolok** változó közvetlen és közvetett hatásait az alábbi ábrán szemléltetve az 1. fejezet korrelációmátrixából alapján kiindulva. Ugye a korrelációk alapján az volt az elképzelésünk, hogy **az ápolók száma csak azért lehet magas pozitív korrelációban a COVID halálozással, mert a nagyobb munkanélküliség jellemzően nagyobb ápolószámmal jár együtt, és a magas munkanélküliség megnövelte a COVID halálozást, az ápolószámnak meg lehet, hogy önállóan semmi hatása nincs**. Lássuk, hogy a **regressziós együtthatók igazolják-e ezt az elképzelést**!
+
+<center>
+![](Utelemzes.png){width=50%}
+</center>
+
+Itt a *piros* nyíl jelöli az **Apolok** közvetlen hatását a **COVIDHalal**-ra, míg a *kék* nyíl a **Munkanelkuliseg** közvetlen hatását a **COVIDHalal**-ra. A *zöld* nyíl pedig az **Apolok** hatása a **Munkanelkuliseg**-re.
+
+A piros és kék nyilakon lévő közvetlen hatások nagyságát megadja a $BecsultCOVIDHalal=\beta_1 \times Apolok + \beta_2 \times Munkanelkuliseg + \beta_0$ regresszió $\beta_1$ és $\beta_2$ együtthatója. Szóval nyejük is ki ezeket a $\beta$-kat külön R objektumokba:
+
+```{python}
+# először legyártjuk a két magyarázóváltozós regressziót
+X_ketvalt = covid.loc[:,['Apolok', 'Munkanelkuliseg']]
+X_ketvalt = sm.add_constant(X_ketvalt)
+ketmagyvalt_modell = sm.OLS(Y, X_ketvalt).fit()
+
+# megnézzük az együtthatókat tartalmazó tömböt
+ketmagyvalt_modell.params
+
+# a tömb 2. és 3. elemét a neveik alapján elmentjük: figyeljünk, hogy a 0. indexű elem a Béta_0!
+Beta_Apolok_COVID = ketmagyvalt_modell.params['Apolok']
+Beta_Munkanelk_COVID = ketmagyvalt_modell.params['Munkanelkuliseg']
+```
+
+A zöld nyílon található hatás nagyságát pedig egyszerűen a $BecsultMunkanelkuliseg = \beta_1 \times Apolok + \beta_0$ kétváltozós regresszió $\beta_1$ együtthatója adja meg. Ezt is mentsük le külön Python objektumokba:
+
+```{python}
+# legyártjuk a két magyarázóváltozós regresszió együtthatóit, és a meredekség lesz a "zöld nyíl" értéke
+Beta1_Apolok_Munkanelk, Beta0_Apolok_Munkanelk = np.polyfit(covid.Apolok, covid.Munkanelkuliseg, deg=1)
+```
+
+Ezzel pedig megadható az $Apolok \rightarrow COVIDHalal$ kapcsolat *közvetlen és közvetett* hatásai:
+
+```{python}
+# közvetlen hatása az ápolók számának a COVID halálozásra (piros nyíl)
+Kozvetlen_Apolok_COVID = Beta_Apolok_COVID
+Kozvetlen_Apolok_COVID
+
+# közvetett hatása az ápolók számának a COVID halálozásra (zöld*kék nyíl)
+Kozvetett_Apolok_COVID = Beta1_Apolok_Munkanelk * Beta_Munkanelk_COVID
+Kozvetett_Apolok_COVID
+```
+
+Hiszen a **közvetett** hatás csupán annyi, hogy annyiszor kell venni a $Munkanelkuliseg \rightarrow COVIDHalal$ közvetlen hatást (kék nyíl), ahányszor megváltozik a **Munkanelkuliseg** egy egység **Apolok** növekedésre (zöld nyíl). Ezt pedig éppen a `Beta_Apolok_Munkanelk` adja meg!
+
+Ezzel pedig megadható a $Apolok \rightarrow COVIDHalal$ kapcsolat *teljes* hatása:
+
+```{python}
+# teljes hatás = közvetlen + közvetett hatás
+Teljes_Apolok_COVID = Kozvetlen_Apolok_COVID + Kozvetett_Apolok_COVID
+Teljes_Apolok_COVID
+```
+
+És jé, ez az érték pont ugyan az, mint *az eredeti $BecsultCOVIDHalal = \beta_1 \times Apolok + \beta_0$ kétváltozós regresszió $\beta_1$ meredeksége! :)
+
+```{python}
+Beta1 # Ezt ugye még az 1. fejezetben hoztuk létre!
+```
+
+Tehát, tényleg az eredeti kétváltozós regresszióban lévő **confunding** hatást tudtuk letisztítani a többváltozós regresszióval az **Apolok** változóra nézve!
+
+Nyilván hasonló módon lehetne megmérni, hogy mennyi az $Apolok \rightarrow COVIDHalal$ kapcsolatban a **Nok65Felett** változó *közvetett hatása* miatt fellépő **confunding** hatása a $BecsultCOVIDHalal = \beta_1 \times Apolok + \beta_0$ kétváltozós regresszió $\beta_1$ meredekségében.
+
+### 3.3. Parciális t-próba
+
+A magyarázóváltozók fontosságát hipotézisvizsgálattal is meg tudjuk mérni. Egy tetszőleges $X_j$ magyarázóváltozó fontosságát az alábbi null- alteranatív hipotézis páros tesztelésével tudjuk megállapítani:
+
+- $H_0: \beta_j=0$ ~ $X_j$ hatása $Y$-ra a mintán kívül **nem szignifikáns**
+- $H_1: \beta_j\neq0$ ~ $X_j$ hatása $Y$-ra a mintán kívül **szignifikáns**
+
+Tehát ebben a hipotézisvizsgálatban, amit *parciális t-próbának* fogunk hívni, **azt mondja a $H_0$, hogy $X_j$ hatása az eredményváltozóra csak egy mintavételi hiba, ha megfigyelnék új egyedeket (azaz új járásokat), akkor a mintában mért hatás megszűnne, azaz $\beta_j$ kinullázódna**.
+
+Ehhez a hipotézisvizsgálathoz kell nekünk a Globális F-próbánál látottak alapján egy próbafüggvény és p-érték is.
+
+A próbafüggvényhez ad nekünk a Python egy **standard mintavételi hibát, angolul standard errort**. Ez van a `summary` metódus által kigenerált együtthatótábla 2. oszlopában:
+
+```{python}
+print(sokvalt_modell.summary())
+```
+
+Itt pl. a $0.096$ érték azt jelenti, hogy az **Apolok** bétája a mintában 0.04, de ez az érték a megfigyelt mintán kívül, új járásokra is futtatva a regressziót, ingadozhat a 0.04 körül, *várhatóan* +- 0.096-tal. A $\beta_j$ és standard hibájának ($SH_j$) hányadosa lesz az ún. *t-érték = t value*, ami a parciális t-próba c. hipotézisvizsgálat próbafüggvénye. Az **Apolok** változó esetében ez 0.463
+
+A próbafüggvény eloszlása sok-sok mintavételt vizsgálva igaz $H_0$ esetén t-eloszlású, aminek a pontos alakját egy darab szabadságfok szabályozza, ami most $df=n-p=n-k-1$, ami a Globális F-próbában a 2. szabadságfok volt.
+
+Itt $H_0$ szempontjából a legjobb eset, ha $\beta_j=0$ a mintában is, hiszen $t=\frac{\beta_j}{SH_j}$. A t-eloszlás alakja miatt viszont így a p-értéket úgy kell számolni a 0 ponttól lefelé és felfelé vett eltérések esetén is csökkenjen a $H_0$ elutasításának hibavalószínűsége:
+
+<center>
+![](pt.jpg){width=50%}
+</center>
+
+<br>Így R-ben a p-érték: `2*stats.t.cdf(-abs(0.0445/0.096), df = 102-4)`$= 0.644$. Ezt adja meg a `summary` metódus eredménytáblája a `P>|t|` oszlopban.
+
+A `P>|t|` oszlopot nézegetve arra a kijelentésre juthatunk, hogy a COVID halálozásra a munkanélküliség és a 65 év feletti női népesség aránya is szignifikáns hatással van a *megfigyelt lakásokon kívüli világban is*, hiszen a parciális t-próba p-értéke az $\alpha=1\%$-os szignifikancia-szintnél is kisebb. Azaz a $H_0$ elvetésével mindkét magyarázóváltozó esetén elég alacsony valószínűséggel hibáznék. Ez a **Nok65Felett** változó esetében azt jelenti, hogy az a közepes-gyenge közvetlen hatása az árakra, amit a parciális korreláció (+0.29) kimutatott megmarad új járások vizsgálata esetén is. Ugyanakkor, azt is látni, hogy az **Apolok** változóhoz rendelt p-érték jóval nagyobb, mint a **Munkanelkuliseg** és **Nok65Felett** változóké. Konkrétan $64.4\%$ a p-érték, ami olyan magas, hogy a legmagasabb szokásos $\alpha$-nál, a $10\%$-nál is nagyobb, így stabilan elfogadhatom a próba $H_0$-ját! Tehát a parciális t-próba is azt mondja, hogy az **Apolok** változók hatása a COVID halálozásra a mintén kívüli filágban **nem szignifikáns**.
+
+Végkonklúzióként, tehát azt vonhatjuk le a modellünk alapján, hogy az **ápolók számának COVID halálozásra gyakorolt pozitív hatása a kétváltozós regresszióban látszólagos volt csupán, és a munkanélküliség valamint 65 feletti női népesség arányának COVID halálozást növelő hatásait közvetítette csak, és semmi önálló szignifikáns marginális hatása nem volt**!
+
+Ezek a változónkénti t-próba p-értékek azért nagyon jók, mert ezek alapján nagyon könnyű egy fontossági sorrendet felállítani a regressziónk magyarázóváltozói között. Az eddigiek alapján röviden-tömören: minél kisebb a parciális t-próba p-értéke, annál fontosabb az adott magyraázóváltozó az eredményváltozó előrejelezésében (annál kevésbé vehető marginális hatása $0$-nak a sokaságban)
